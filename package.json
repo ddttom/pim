@@ -23,7 +23,12 @@
     "@electron/fuses": "^1.8.0",
     "electron": "33.0.2"
   },
-  "keywords": ["pim", "personal", "information", "manager"],
+  "keywords": [
+    "pim",
+    "personal",
+    "information",
+    "manager"
+  ],
   "author": {
     "name": "Tom Cranstoun",
     "email": "Tom.cranstoun@gmail.com"
@@ -31,7 +36,8 @@
   "license": "MIT",
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
+    "exifreader": "^4.21.1",
     "sharp": "^0.33.2",
-    "exifreader": "^4.21.1"
+    "sqlite3": "^5.1.7"
   }
 }
