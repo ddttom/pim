@@ -1,14 +1,14 @@
 # Personal Information Management System
 
-Create a modern Personal Information Management System using Electron with the following specifications:
-Core Application Structure
+## Core Architecture
 
-Use Electron for desktop
-Use plain modern javascript for UI
-SQLite for local storage
-Follow airBnB style guide
+- Electron for cross-platform desktop application
+- Modern JavaScript (ES2022+) for UI implementation
+- SQLite for persistent local storage
+- AirBnB style guide compliance
 
-Project Structure
+## Project Structure
+
 src/
 ├── main/               # Electron main process
 │   ├── index.ts
