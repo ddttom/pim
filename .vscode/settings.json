@@ -6,6 +6,7 @@
         "clientlib",
         "clientlibs",
         "dcube",
+        "dotenv",
         "fieldsets",
         "fileupload",
         "headshot",
