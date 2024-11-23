@@ -1,13 +1,12 @@
 # Personal Information Management System
 
-Create a modern Personal Information Management System using Electron and TypeScript with the following specifications:
+Create a modern Personal Information Management System using Electron with the following specifications:
 Core Application Structure
 
 Use Electron for desktop
-React for UI
-TypeScript for type safety
+Use plain modern javascript for UI
 SQLite for local storage
-Redux for state management
+Follow airBnB style guide
 
 Project Structure
 src/
@@ -25,13 +24,7 @@ src/
 Core Dependencies
 
 electron
-react
-typescript
 sqlite3
-redux-toolkit
-tailwindcss
-googleapis (for Gmail/Calendar)
-sharp (image processing)
 
 Key Features to Implement
 
@@ -135,7 +128,7 @@ CREATE TABLE filters (
 
 Core Types
 
-typescriptCopyinterface Entry {
+copyInterface Entry {
   id: string;
   content: string;
   type?: string;
@@ -165,9 +158,8 @@ interface Filter {
 
 Implementation Requirements
 
-Follow TypeScript best practices
+Follow modern javascript best practices
 Implement proper error handling
-Use React hooks for state management
 Follow the repository pattern for data access
 Implement service layer for business logic
 Use dependency injection where appropriate
