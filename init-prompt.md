@@ -66,14 +66,20 @@ Custom styling
 
 Implementation Requirements
 
+Add proper class-based structure following Airbnb style guide
+Grouped related configuration options into config objects
+Use Set for activeFilters to prevent duplicates
+Add support for combined filter conditions
+Improve HTML structure with wrapper classes
+Add proper event handling
+
 Follow modern javascript best practices, never use react
 Implement proper error handling
 Follow the repository pattern for data access
 Implement service layer for business logic
 Use dependency injection where appropriate
 Follow event-driven architecture for updates
-Implement proper logging and monitoring
-Use async/await for asynchronous operations
+Implement proper logging and monitoring, using WINSTON
 
 Performance Requirements
 
