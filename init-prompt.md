@@ -3,24 +3,10 @@
 ## Core Architecture
 
 - Electron for cross-platform desktop application
-- Modern JavaScript (ES2022+) for UI implementation, never use typescript
+- Modern JavaScript (ES2022+) for UI implementation, never use typescript, never use react
 - SQLite for persistent local storage
 
-## Project Structure
-
-src/
-├── main/               # Electron main process
-│   ├── index.ts
-│   ├── ipc/
-│   └── services/
-├── renderer/          # Electron renderer
-│   ├── components/
-│   ├── hooks/
-│   ├── pages/
-│   └── store/
-├── shared/           # Shared types/utils
-└── db/              # Database schemas
-Core Dependencies
+## Core Dependencies
 
 electron
 sqlite3
@@ -29,7 +15,7 @@ Key Features to Implement
 
 Data Entry System
 
-Natural language input processing, markdown text
+Natural language input processing, markdown text or plain text
 Quick entry field
 File attachment support
 Image import with metadata
@@ -80,7 +66,7 @@ Custom styling
 
 Implementation Requirements
 
-Follow modern javascript best practices
+Follow modern javascript best practices, never use react
 Implement proper error handling
 Follow the repository pattern for data access
 Implement service layer for business logic
