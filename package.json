@@ -1,0 +1,37 @@
+{
+  "name": "photoviewer",
+  "productName": "Photo Viewer",
+  "version": "1.0.0",
+  "description": "Interactive photo viewer with comparison and metadata features",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "dev": "NODE_ENV=development electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish",
+    "lint": "echo \"No linting configured\""
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.5.0",
+    "@electron-forge/maker-deb": "^7.5.0",
+    "@electron-forge/maker-rpm": "^7.5.0",
+    "@electron-forge/maker-squirrel": "^7.5.0",
+    "@electron-forge/maker-zip": "^7.5.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.5.0",
+    "@electron-forge/plugin-fuses": "^7.5.0",
+    "@electron/fuses": "^1.8.0",
+    "electron": "33.0.2"
+  },
+  "keywords": ["photo", "viewer", "image", "comparison", "metadata"],
+  "author": {
+    "name": "Tom Cranstoun",
+    "email": "Tom.cranstoun@gmail.com"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "electron-squirrel-startup": "^1.0.1",
+    "sharp": "^0.33.2",
+    "exifreader": "^4.21.1"
+  }
+}
