@@ -3,7 +3,7 @@
 ## Core Architecture
 
 - Electron for cross-platform desktop application
-- Modern JavaScript (ES2022+) for UI implementation
+- Modern JavaScript (ES2022+) for UI implementation, never use typescript
 - SQLite for persistent local storage
 - AirBnB style guide compliance
 
