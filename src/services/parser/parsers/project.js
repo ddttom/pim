@@ -1,44 +1,34 @@
-const CONFIG = require('../../../config/parser.config');
 const { createLogger } = require('../../../utils/logger');
-
 const logger = createLogger('ProjectParser');
 
-/**
- * Parse project from text
- * @param {string} text - Input text
- * @returns {Object|null} Project object
- */
-function parse(text) {
-  try {
-    const result = {};
+module.exports = {
+    name: 'project',
+    parse(text, patterns) {
+        try {
+            // Match Project Name with full capture including "Project"
+            const projectMatch = text.match(/Project\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*?)(?=\s*(?:,|\.|$|\s+(?:tomorrow|next|at|about)))/i);
+            if (projectMatch) {
+                return {
+                    project: {
+                        project: `Project ${projectMatch[1].trim()}`
+                    }
+                };
+            }
 
-    // Parse Digital Transformation Project format first
-    const transformationMatch = text.match(/(?:for\s+)?([A-Za-z][A-Za-z\s]+?Project)(?=\s+(?:tomorrow|next|at|on|in|this|last|every|by|\$|#|,)|$)/i);
-    if (transformationMatch) {
-      result.project = transformationMatch[1].trim();
-      return result;
+            // Match Context Tags
+            const contextMatches = Array.from(text.matchAll(/\$(\w+)/g));
+            if (contextMatches.length > 0) {
+                return {
+                    project: {
+                        contexts: contextMatches.map(match => match[1])
+                    }
+                };
+            }
+
+            return null;
+        } catch (error) {
+            logger.error('Error in project parser:', { error });
+            return null;
+        }
     }
-
-    // Parse Project Name format
-    const projectMatch = text.match(/(?:for\s+)?(?:Project|project)\s+([A-Za-z][A-Za-z\s]+?)(?=\s+(?:tomorrow|next|at|on|in|this|last|every|by|\$|#|,)|$)/i);
-    if (projectMatch) {
-      result.project = `Project ${projectMatch[1].trim()}`;
-      return result;
-    }
-
-    // Parse contexts
-    const contextPattern = new RegExp(CONFIG.projectPatterns.context, 'g');
-    const contexts = [...text.matchAll(contextPattern)]
-      .map(match => match.groups.context);
-    if (contexts.length > 0) {
-      result.contexts = contexts;
-    }
-
-    return Object.keys(result).length > 0 ? result : null;
-  } catch (error) {
-    logger.error('Error parsing project:', error);
-    return null;
-  }
-}
-
-module.exports = { parse }; 
+}; 

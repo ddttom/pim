@@ -143,7 +143,101 @@ function validateResult(result) {
   }
 }
 
+/**
+ * Validate a parsed entry
+ * @param {Object} entry - The parsed entry
+ * @returns {Object} Validation result with errors array
+ */
+function validateEntry(entry) {
+    const errors = [];
+
+    // Required fields
+    if (!entry.rawContent) {
+        errors.push('Raw content is required');
+    }
+
+    // Priority validation
+    if (entry.priority && !['None', 'Low', 'Medium', 'High', 'Urgent'].includes(entry.priority)) {
+        errors.push('Invalid priority value');
+    }
+
+    // Date validation
+    if (entry.datetime && isNaN(new Date(entry.datetime).getTime())) {
+        errors.push('Invalid datetime format');
+    }
+    if (entry.dueDate && isNaN(new Date(entry.dueDate).getTime())) {
+        errors.push('Invalid due date format');
+    }
+
+    // Duration validation
+    if (entry.duration && typeof entry.duration !== 'number') {
+        errors.push('Duration must be a number');
+    }
+
+    // Complexity validation
+    if (entry.complexity && !['low', 'medium', 'high'].includes(entry.complexity.level)) {
+        errors.push('Invalid complexity level');
+    }
+
+    // Categories validation
+    if (entry.categories && !Array.isArray(entry.categories)) {
+        errors.push('Categories must be an array');
+    }
+
+    // Dependencies validation
+    if (entry.dependencies) {
+        if (!Array.isArray(entry.dependencies)) {
+            errors.push('Dependencies must be an array');
+        } else {
+            entry.dependencies.forEach(dep => {
+                if (!dep.type || !dep.task) {
+                    errors.push('Invalid dependency format');
+                }
+            });
+        }
+    }
+
+    return {
+        isValid: errors.length === 0,
+        errors
+    };
+}
+
+/**
+ * Sanitize entry data before saving
+ * @param {Object} entry - The entry to sanitize
+ * @returns {Object} Sanitized entry
+ */
+function sanitizeEntry(entry) {
+    const sanitized = { ...entry };
+
+    // Convert dates to ISO strings
+    if (sanitized.datetime instanceof Date) {
+        sanitized.datetime = sanitized.datetime.toISOString();
+    }
+    if (sanitized.dueDate instanceof Date) {
+        sanitized.dueDate = sanitized.dueDate.toISOString();
+    }
+
+    // Ensure arrays are unique
+    if (Array.isArray(sanitized.categories)) {
+        sanitized.categories = [...new Set(sanitized.categories)];
+    }
+
+    // Convert complex objects to strings for storage
+    if (sanitized.dependencies) {
+        sanitized.dependencies = JSON.stringify(sanitized.dependencies);
+    }
+    if (sanitized.location && typeof sanitized.location === 'object') {
+        sanitized.location = JSON.stringify(sanitized.location);
+    }
+
+    return sanitized;
+}
+
 module.exports = {
   validateAndSetDefaults,
   validateResult,
+  validateEntry,
+  sanitizeEntry
 }; 

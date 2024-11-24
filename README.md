@@ -16,7 +16,7 @@ A modern desktop application for managing personal information, tasks, and notes
 ### Advanced Parsing Features
 
 - Complex date handling (relative dates, weekends, last/first of month)
-- Time of day understanding (morning, afternoon, evening)
+- Time of day understanding (morning 9-12, afternoon 12-5, evening 5-9)
 - Team and attendee management
 - Project and context tracking
 - Location detection (office, online, travel)
@@ -96,7 +96,7 @@ with Sarah and Mike about sprint planning
 - "in 2 hours"
 - "next week"
 - "end of month"
-- "beginning of next quarter"
+- "beginning of next month"
 
 #### Special Date Handling
 
@@ -178,7 +178,7 @@ with Sarah and Mike about sprint planning
 
 ### Architecture
 
-The parser is built with a modular architecture:
+The parser uses a modular architecture:
 
 - Core Parser: Orchestrates parsing operations
 - Individual Parsers: Handle specific aspects (date, time, location, etc.)
@@ -262,19 +262,6 @@ Permission to use, copy, modify, and/or distribute this software for any purpose
 
 THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-### License Summary
-
-The ISC License:
-
-- Permits commercial use
-- Permits modification
-- Permits distribution
-- Permits private use
-- Includes warranty protection for the author
-- Includes liability protection for the author
-
-For more information about the ISC License, visit: <https://opensource.org/licenses/ISC>
-
 ## Parser Attributes
 
 ### Core Attributes
@@ -357,20 +344,20 @@ For more information about the ISC License, visit: <https://opensource.org/licen
 
 - `plugins` - Results from custom plugins
 
-## Plugin System docs
+## Plugin System
 
 The parser includes a powerful plugin system for extending its functionality. Each plugin can add custom parsing capabilities without modifying the core parser code.
 
-## Writing Plugins
+### Writing Plugins
 
-A plugin is a JavaScript object that must include:
+A plugin must include:
 
 1. A `parse` method that accepts text input and returns parsed data
 2. Optional patterns for text matching
 3. Proper error handling
 4. Documentation of input/output formats
 
-Example plugin structure:
+Example plugin:
 
 `
 const myPlugin = {
@@ -383,74 +370,32 @@ const myPlugin = {
 };
 `
 
-## Using Plugins
+### Using Plugins
 
 Register plugins with the parser:
 
 `
-const parser = new NaturalLanguageParser();
+const parser = new Parser();
 parser.registerPlugin('myPlugin', myPlugin);
 `
 
-The parser will automatically include plugin results in the output under the plugins property:
+Access plugin results:
 
 `
 const result = parser.parse('your text here');
 console.log(result.plugins.myPlugin);
 `
 
-## Built-in Plugins
-
-The parser comes with several built-in plugins:
-
-- Location Plugin: Parses location information from text
-- Date Plugin: Provides enhanced date parsing capabilities
-- Category Plugin: Handles category and tag detection
-
-## Example Plugins
-
-### Location Plugin
-
-`
-const locationPlugin = {
-  parse: (text) => {
-    // Parses: "meeting in Building A Room 123"
-    const match = text.match(/Building (\w+) Room (\d+)/i);
-    return match ? {
-      building: match[1],
-      room: match[2]
-    } : null;
-  }
-};
-`
-
-### Custom Date Plugin
-
-`
-const datePlugin = {
-  parse: (text) => {
-    // Parses: "next quarter review"
-    if (text.includes('quarter')) {
-      return {
-        type: 'quarter',
-        date: calculateQuarterDate()
-      };
-    }
-    return null;
-  }
-};
-`
-
-## Plugin Best Practices
+### Plugin Best Practices
 
 1. Single Responsibility
-   - Each plugin should focus on one specific parsing task
+   - Focus on one specific parsing task
    - Keep plugins simple and focused
 
 2. Error Handling
    - Return null for unmatched input
    - Handle edge cases gracefully
-   - Don't throw errors unless absolutely necessary
+   - Don't throw errors unless necessary
 
 3. Performance
    - Use efficient regex patterns
@@ -466,95 +411,5 @@ const datePlugin = {
    - Write comprehensive tests
    - Include edge cases
    - Test error conditions
-
-## Plugin Development Guidelines
-
-1. Input Validation
-   - Check for required text format
-   - Validate input parameters
-   - Handle empty or invalid input
-
-2. Output Format
-   - Return consistent data structures
-   - Document all possible return values
-   - Include type information
-
-3. Error Cases
-   - Handle parsing failures gracefully
-   - Provide meaningful error messages
-   - Log important errors
-
-4. Integration
-   - Test with other plugins
-   - Avoid naming conflicts
-   - Follow existing patterns
-
-## Example Plugin Implementation
-
-`
-const meetingPlugin = {
-  // Plugin configuration
-  config: {
-    minDuration: 15,
-    maxDuration: 480
-  },
-
-  // Main parse method
-  parse: (text) => {
-    try {
-      // Parse meeting information
-      const info = extractMeetingInfo(text);
-
-      // Validate and return results
-      return info ? {
-        type: 'meeting',
-        ...info
-      } : null;
-    } catch (error) {
-      console.error('Meeting plugin error:', error);
-      return null;
-    }
-  }
-};
-`
-
-## Plugin Results Structure
-
-Plugin results appear in the parser output:
-
-`
-{
-  // Standard parser results
-  action: 'meet',
-  datetime: '2024-01-01T10:00:00',
-  
-  // Plugin results
-  plugins: {
-    location: {
-      building: 'A',
-      room: '123'
-    },
-    custom: {
-      // Custom plugin data
-    }
-  }
-}
-`
-
-## Error Handling process
-
-Plugins execute in a protected context:
-
-`
-const errorPlugin = {
-  parse: () => {
-    throw new Error('Plugin error');
-  }
-};
-
-// Error is caught, parsing continues
-parser.registerPlugin('error', errorPlugin);
-const result = parser.parse('test text');
-`
 
 For more information about plugin development, see the API documentation or contact the development team.

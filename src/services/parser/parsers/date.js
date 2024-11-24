@@ -1,81 +1,123 @@
-const CONFIG = require('../../../config/parser.config');
 const { createLogger } = require('../../../utils/logger');
-const dateUtils = require('../utils/dateUtils');
-
 const logger = createLogger('DateParser');
 
-/**
- * Parse relative date from text
- */
-function parseRelativeDate(text) {
-  try {
-    logger.debug('Starting relative date parse:', { text });
-    const now = new Date();
+class DateParser {
+    static calculateRelativeDate(text) {
+        const now = new Date();
+        const lowercaseText = text.toLowerCase();
+        
+        // Handle "last Friday of the month"
+        if (lowercaseText.includes('last friday of the month')) {
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            let lastFriday = new Date(lastDay);
+            while (lastFriday.getDay() !== 5) {
+                lastFriday.setDate(lastFriday.getDate() - 1);
+            }
+            return lastFriday;
+        }
 
-    // Handle weekend cases first
-    const weekendMatch = text.match(/(?:the\s+)?weekend\b/i);
-    if (weekendMatch) {
-      logger.debug('Found weekend pattern');
-      const modifier = text.match(/\b(next)\s+(?:the\s+)?weekend\b/i)?.[1];
-      return dateUtils.calculateWeekdayDate(now, 'saturday', modifier);
+        // Handle "last" expressions
+        if (lowercaseText.includes('last')) {
+            const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const mentionedDay = weekdays.find(day => lowercaseText.includes(day));
+            if (mentionedDay) {
+                const targetDay = weekdays.indexOf(mentionedDay);
+                const date = new Date(now);
+                let diff = now.getDay() - targetDay;
+                if (diff <= 0) diff += 7;
+                date.setDate(now.getDate() - diff);
+                return date;
+            }
+        }
+
+        // Handle "next weekend" specifically
+        if (lowercaseText.includes('next weekend')) {
+            const date = new Date(now);
+            let daysUntilNextSaturday = (6 - now.getDay() + 7) % 7 + 7;
+            date.setDate(now.getDate() + daysUntilNextSaturday);
+            return date;
+        }
+
+        // Handle "weekend"
+        if (lowercaseText.includes('weekend')) {
+            const date = new Date(now);
+            let daysUntilSaturday = (6 - now.getDay()) % 7;
+            if (daysUntilSaturday === 0 && now.getDay() !== 6) daysUntilSaturday = 7;
+            date.setDate(now.getDate() + daysUntilSaturday);
+            return date;
+        }
+
+        // Handle "this" expressions
+        if (lowercaseText.includes('this')) {
+            const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const mentionedDay = weekdays.find(day => lowercaseText.includes(day));
+            if (mentionedDay) {
+                const targetDay = weekdays.indexOf(mentionedDay);
+                const date = new Date(now);
+                let diff = targetDay - now.getDay();
+                if (diff <= 0) diff += 7;
+                date.setDate(now.getDate() + diff);
+                return date;
+            }
+        }
+
+        // Handle "next" expressions
+        if (lowercaseText.includes('next')) {
+            if (lowercaseText.includes('week')) {
+                const date = new Date(now);
+                date.setDate(now.getDate() + 7);
+                return date;
+            }
+            if (lowercaseText.includes('month')) {
+                return new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            }
+            if (lowercaseText.includes('year')) {
+                return new Date(now.getFullYear() + 1, 0, 1);
+            }
+            if (lowercaseText.includes('weekend')) {
+                const date = new Date(now);
+                let daysUntilSaturday = (6 - now.getDay() + 7) % 7;
+                if (daysUntilSaturday === 0) daysUntilSaturday = 7;
+                date.setDate(now.getDate() + daysUntilSaturday);
+                return date;
+            }
+            // Handle next weekday
+            const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const mentionedDay = weekdays.find(day => lowercaseText.includes(day));
+            if (mentionedDay) {
+                const targetDay = weekdays.indexOf(mentionedDay);
+                const date = new Date(now);
+                let diff = targetDay - now.getDay();
+                if (diff <= 0) diff += 7;
+                date.setDate(now.getDate() + diff + 7);
+                return date;
+            }
+        }
+
+        // Handle "end of month"
+        if (lowercaseText.includes('end of month')) {
+            return new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        }
+
+        return now;
     }
 
-    // Handle "last X of the month/year" cases
-    const lastOfMatch = text.match(/(?:last|first)\s+(\w+)\s+of\s+the\s+(\w+)/i);
-    if (lastOfMatch) {
-      const [, dayName, timeframe] = lastOfMatch;
-      logger.debug('Found last/first of pattern:', { dayName, timeframe });
-      
-      const targetDay = CONFIG.days.indexOf(dayName.toLowerCase());
-      if (targetDay !== -1) {
-        const result = dateUtils.findLastOccurrence(now, targetDay, timeframe);
-        logger.debug('Last occurrence result:', { result: result?.toISOString() });
-        return result;
-      }
+    static parse(text, patterns) {
+        try {
+            const dateMatch = text.match(patterns.get('datetime'));
+            if (dateMatch) {
+                return { datetime: this.calculateRelativeDate(dateMatch[0]) };
+            }
+            return null;
+        } catch (error) {
+            logger.error('Error in date parser:', { error });
+            return null;
+        }
     }
-
-    // Handle regular relative dates
-    const match = text.match(CONFIG.patterns.timeExpression);
-    if (!match?.groups) {
-      logger.debug('No time expression match found');
-      return null;
-    }
-
-    const { modifier, unit } = match.groups;
-    logger.debug('Time expression match:', { modifier, unit });
-
-    // Handle weekday cases
-    if (CONFIG.days.includes(unit?.toLowerCase())) {
-      logger.debug('Processing weekday:', { unit, modifier });
-      const result = dateUtils.calculateWeekdayDate(now, unit, modifier);
-      logger.debug('Weekday calculation result:', { result: result?.toISOString() });
-      return result;
-    }
-
-    // Handle special cases
-    switch (unit?.toLowerCase()) {
-      case 'week':
-        logger.debug('Processing week');
-        return dateUtils.calculateWeekDate(now, modifier);
-      case 'month':
-        logger.debug('Processing month');
-        return dateUtils.calculateMonthDate(now, modifier);
-      case 'quarter':
-        logger.debug('Processing quarter');
-        return dateUtils.calculateQuarterDate(now, modifier);
-      case 'year':
-        logger.debug('Processing year');
-        return dateUtils.calculateYearDate(now, modifier);
-    }
-
-    logger.debug('No matching date pattern found');
-    return null;
-  } catch (error) {
-    logger.error('Error parsing relative date:', error);
-    return null;
-  }
 }
 
 module.exports = {
-  parseRelativeDate,
+    name: 'date',
+    parse: DateParser.parse.bind(DateParser),
+    calculateRelativeDate: DateParser.calculateRelativeDate
 }; 

@@ -43,7 +43,14 @@ saveEntryBtn.addEventListener('click', async () => {
             action: parsedEntry.action,
             contact: parsedEntry.contact,
             datetime: parsedEntry.datetime?.toISOString(),
-            priority: parsedEntry.priority
+            priority: parsedEntry.priority,
+            complexity: parsedEntry.complexity,
+            location: parsedEntry.location,
+            duration: parsedEntry.duration,
+            project: parsedEntry.project,
+            recurringPattern: parsedEntry.recurringPattern,
+            dependencies: parsedEntry.dependencies,
+            dueDate: parsedEntry.dueDate?.toISOString(),
         });
 
         // Add categories
@@ -102,13 +109,19 @@ function renderTableView(entries) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
-                <button class="delete-btn" data-id="${entry.id}"><i class="fas fa-trash-alt"></i></button>
+                <button class="delete-btn" data-id="${entry.id}">
+                    <i class="fas fa-trash-alt" data-id="${entry.id}"></i>
+                </button>
                 ${entry.raw_content}
             </td>
             <td>${entry.action || '-'}</td>
             <td>${entry.contact || '-'}</td>
             <td>${entry.datetime ? new Date(entry.datetime).toLocaleString() : '-'}</td>
             <td class="priority-${entry.priority.toLowerCase()}">${entry.priority}</td>
+            <td>${entry.project || '-'}</td>
+            <td>${entry.location || '-'}</td>
+            <td>${entry.complexity || '-'}</td>
+            <td>${entry.duration ? `${entry.duration}min` : '-'}</td>
             <td>${entry.categories?.join(', ') || '-'}</td>
         `;
         tbody.appendChild(tr);
@@ -116,15 +129,7 @@ function renderTableView(entries) {
 
     // Add event listeners for delete buttons
     document.querySelectorAll('.delete-btn').forEach(button => {
-        button.addEventListener('click', async (event) => {
-            const entryId = event.target.dataset.id;
-            try {
-                await db.deleteEntry(entryId);
-                await loadEntries();
-            } catch (error) {
-                console.error('Error deleting entry:', error);
-            }
-        });
+        button.addEventListener('click', handleDelete);
     });
 }
 
@@ -136,30 +141,31 @@ function renderCardsView(entries) {
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
-            <button class="delete-btn" data-id="${entry.id}"><i class="fas fa-trash-alt"></i></button>
+            <button class="delete-btn" data-id="${entry.id}">
+                <i class="fas fa-trash-alt" data-id="${entry.id}"></i>
+            </button>
             <div class="card-priority priority-${entry.priority.toLowerCase()}">${entry.priority}</div>
             <div class="card-content">${entry.raw_content}</div>
             <div class="card-meta">
                 ${entry.action ? `<div class="card-action">${entry.action}</div>` : ''}
                 ${entry.contact ? `<div class="card-contact">${entry.contact}</div>` : ''}
                 ${entry.datetime ? `<div class="card-date">${new Date(entry.datetime).toLocaleString()}</div>` : ''}
+                ${entry.project ? `<div class="card-project">Project: ${entry.project}</div>` : ''}
+                ${entry.location ? `<div class="card-location">Location: ${entry.location}</div>` : ''}
+                ${entry.complexity ? `<div class="card-complexity">Complexity: ${entry.complexity}</div>` : ''}
+                ${entry.duration ? `<div class="card-duration">Duration: ${entry.duration}min</div>` : ''}
+                ${entry.recurring_pattern ? `<div class="card-recurring">Recurring: ${entry.recurring_pattern}</div>` : ''}
+                ${entry.due_date ? `<div class="card-due-date">Due: ${new Date(entry.due_date).toLocaleString()}</div>` : ''}
             </div>
             ${entry.categories?.length ? `<div class="card-categories">${entry.categories.join(', ')}</div>` : ''}
+            ${entry.dependencies ? `<div class="card-dependencies">Dependencies: ${entry.dependencies}</div>` : ''}
         `;
         container.appendChild(card);
     });
 
     // Add event listeners for delete buttons
     document.querySelectorAll('.delete-btn').forEach(button => {
-        button.addEventListener('click', async (event) => {
-            const entryId = event.target.dataset.id;
-            try {
-                await db.deleteEntry(entryId);
-                await loadEntries();
-            } catch (error) {
-                console.error('Error deleting entry:', error);
-            }
-        });
+        button.addEventListener('click', handleDelete);
     });
 }
 
@@ -167,20 +173,32 @@ function renderTimelineView(entries) {
     const container = document.getElementById('timeline-view');
     container.innerHTML = '';
 
-    // Sort entries by datetime
     const sortedEntries = entries
-        .filter(entry => entry.datetime)
-        .sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
+        .filter(entry => entry.datetime || entry.due_date)
+        .sort((a, b) => {
+            const dateA = new Date(a.due_date || a.datetime);
+            const dateB = new Date(b.due_date || b.datetime);
+            return dateB - dateA;
+        });
 
     sortedEntries.forEach(entry => {
         const item = document.createElement('div');
         item.className = 'timeline-item';
         item.innerHTML = `
-            <button class="delete-btn" data-id="${entry.id}"><i class="fas fa-trash-alt"></i></button>
-            <div class="timeline-date">${new Date(entry.datetime).toLocaleString()}</div>
+            <button class="delete-btn" data-id="${entry.id}">
+                <i class="fas fa-trash-alt" data-id="${entry.id}"></i>
+            </button>
+            <div class="timeline-date">
+                ${entry.due_date ? `Due: ${new Date(entry.due_date).toLocaleString()}` : ''}
+                ${entry.datetime ? `Date: ${new Date(entry.datetime).toLocaleString()}` : ''}
+            </div>
             <div class="timeline-content">
                 <div class="priority-${entry.priority.toLowerCase()}">${entry.priority}</div>
                 <div>${entry.raw_content}</div>
+                ${entry.project ? `<div class="timeline-project">Project: ${entry.project}</div>` : ''}
+                ${entry.location ? `<div class="timeline-location">Location: ${entry.location}</div>` : ''}
+                ${entry.complexity ? `<div class="timeline-complexity">Complexity: ${entry.complexity}</div>` : ''}
+                ${entry.duration ? `<div class="timeline-duration">Duration: ${entry.duration}min</div>` : ''}
                 ${entry.categories?.length ? `<div class="timeline-categories">${entry.categories.join(', ')}</div>` : ''}
             </div>
         `;
@@ -189,16 +207,29 @@ function renderTimelineView(entries) {
 
     // Add event listeners for delete buttons
     document.querySelectorAll('.delete-btn').forEach(button => {
-        button.addEventListener('click', async (event) => {
-            const entryId = event.target.dataset.id;
-            try {
-                await db.deleteEntry(entryId);
-                await loadEntries();
-            } catch (error) {
-                console.error('Error deleting entry:', error);
-            }
-        });
+        button.addEventListener('click', handleDelete);
     });
+}
+
+// Centralized delete handler
+async function handleDelete(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Get the entry ID from either the button or the icon
+    const entryId = event.target.dataset.id || event.target.parentElement.dataset.id;
+    
+    if (!entryId) {
+        console.error('No entry ID found for delete operation');
+        return;
+    }
+
+    try {
+        await db.deleteEntry(entryId);
+        await loadEntries(); // Refresh the view
+    } catch (error) {
+        console.error('Error deleting entry:', error);
+    }
 }
 
 async function loadEntries() {

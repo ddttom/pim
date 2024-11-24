@@ -1,45 +1,43 @@
-const CONFIG = require('../../../config/parser.config');
 const { createLogger } = require('../../../utils/logger');
-
 const logger = createLogger('DependenciesParser');
 
-/**
- * Parse dependencies from text
- * @param {string} text - Input text
- * @returns {Object|null} Dependencies object
- */
-function parse(text) {
-  try {
-    const result = {};
+module.exports = {
+    name: 'dependencies',
+    parse(text, patterns) {
+        try {
+            const dependencies = [];
+            
+            // Match "after X" dependencies
+            const afterMatches = text.match(/after\s+([^,\.]+?)(?=\s*(?:,|\.|$|\s+(?:and|or)))/gi);
+            if (afterMatches) {
+                afterMatches.forEach(match => {
+                    const dep = match.replace(/^after\s+/i, '').trim();
+                    dependencies.push({ type: 'after', task: dep });
+                });
+            }
 
-    // Parse "after" dependencies with "is complete"
-    const afterMatch = text.match(/(?:after|when)\s+([^,\.]+?)(?:\s+is\s+complete)?(?=\s+(?:and|or|,|\.|$))/i);
-    if (afterMatch) {
-      result.after = afterMatch[1].trim();
+            // Match "before X" dependencies
+            const beforeMatches = text.match(/before\s+([^,\.]+?)(?=\s*(?:,|\.|$|\s+(?:and|or)))/gi);
+            if (beforeMatches) {
+                beforeMatches.forEach(match => {
+                    const dep = match.replace(/^before\s+/i, '').trim();
+                    dependencies.push({ type: 'before', task: dep });
+                });
+            }
+
+            // Match "depends on X" dependencies
+            const dependsMatches = text.match(/depends\s+on\s+([^,\.]+?)(?=\s*(?:,|\.|$|\s+(?:and|or)))/gi);
+            if (dependsMatches) {
+                dependsMatches.forEach(match => {
+                    const dep = match.replace(/^depends\s+on\s+/i, '').trim();
+                    dependencies.push({ type: 'depends', task: dep });
+                });
+            }
+
+            return dependencies.length > 0 ? { dependencies } : null;
+        } catch (error) {
+            logger.error('Error in dependencies parser:', { error });
+            return null;
+        }
     }
-
-    // Parse "before" dependencies
-    const beforeMatch = text.match(/before\s+([^,\.]+)/i);
-    if (beforeMatch) {
-      result.before = beforeMatch[1].trim();
-    }
-
-    // Parse follow-up pattern with proper pluralization
-    const followupMatch = text.match(/(?:follow|check)\s+(?:up|back)\s+in\s+(\d+)\s*(\w+)/i);
-    if (followupMatch) {
-      const [, time, unit] = followupMatch;
-      const timeValue = parseInt(time, 10);
-      result.followup = {
-        time: timeValue,
-        unit: unit.toLowerCase() + (timeValue > 1 ? 's' : ''),
-      };
-    }
-
-    return Object.keys(result).length > 0 ? result : null;
-  } catch (error) {
-    logger.error('Error parsing dependencies:', error);
-    return null;
-  }
-}
-
-module.exports = { parse }; 
+}; 

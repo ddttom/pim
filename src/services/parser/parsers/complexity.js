@@ -1,25 +1,27 @@
-const CONFIG = require('../../../config/parser.config');
 const { createLogger } = require('../../../utils/logger');
-
 const logger = createLogger('ComplexityParser');
 
-/**
- * Parse complexity from text
- * @param {string} text - Input text
- * @returns {Object|null} Complexity object
- */
-function parse(text) {
-  try {
-    for (const [level, pattern] of Object.entries(CONFIG.complexityPatterns)) {
-      if (pattern.test(text)) {
-        return { level };
-      }
+module.exports = {
+    name: 'complexity',
+    parse(text, patterns) {
+        try {
+            const complexityMatch = text.match(/\b(complex|standard|quick|simple)\s+(?:task|review|work)\b/i);
+            if (complexityMatch) {
+                const level = complexityMatch[1].toLowerCase();
+                switch (level) {
+                    case 'complex':
+                        return { complexity: { level: 'high' } };
+                    case 'standard':
+                        return { complexity: { level: 'medium' } };
+                    case 'quick':
+                    case 'simple':
+                        return { complexity: { level: 'low' } };
+                }
+            }
+            return null;
+        } catch (error) {
+            logger.error('Error in complexity parser:', { error });
+            return null;
+        }
     }
-    return null;
-  } catch (error) {
-    logger.error('Error parsing complexity:', error);
-    return null;
-  }
-}
-
-module.exports = { parse }; 
+}; 

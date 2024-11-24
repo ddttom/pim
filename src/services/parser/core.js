@@ -1,157 +1,160 @@
-const chrono = require('chrono-node');
-const CONFIG = require('../../config/parser.config');
-const { createLogger } = require('../../utils/logger');
-const pluginManager = require('../../plugins/pluginManager');
-
-const actionParser = require('./parsers/action');
-const attendeesParser = require('./parsers/attendees');
-const categoriesParser = require('./parsers/categories');
-const complexityParser = require('./parsers/complexity');
-const dateParser = require('./parsers/date');
-const dependenciesParser = require('./parsers/dependencies');
-const durationParser = require('./parsers/duration');
-const locationParser = require('./parsers/location');
-const projectParser = require('./parsers/project');
-const recurringParser = require('./parsers/recurring');
-const statusParser = require('./parsers/status');
-const subjectParser = require('./parsers/subject');
-const timeParser = require('./parsers/time');
-const urgencyParser = require('./parsers/urgency');
-const remindersParser = require('./parsers/reminders');
-const priorityParser = require('./parsers/priority');
-const contactParser = require('./parsers/contact');
-const linksParser = require('./parsers/links');
-
-const { validateAndSetDefaults, validateResult } = require('./utils/validation');
 const { compilePatterns } = require('./utils/patterns');
+const { createLogger } = require('../../utils/logger');
 
 const logger = createLogger('NaturalLanguageParser');
 
 class NaturalLanguageParser {
-  constructor() {
-    logger.debug('Initializing NaturalLanguageParser');
-    this.patterns = CONFIG.patterns;
-    this.compiledPatterns = compilePatterns(this.patterns);
-    this.plugins = new Map();
-    this.loadDefaultPlugins();
-    logger.info('NaturalLanguageParser initialized with patterns:', 
-      { patternCount: Object.keys(this.patterns).length });
-  }
+    constructor() {
+        this.plugins = new Map();
+        this.patterns = new Map();
+        
+        // Initialize with default patterns
+        this.patterns = compilePatterns({
+            action: /^(call|email|meet|review|follow up|schedule|book|arrange|organize|plan|prepare|write|draft|create|make|do|check|verify|confirm|send|share|update|modify|change|delete|remove|add|text)/i,
+            contact: /@(\w+)|(?:call|email|meet|contact|text|with)\s+(\w+)(?:\s*,\s*|\s+and\s+|\s+|$)/i,
+            datetime: /\b(today|tomorrow|next\s+(?:week|month|year)|(?:this|next|last)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b|\b\d{1,2}\/\d{1,2}\/\d{4}\b|\b(?:in|after|before)\s+(\d+)\s+(?:day|week|month|year)s?\b/i,
+            priority: /\b(urgent|high|medium|low|normal)\b/i,
+            category: /#(\w+)/,
+            duration: /(?:for|lasting)\s+(\d+)\s+(minutes?|mins?|hours?|hrs?)/i,
+            location: /(?:in|at|on)\s+(?:the\s+)?(office|zoom|(?:New York[^,\.]*)|(?:Room\s+\d+))/i,
+            complexity: /\b(complex|standard|quick|simple)\s+(?:task|review|work)/i,
+            recurring: /\b(?:every|each)\s+(day|week|month|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
+            timeOfDay: /\b(morning|afternoon|evening)\b|\b(\d{1,2})(?::\d{2})?\s*(?:am|pm)?\b/i,
+            reminder: /remind(?:\s+me)?\s+(\d+)\s+(minutes?|mins?|hours?|hrs?|days?)\s+before/i,
+            urgency: /\b(asap|urgent|end of day|soon)\b/i,
+            subject: /\babout\s+([^,\.]+)|\#(\w+)/i,
+            attendees: /\bwith\s+(?:team\s+)?([^,\.]+)(?:\s*,\s*|\s+and\s+|$)/i,
+            project: /\bProject\s+([^,\.]+)|\$(\w+)/i,
+            status: /(\d+)%\s+complete/i,
+            zoom: /https:\/\/zoom\.us\/j\/\d+/i,
+            // Add temporal words pattern for sanitization
+            temporal: /\b(tomorrow|next|today|later|soon|after|before)\b/i
+        });
 
-  registerPlugin(name, plugin) {
-    logger.debug(`Registering plugin: ${name}`);
-    if (!plugin || typeof plugin.parse !== 'function') {
-      logger.error(`Invalid plugin: ${name}`);
-      throw new Error('Invalid plugin: must have a parse method');
+        this.loadDefaultPlugins();
     }
-    this.plugins.set(name, plugin);
-    logger.info(`Plugin registered: ${name}`);
-  }
 
-  parse(text) {
-    try {
-      logger.info('Starting parse operation:', { text });
-      logger.debug('Input validation check');
-
-      if (!text?.trim()) {
-        logger.error('Invalid input: empty or whitespace-only text');
-        throw new Error('Invalid input: text must be a non-empty string');
-      }
-
-      logger.debug('Starting individual parser executions');
-      const parsed = {
-        rawContent: text,
-        action: this.executeParser('action', () => actionParser.parse(text)),
-        attendees: this.executeParser('attendees', () => attendeesParser.parse(text)),
-        categories: this.executeParser('categories', () => categoriesParser.parse(text)),
-        complexity: this.executeParser('complexity', () => complexityParser.parse(text)),
-        datetime: null,
-        dependencies: this.executeParser('dependencies', () => dependenciesParser.parse(text)),
-        duration: this.executeParser('duration', () => durationParser.parse(text)),
-        location: this.executeParser('location', () => locationParser.parse(text)),
-        project: this.executeParser('project', () => projectParser.parse(text)),
-        recurring: this.executeParser('recurring', () => recurringParser.parse(text)),
-        status: this.executeParser('status', () => statusParser.parse(text)),
-        subject: this.executeParser('subject', () => subjectParser.parse(text)),
-        timeOfDay: this.executeParser('time', () => timeParser.parse(text)),
-        urgency: this.executeParser('urgency', () => urgencyParser.parse(text)),
-        priority: this.executeParser('priority', () => priorityParser.parse(text)),
-        reminders: this.executeParser('reminders', () => remindersParser.parse(text)),
-        contact: this.executeParser('contact', () => contactParser.parse(text)),
-        links: this.executeParser('links', () => linksParser.parse(text)),
-        plugins: {},
-      };
-
-      logger.debug('Parsing dates with chrono');
-      const dates = chrono.parse(text);
-      if (dates.length > 0 && dates[0].start?.date()) {
-        parsed.datetime = dates[0].start.date();
-        logger.debug('Found chrono date:', { date: parsed.datetime });
-      } else {
-        parsed.datetime = this.executeParser('date', () => dateParser.parseRelativeDate(text));
-      }
-
-      logger.debug('Running plugin parsers');
-      for (const [name, plugin] of this.plugins) {
+    loadDefaultPlugins() {
         try {
-          const result = plugin.parse(text);
-          if (result) {
-            parsed.plugins[name] = result;
-          }
-        } catch (pluginError) {
-          logger.error(`Plugin ${name} error:`, pluginError);
+            const defaultPlugins = [
+                require('./parsers/location'),
+                require('./parsers/attendees'),
+                require('./parsers/project'),
+                require('./parsers/reminders'),
+                require('./parsers/date'),
+                require('./parsers/duration'),
+                require('./parsers/complexity'),
+                require('./parsers/recurring'),
+                require('./parsers/timeOfDay'),
+                require('./parsers/subject'),
+                require('./parsers/urgency'),
+                require('./parsers/status'),
+                require('./parsers/contact'),
+                require('./parsers/categories'),
+                require('./parsers/dependencies'),
+                require('./parsers/links')
+            ];
+
+            defaultPlugins.forEach(plugin => {
+                if (plugin && plugin.name) {
+                    this.plugins.set(plugin.name, plugin);
+                }
+            });
+
+            logger.info('Default plugins loaded:', { count: defaultPlugins.length });
+        } catch (error) {
+            logger.error('Error loading default plugins:', { error });
         }
-      }
-
-      logger.debug('Validating and setting defaults');
-      validateAndSetDefaults(parsed, text);
-
-      logger.debug('Running final validation');
-      const validation = validateResult(parsed);
-      if (!validation.isValid) {
-        logger.warn('Validation errors:', validation.errors);
-      }
-
-      logger.info('Parse operation complete:', {
-        action: parsed.action,
-        datetime: parsed.datetime,
-        categories: parsed.categories?.length || 0,
-      });
-
-      return parsed;
-    } catch (error) {
-      logger.error('Critical error during parse operation:', error);
-      throw error;
     }
-  }
 
-  executeParser(name, parserFn) {
-    try {
-      logger.debug(`Executing ${name} parser`);
-      const result = parserFn();
-      logger.debug(`${name} parser result:`, { result });
-      return result;
-    } catch (error) {
-      logger.error(`Error in ${name} parser:`, error);
-      return null;
+    sanitizeInput(text) {
+        // Remove temporal words for certain parsers
+        return {
+            original: text,
+            sanitized: text.replace(this.patterns.get('temporal'), '').trim()
+        };
     }
-  }
 
-  loadDefaultPlugins() {
-    try {
-      const locationPlugin = require('../../plugins/locationPlugin');
-      const datePlugin = require('../../plugins/datePlugin');
-      const categoryPlugin = require('../../plugins/categoryPlugin');
+    parse(text) {
+        if (!text) return null;
 
-      this.registerPlugin('location', locationPlugin);
-      this.registerPlugin('date', datePlugin);
-      this.registerPlugin('category', categoryPlugin);
+        const result = {
+            rawContent: text,
+            action: null,
+            contact: null,
+            datetime: null,
+            categories: [],
+            priority: 'None',
+            complexity: null,
+            location: null,
+            duration: null,
+            project: null,
+            recurringPattern: null,
+            dependencies: null,
+            dueDate: null,
+            timeOfDay: undefined,
+            reminders: undefined,
+            urgency: undefined,
+            subject: undefined,
+            attendees: undefined
+        };
 
-      logger.info('Default plugins loaded');
-    } catch (error) {
-      logger.error('Error loading default plugins:', error);
+        try {
+            const { original, sanitized } = this.sanitizeInput(text);
+
+            // Extract action
+            const actionMatch = original.match(/\b(call|email|meet|text|review)\b/i);
+            if (actionMatch) {
+                result.action = actionMatch[1].toLowerCase();
+                if (result.action === 'text') {
+                    result.categories.push('calls');
+                }
+            } else if (original.toLowerCase().includes('meeting')) {
+                result.action = 'meet';
+            }
+
+            // Handle priority
+            if (original.toLowerCase().includes('urgent') || original.toLowerCase().includes('important')) {
+                result.priority = 'high';
+            } else {
+                const priorityMatch = original.match(/\b(high|medium|normal|low)\s+priority\b/i);
+                if (priorityMatch) {
+                    const priority = priorityMatch[1].toLowerCase();
+                    result.priority = priority === 'normal' ? 'medium' : priority;
+                }
+            }
+
+            // Run plugins with appropriate input
+            this.plugins.forEach(plugin => {
+                try {
+                    // Use sanitized input for location, attendees, and project
+                    const input = ['location', 'attendees', 'project'].includes(plugin.name) 
+                        ? sanitized 
+                        : original;
+                    
+                    const pluginResult = plugin.parse(input, this.patterns);
+                    if (pluginResult) {
+                        // Always keep reminder arrays as arrays
+                        if (plugin.name === 'reminders' && pluginResult.reminders) {
+                            result.reminders = pluginResult.reminders;
+                        } else {
+                            Object.assign(result, pluginResult);
+                        }
+                    }
+                } catch (error) {
+                    logger.error(`[NaturalLanguageParser] Error in plugin ${plugin.name}:`, { error });
+                }
+            });
+        } catch (error) {
+            logger.error('[NaturalLanguageParser] Error parsing text:', { error, text });
+        }
+
+        return result;
     }
-  }
+
+    static calculateRelativeDate(text) {
+        return require('./parsers/date').calculateRelativeDate(text);
+    }
 }
 
 module.exports = NaturalLanguageParser; 

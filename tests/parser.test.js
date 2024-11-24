@@ -1,10 +1,19 @@
-const parser = require('../src/services/parser');
+const Parser = require('../src/services/parser');
+const MockLogger = require('./__mocks__/logger');
 
 describe('NaturalLanguageParser', () => {
+    let parser;
+    let logger;
+    
+    beforeEach(() => {
+        logger = new MockLogger();
+        parser = new Parser(logger);
+    });
+
     test('should correctly interpret "next Wednesday" as the Wednesday of the following week', () => {
         const now = new Date();
         const nextWednesday = new Date(now);
-        nextWednesday.setDate(now.getDate() + ((3 + 7 - now.getDay()) % 7) + 7); // Calculate the next Wednesday
+        nextWednesday.setDate(now.getDate() + ((3 + 7 - now.getDay()) % 7) + 7);
 
         const result = parser.calculateRelativeDate('next Wednesday');
         console.log('Calculated Date for next Wednesday:', result.toDateString());
@@ -410,6 +419,76 @@ describe('NaturalLanguageParser', () => {
                 expect(result.complexity).toEqual({
                     level: 'low'
                 });
+            });
+        });
+    });
+
+    describe('Edge Cases', () => {
+        test('should handle empty input', () => {
+            const result = parser.parse('');
+            expect(result).toMatchObject({
+                plugins: {},
+                links: [],
+            });
+        });
+
+        test('should handle null input', () => {
+            const result = parser.parse(null);
+            expect(result).toMatchObject({
+                plugins: {},
+                links: [],
+            });
+        });
+
+        test('should handle undefined input', () => {
+            const result = parser.parse(undefined);
+            expect(result).toMatchObject({
+                plugins: {},
+                links: [],
+            });
+        });
+    });
+
+    describe('Links Parsing', () => {
+        test('should parse single link', () => {
+            const result = parser.parse('meeting at https://zoom.us/j/123456');
+            expect(result.links).toEqual(['https://zoom.us/j/123456']);
+        });
+
+        test('should parse multiple links', () => {
+            const result = parser.parse('check docs at https://docs.com and https://wiki.com');
+            expect(result.links).toEqual(['https://docs.com', 'https://wiki.com']);
+        });
+
+        test('should handle no links', () => {
+            const result = parser.parse('meeting tomorrow');
+            expect(result.links).toEqual([]);
+        });
+    });
+
+    describe('Integration Tests', () => {
+        test('should combine multiple features', () => {
+            const result = parser.parse(
+                'urgent zoom meeting with John and Sarah tomorrow morning at https://zoom.us/j/123456 #project remind me 30 minutes before'
+            );
+            expect(result).toMatchObject({
+                action: 'meet',
+                priority: 'high',
+                location: { type: 'online', value: 'zoom' },
+                attendees: {
+                    people: ['John', 'Sarah'],
+                    teams: [],
+                },
+                timeOfDay: { period: 'morning', start: 9, end: 12 },
+                links: ['https://zoom.us/j/123456'],
+                subject: {
+                    tags: ['project'],
+                    type: 'hashtag',
+                },
+                reminders: {
+                    reminderMinutes: 30,
+                    type: 'custom',
+                },
             });
         });
     });

@@ -10,21 +10,29 @@ class DatabaseService {
                 return;
             }
             this.initializeTables();
+            this.migrateDatabase();
         });
     }
 
     initializeTables() {
         const queries = [
-            "CREATE TABLE IF NOT EXISTS entries (\
-                id INTEGER PRIMARY KEY AUTOINCREMENT,\
-                raw_content TEXT NOT NULL,\
-                action TEXT,\
-                contact TEXT,\
-                datetime TEXT,\
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\
-                priority TEXT CHECK(priority IN ('None', 'Low', 'Medium', 'High', 'Urgent')),\
-                status TEXT DEFAULT 'active'\
-            )",
+            `CREATE TABLE IF NOT EXISTS entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                raw_content TEXT NOT NULL,
+                action TEXT,
+                contact TEXT,
+                datetime TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                priority TEXT CHECK(priority IN ('None', 'Low', 'Medium', 'High', 'Urgent')),
+                status TEXT DEFAULT 'active',
+                complexity INTEGER,
+                location TEXT,
+                duration INTEGER,
+                project TEXT,
+                recurring_pattern TEXT,
+                dependencies TEXT,
+                due_date TEXT
+            )`,
             
             "CREATE TABLE IF NOT EXISTS categories (\
                 id INTEGER PRIMARY KEY AUTOINCREMENT,\
@@ -58,21 +66,107 @@ class DatabaseService {
         });
     }
 
-    async addEntry(entry) {
+    async migrateDatabase() {
+        // Check if we need to add new columns
+        const tableInfo = await this.getTableInfo('entries');
+        const existingColumns = tableInfo.map(col => col.name);
+        
+        const newColumns = [
+            { name: 'complexity', type: 'INTEGER' },
+            { name: 'location', type: 'TEXT' },
+            { name: 'duration', type: 'INTEGER' },
+            { name: 'project', type: 'TEXT' },
+            { name: 'recurring_pattern', type: 'TEXT' },
+            { name: 'dependencies', type: 'TEXT' },
+            { name: 'due_date', type: 'TEXT' }
+        ];
+
+        for (const column of newColumns) {
+            if (!existingColumns.includes(column.name)) {
+                await this.addColumn('entries', column.name, column.type);
+            }
+        }
+    }
+
+    getTableInfo(tableName) {
         return new Promise((resolve, reject) => {
-            const { rawContent, action, contact, datetime, priority = 'None' } = entry;
-            
-            const query = "INSERT INTO entries (raw_content, action, contact, datetime, priority) VALUES (?, ?, ?, ?, ?)";
-            
-            this.db.run(query, [rawContent, action, contact, datetime, priority], function(err) {
+            this.db.all(`PRAGMA table_info(${tableName})`, (err, rows) => {
                 if (err) {
-                    console.error('Error adding entry:', err);
+                    console.error(`Error getting table info for ${tableName}:`, err);
                     reject(err);
                     return;
                 }
-                console.log('Entry added with ID:', this.lastID);
-                resolve(this.lastID);
+                resolve(rows);
             });
+        });
+    }
+
+    addColumn(tableName, columnName, columnType) {
+        return new Promise((resolve, reject) => {
+            const query = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnType}`;
+            this.db.run(query, (err) => {
+                if (err) {
+                    console.error(`Error adding column ${columnName}:`, err);
+                    reject(err);
+                    return;
+                }
+                console.log(`Added column ${columnName} to ${tableName}`);
+                resolve();
+            });
+        });
+    }
+
+    async addEntry(entry) {
+        return new Promise((resolve, reject) => {
+            const {
+                rawContent,
+                action,
+                contact,
+                datetime,
+                priority = 'None',
+                complexity,
+                location,
+                duration,
+                project,
+                recurringPattern,
+                dependencies,
+                dueDate,
+            } = entry;
+            
+            const query = `
+                INSERT INTO entries (
+                    raw_content, action, contact, datetime, priority,
+                    complexity, location, duration, project,
+                    recurring_pattern, dependencies, due_date
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `;
+            
+            this.db.run(
+                query,
+                [
+                    rawContent,
+                    action,
+                    contact,
+                    datetime,
+                    priority,
+                    complexity,
+                    location,
+                    duration,
+                    project,
+                    recurringPattern,
+                    dependencies ? JSON.stringify(dependencies) : null,
+                    dueDate,
+                ],
+                function(err) {
+                    if (err) {
+                        console.error('Error adding entry:', err);
+                        reject(err);
+                        return;
+                    }
+                    console.log('Entry added with ID:', this.lastID);
+                    resolve(this.lastID);
+                }
+            );
         });
     }
 

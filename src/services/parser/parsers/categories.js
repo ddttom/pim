@@ -1,42 +1,25 @@
-const CONFIG = require('../../../config/parser.config');
 const { createLogger } = require('../../../utils/logger');
-
 const logger = createLogger('CategoriesParser');
 
-/**
- * Parse categories from text
- * @param {string} text - Input text
- * @returns {string[]} Array of categories
- */
-function parse(text) {
-  try {
-    const categories = new Set();
-    
-    // Add action-based categories
-    if (text.toLowerCase().includes('call') || text.toLowerCase().includes('text')) {
-      categories.add('calls');
-    }
-    if (text.toLowerCase().includes('meet')) {
-      categories.add('meetings');
-    }
-    if (text.toLowerCase().includes('review')) {
-      categories.add('reviews');
-    }
+module.exports = {
+    name: 'categories',
+    parse(text, patterns) {
+        try {
+            const categories = new Set();
+            
+            // Add 'calls' category for text messages
+            if (text.toLowerCase().match(/\b(text|call)\b/)) {
+                categories.add('calls');
+            }
 
-    // Add pattern-based categories
-    if (CONFIG.categoryPatterns) {
-      for (const [category, pattern] of Object.entries(CONFIG.categoryPatterns)) {
-        if (pattern.test(text)) {
-          categories.add(category);
+            // Add categories from hashtags
+            const hashtagMatches = Array.from(text.matchAll(/#(\w+)/g));
+            hashtagMatches.forEach(match => categories.add(match[1]));
+
+            return categories.size > 0 ? { categories: Array.from(categories) } : null;
+        } catch (error) {
+            logger.error('Error in categories parser:', { error });
+            return null;
         }
-      }
     }
-
-    return Array.from(categories);
-  } catch (error) {
-    logger.error('Error parsing categories:', error);
-    return [];
-  }
-}
-
-module.exports = { parse }; 
+}; 

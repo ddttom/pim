@@ -1,27 +1,26 @@
-// Parser for extracting URLs from text content
-const { createLogger } = require('../../../utils/logger');
+const logger = require('../../../utils/logger');
 
-const logger = createLogger('LinksParser');
+// URL regex pattern
+const URL_PATTERN = /https?:\/\/[^\s]+/g;
 
-// URL regex pattern that matches http/https URLs
-const URL_PATTERN = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/gi;
+class LinksParser {
+  parse(text) {
+    try {
+      if (!text || typeof text !== 'string') {
+        return [];
+      }
 
-const parse = (text) => {
-  try {
-    if (!text) return [];
-    
-    // Extract all URLs from the text
-    const links = text.match(URL_PATTERN);
-    
-    logger.debug('Found links:', { linkCount: links?.length || 0 });
-    
-    return links || [];
-  } catch (error) {
-    logger.error('Error parsing links:', error);
-    return [];
+      // Extract URLs from text
+      const matches = text.match(URL_PATTERN);
+      
+      // Return array of URLs or empty array if no matches
+      return matches || [];
+
+    } catch (error) {
+      logger.error('Error in links parser:', { error });
+      return [];
+    }
   }
-};
+}
 
-module.exports = {
-  parse,
-}; 
+module.exports = new LinksParser(); 
