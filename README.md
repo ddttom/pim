@@ -8,14 +8,15 @@ A modern desktop application for managing personal information, tasks, and notes
 
 - Natural language input processing
 - Multiple view options (Table, Cards, Timeline)
-- Priority system
+- Priority system (high, medium, low)
 - Category tagging
-- Smart date parsing
-- Filtering capabilities
+- Smart date/time parsing
+- Advanced filtering capabilities
 
 ### Advanced Parsing Features
 
-- Complex meeting and event scheduling
+- Complex date handling (relative dates, weekends, last/first of month)
+- Time of day understanding (morning, afternoon, evening)
 - Team and attendee management
 - Project and context tracking
 - Location detection (office, online, travel)
@@ -47,13 +48,6 @@ npm start
 
 ## Usage
 
-### Basic Usage
-
-1. Click the "New Entry" button to create a new entry
-2. Enter your note in natural language
-3. Select a priority level (optional)
-4. Click "Save" to store your entry
-
 ### Natural Language Examples
 
 #### Basic Tasks
@@ -63,12 +57,12 @@ npm start
 - "Review code pull request #123"
 - "Text Mike about lunch meeting"
 
-#### Meetings
+#### Date and Time
 
-- "Meeting with team Engineering Monday 10am"
-- "Weekly standup every Monday at 9am"
-- "Zoom call with client tomorrow 2pm"
-- "Quick sync with Sarah in 30 minutes"
+- "Meeting next Wednesday at 10am"
+- "Call on the last Friday of the month"
+- "Team sync every Monday morning"
+- "Project review next weekend"
 
 #### Complex Tasks
 
@@ -88,16 +82,7 @@ team meeting every monday morning at 9am in the office
 with Sarah and Mike about sprint planning
 ```
 
-#### Follow-ups and Dependencies
-
-- "Follow up with John in 2 days"
-- "Check back after deployment is complete"
-- "Reminder about project status next week"
-- "Schedule review once testing is done"
-
-## Natural Language Understanding
-
-### Time Expressions
+### Smart Date Understanding
 
 #### Absolute Dates
 
@@ -113,12 +98,27 @@ with Sarah and Mike about sprint planning
 - "end of month"
 - "beginning of next quarter"
 
-#### Recurring Patterns
+#### Special Date Handling
 
-- "every Monday"
-- "daily at 9am"
-- "weekly team sync"
-- "monthly review"
+- "the weekend" (upcoming Saturday)
+- "next weekend" (Saturday of next week)
+- "last Friday of the month"
+- "first Monday of next month"
+
+### Time Expressions
+
+#### Time of Day
+
+- "morning" (9am-12pm)
+- "afternoon" (12pm-5pm)
+- "evening" (5pm-9pm)
+- Specific times: "2:30pm", "14:30"
+
+#### Duration
+
+- "for 30 minutes"
+- "lasting 2 hours"
+- "1 hour long"
 
 ### Priority Levels
 
@@ -158,30 +158,54 @@ with Sarah and Mike about sprint planning
 - "remind me 30 minutes before"
 - "alert 1 hour before"
 - "notify 1 day before"
+- Multiple: "alert me 1 hour before and 10 minutes before"
 
-## Advanced Features
+### Dependencies and Follow-ups
 
-### Plugin System
+- "after deployment is complete"
+- "blocked by QA testing"
+- "follow up in 2 weeks"
+- "check back when testing is done"
 
-Extend parsing capabilities with custom plugins:
+### Status Updates
 
-```javascript
-const customPlugin = {
-  patterns: {
-    myPattern: /your-regex-here/i
-  },
-  parser: (text) => {
-    // Your parsing logic
-    return {
-      // Your parsed data
-    };
-  }
-};
+- "75% complete"
+- "blocked by deployment"
+- "waiting for review"
+- "in progress"
 
-parser.registerPlugin('custom', customPlugin);
+## Development
+
+### Architecture
+
+The parser is built with a modular architecture:
+
+- Core Parser: Orchestrates parsing operations
+- Individual Parsers: Handle specific aspects (date, time, location, etc.)
+- Utilities: Shared functionality (validation, patterns, etc.)
+- Plugin System: Extensible parsing capabilities
+
+### Testing
+
+Run all tests:
+
+```bash
+npm test
 ```
 
-### Logging System
+Run parser tests:
+
+```bash
+npm run test:parser
+```
+
+Run specific test file:
+
+```bash
+npx jest tests/parser.test.js
+```
+
+### Logging
 
 Configure logging levels:
 
@@ -201,30 +225,27 @@ try {
 }
 ```
 
-## Development
+### Plugin Development
 
-### Technology Stack
+Create custom plugins to extend functionality:
 
-- Electron for desktop application
-- SQLite3 for data storage
-- Modern JavaScript (ES2022+)
-- Plugin Architecture for extensibility
+```javascript
+const customPlugin = {
+  patterns: {
+    myPattern: /your-regex-here/i
+  },
+  parse: (text) => {
+    // Your parsing logic
+    return {
+      // Your parsed data
+    };
+  }
+};
 
-### Testing
-
-Run tests:
-
-```bash
-npm test
+parser.registerPlugin('custom', customPlugin);
 ```
 
-Run specific test file:
-
-```bash
-npx jest tests/parser.test.js
-```
-
-### Contributing
+## Contributing
 
 1. Fork the repository
 2. Create your feature branch
@@ -233,4 +254,23 @@ npx jest tests/parser.test.js
 
 ## License
 
-ISC
+ISC License (ISC)
+
+Copyright (c) 2024 Tom Cranstoun
+
+Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+### License Summary
+
+The ISC License:
+
+- Permits commercial use
+- Permits modification
+- Permits distribution
+- Permits private use
+- Includes warranty protection for the author
+- Includes liability protection for the author
+
+For more information about the ISC License, visit: <https://opensource.org/licenses/ISC>

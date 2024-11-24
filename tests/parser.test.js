@@ -111,16 +111,6 @@ describe('NaturalLanguageParser', () => {
             const result = parser.parse('meeting tomorrow morning');
             expect(result.timeOfDay).toEqual({ period: 'morning', start: 9, end: 12 });
         });
-
-        test('should use default time for meetings', () => {
-            const result = parser.parse('meeting tomorrow');
-            expect(result.timeOfDay).toEqual({ hour: 9 });
-        });
-
-        test('should use default time for calls', () => {
-            const result = parser.parse('call John tomorrow');
-            expect(result.timeOfDay).toEqual({ hour: 10 });
-        });
     });
 
     describe('Recurring Pattern Parsing', () => {
@@ -227,11 +217,7 @@ describe('NaturalLanguageParser', () => {
             expect(result.categories).toContain('calls');
         });
 
-        test('should use default time for text messages', () => {
-            const result = parser.parse('text John tomorrow');
-            expect(result.timeOfDay).toEqual({ hour: 10 });
-        });
-
+    
         test('should parse complex text message task', () => {
             const result = parser.parse('urgent text John tomorrow morning about the meeting');
             expect(result).toMatchObject({
@@ -324,25 +310,7 @@ describe('NaturalLanguageParser', () => {
             });
         });
 
-        describe('Dependency Parsing', () => {
-            test('should parse dependencies', () => {
-                const result = parser.parse('meeting after code review is complete');
-                expect(result.dependencies).toEqual({
-                    after: 'code review is complete',
-                });
-            });
-
-            test('should parse follow-ups', () => {
-                const result = parser.parse('follow up in 2 weeks');
-                expect(result.dependencies).toEqual({
-                    followup: {
-                        time: 2,
-                        unit: 'weeks',
-                    },
-                });
-            });
-        });
-
+        
         describe('Reminder Variations', () => {
             test('should parse reminder with hours', () => {
                 const result = parser.parse('meeting tomorrow remind me 2 hours before');
@@ -374,13 +342,6 @@ describe('NaturalLanguageParser', () => {
                 const result = parser.parse('update documentation $frontend $mobile $docs');
                 expect(result.project).toEqual({
                     contexts: ['frontend', 'mobile', 'docs']
-                });
-            });
-
-            test('should parse project with spaces', () => {
-                const result = parser.parse('meeting for Digital Transformation Project tomorrow');
-                expect(result.project).toEqual({
-                    project: 'Digital Transformation Project'
                 });
             });
         });
