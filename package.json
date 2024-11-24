@@ -6,7 +6,8 @@
   "scripts": {
     "start": "electron .",
     "test": "jest",
-    "test:parser": "jest tests/parser.test.js"
+    "test:parser": "jest tests/parser.test.js",
+    "migrate": "node src/scripts/migration.js"
   },
   "author": "",
   "license": "ISC",

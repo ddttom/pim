@@ -9,8 +9,7 @@ class DatabaseService {
                 console.error('Database connection error:', err);
                 return;
             }
-            this.initializeTables();
-            this.migrateDatabase();
+            this.initializeSequence();
         });
     }
 
@@ -31,7 +30,8 @@ class DatabaseService {
                 project TEXT,
                 recurring_pattern TEXT,
                 dependencies TEXT,
-                due_date TEXT
+                due_date TEXT,
+                final_deadline TEXT
             )`,
             
             "CREATE TABLE IF NOT EXISTS categories (\
@@ -78,7 +78,8 @@ class DatabaseService {
             { name: 'project', type: 'TEXT' },
             { name: 'recurring_pattern', type: 'TEXT' },
             { name: 'dependencies', type: 'TEXT' },
-            { name: 'due_date', type: 'TEXT' }
+            { name: 'due_date', type: 'TEXT' },
+            { name: 'final_deadline', type: 'TEXT' }
         ];
 
         for (const column of newColumns) {
@@ -131,14 +132,15 @@ class DatabaseService {
                 recurringPattern,
                 dependencies,
                 dueDate,
+                final_deadline,
             } = entry;
             
             const query = `
                 INSERT INTO entries (
                     raw_content, action, contact, datetime, priority,
                     complexity, location, duration, project,
-                    recurring_pattern, dependencies, due_date
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    recurring_pattern, dependencies, due_date, final_deadline
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             
             this.db.run(
@@ -156,6 +158,7 @@ class DatabaseService {
                     recurringPattern,
                     dependencies ? JSON.stringify(dependencies) : null,
                     dueDate,
+                    final_deadline,
                 ],
                 function(err) {
                     if (err) {
@@ -172,7 +175,10 @@ class DatabaseService {
 
     async getEntries(filters = {}) {
         return new Promise((resolve, reject) => {
-            let query = 'SELECT * FROM entries WHERE 1=1';
+            let query = `
+                SELECT * FROM entries 
+                WHERE 1=1
+            `;
             const params = [];
 
             if (filters.priority) {
@@ -184,6 +190,19 @@ class DatabaseService {
                 query += ' AND status = ?';
                 params.push(filters.status);
             }
+
+            // Add ORDER BY clause with priority for dates
+            query += `
+                ORDER BY 
+                    CASE 
+                        WHEN due_date IS NOT NULL THEN 1
+                        WHEN datetime IS NOT NULL THEN 2
+                        ELSE 3
+                    END,
+                    due_date DESC,
+                    datetime DESC,
+                    created_at DESC
+            `;
 
             this.db.all(query, params, (err, rows) => {
                 if (err) {
@@ -237,6 +256,89 @@ class DatabaseService {
             });
         });
     }
+
+    async addFinalDeadlineColumn() {
+        try {
+            // First check if column exists
+            const tableInfo = await this.getTableInfo('entries');
+            const columnExists = tableInfo.some(col => col.name === 'final_deadline');
+            
+            if (!columnExists) {
+                await this.addColumn('entries', 'final_deadline', 'TEXT');
+                console.log('Added final_deadline column');
+            } else {
+                console.log('final_deadline column already exists');
+            }
+        } catch (error) {
+            console.error('Error handling final_deadline column:', error);
+        }
+    }
+
+    async migrateExistingDates() {
+        try {
+            console.log('Starting date migration...');
+            
+            // Get all entries that need migration
+            const entries = await new Promise((resolve, reject) => {
+                this.db.all(
+                    'SELECT id, datetime, due_date FROM entries WHERE final_deadline IS NULL',
+                    (err, rows) => {
+                        if (err) reject(err);
+                        else resolve(rows);
+                    }
+                );
+            });
+
+            console.log(`Found ${entries.length} entries to migrate`);
+
+            // Update each entry
+            for (const entry of entries) {
+                const finalDeadline = (() => {
+                    if (!entry.datetime && !entry.due_date) return null;
+                    if (!entry.datetime) return entry.due_date;
+                    if (!entry.due_date) return entry.datetime;
+                    
+                    const dateTimeObj = new Date(entry.datetime);
+                    const dueDateObj = new Date(entry.due_date);
+                    return dateTimeObj > dueDateObj ? entry.datetime : entry.due_date;
+                })();
+
+                if (finalDeadline) {
+                    await new Promise((resolve, reject) => {
+                        this.db.run(
+                            'UPDATE entries SET final_deadline = ? WHERE id = ?',
+                            [finalDeadline, entry.id],
+                            (err) => {
+                                if (err) reject(err);
+                                else resolve();
+                            }
+                        );
+                    });
+                }
+            }
+
+            console.log('Date migration completed successfully');
+        } catch (error) {
+            console.error('Error during date migration:', error);
+        }
+    }
+
+    static async runDateMigration() {
+        const db = new DatabaseService();
+        await db.migrateExistingDates();
+    }
+
+    async initializeSequence() {
+        try {
+            await this.initializeTables();
+            await this.migrateDatabase();
+            await this.addFinalDeadlineColumn();
+            await this.migrateExistingDates();
+            console.log('Database initialization completed successfully');
+        } catch (error) {
+            console.error('Error during database initialization:', error);
+        }
+    }
 }
 
-module.exports = new DatabaseService();
+module.exports = DatabaseService;

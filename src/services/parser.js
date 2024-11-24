@@ -421,10 +421,38 @@ class Parser {
    * @returns {string|null} Action type
    */
   parseAction(text) {
-    // Check for text messages first with word boundary
-    if (text.match(/\btext\s+\w+/i)) return 'text';
-    if (text.includes('meeting') || text.includes('meet')) return 'meet';
-    if (text.includes('call')) return 'call';
+    // Convert to lowercase for case-insensitive matching
+    const lowerText = text.toLowerCase();
+    
+    // Define valid actions with their normalizations
+    const actionMap = {
+      'call': 'call',
+      'text': 'text',
+      'meet': 'meet',
+      'email': 'email',
+      'review': 'review',
+      'contact': 'call',
+      'see': 'meet'  // Normalize "see" to "meet"
+    };
+    
+    const actions = Object.keys(actionMap);
+    
+    // Look for action at the start of the text
+    const startActionRegex = new RegExp(`^(${actions.join('|')})\\b`, 'i');
+    const actionMatch = lowerText.match(startActionRegex);
+    if (actionMatch) {
+      const action = actionMatch[1].toLowerCase();
+      return actionMap[action];
+    }
+    
+    // Look for action anywhere in text
+    const midActionRegex = new RegExp(`\\b(${actions.join('|')})\\b`, 'i');
+    const midActionMatch = lowerText.match(midActionRegex);
+    if (midActionMatch) {
+      const action = midActionMatch[1].toLowerCase();
+      return actionMap[action];
+    }
+    
     return null;
   }
 
@@ -434,10 +462,16 @@ class Parser {
    * @returns {string|null} Contact name
    */
   parseContact(text) {
-    // Handle text message format first
+    // Handle text message format
     if (text.match(/\btext\s+/i)) {
       const match = text.match(/\btext\s+(\w+)(?=\s|$)/i);
-      if (match) return match[1];
+      if (match) return match[1].toLowerCase();
+    }
+
+    // Handle call/contact/see format
+    const contactMatch = text.match(/\b(?:call|contact|see)\s+(\w+)(?=\s|$)/i);
+    if (contactMatch) {
+      return contactMatch[1].toLowerCase();
     }
 
     // Handle "with" format for multiple contacts
@@ -445,8 +479,8 @@ class Parser {
     if (withMatch) {
       const contactText = withMatch[1];
       const contacts = contactText.split(/(?:,|\s+and\s+)/)
-        .map(name => name.trim())
-        .filter(name => !name.toLowerCase().startsWith('team')); // Filter out team mentions
+        .map(name => name.trim().toLowerCase())
+        .filter(name => !name.startsWith('team')); // Filter out team mentions
       return contacts[0] || null; // Return first contact or null
     }
 
@@ -541,10 +575,18 @@ class Parser {
    * @returns {Object|null} Project information
    */
   parseProject(text) {
-    // Parse project name
-    const projectMatch = text.match(/Project\s+([^,\s]+(?:\s+[^,\s]+)*?)(?=\s+(?:tomorrow|morning|afternoon|evening|about|at|in|for|$)|$)/i);
+    // Parse project name with better boundaries
+    const projectMatch = text.match(/project\s+([^,\s]+(?:\s+[^,\s]+)*?)(?=\s*(?:before|after|by|tomorrow|morning|afternoon|evening|about|at|in|for|next|last|this|on|$))/i);
     if (projectMatch) {
-      return { project: `Project ${projectMatch[1].trim()}` };
+      // Proper case the project name
+      const projectName = projectMatch[1]
+        .trim()
+        .split(/\s+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+      
+      console.log('Found project:', projectName); // Debug log
+      return { project: projectName };
     }
 
     // Parse contexts

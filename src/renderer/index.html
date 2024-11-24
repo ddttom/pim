@@ -3,7 +3,7 @@
 <head>
     <title>Personal Information Manager</title>
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
     <div class="container">
@@ -12,82 +12,71 @@
                 <h3>Filters</h3>
                 <div class="filter-group">
                     <h4>Priority</h4>
-                    <label><input type="checkbox" value="Urgent"> Urgent</label>
-                    <label><input type="checkbox" value="High"> High</label>
-                    <label><input type="checkbox" value="Medium"> Medium</label>
-                    <label><input type="checkbox" value="Low"> Low</label>
-                    <label><input type="checkbox" value="None"> None</label>
-                </div>
-                <div class="filter-group">
-                    <h4>Date</h4>
-                    <label><input type="checkbox" value="today"> Today</label>
-                    <label><input type="checkbox" value="this-week"> This Week</label>
-                    <label><input type="checkbox" value="this-month"> This Month</label>
-                    <label><input type="checkbox" value="no-date"> Without Date</label>
-                </div>
-                <div class="filter-group">
-                    <h4>Categories</h4>
-                    <div id="category-filters">
-                        <!-- Dynamically populated -->
-                    </div>
+                    <label>
+                        <input type="checkbox" value="high"> High
+                    </label>
+                    <label>
+                        <input type="checkbox" value="medium"> Medium
+                    </label>
+                    <label>
+                        <input type="checkbox" value="low"> Low
+                    </label>
                 </div>
             </div>
         </div>
-        
+
         <div class="main-content">
             <div class="toolbar">
-                <button id="new-entry-btn" class="primary-btn">New Entry</button>
                 <div class="view-controls">
-                    <button data-view="table" class="view-btn active">Table</button>
-                    <button data-view="cards" class="view-btn">Cards</button>
-                    <button data-view="timeline" class="view-btn">Timeline</button>
+                    <button class="view-btn active" data-view="table">Table</button>
+                    <button class="view-btn" data-view="cards">Cards</button>
+                    <button class="view-btn" data-view="timeline">Timeline</button>
                 </div>
+                <button id="new-entry-btn" class="primary-btn">New Entry</button>
             </div>
 
-            <div id="entry-form" class="modal hidden">
-                <div class="modal-content">
-                    <h2>New Entry</h2>
-                    <textarea id="entry-input" placeholder="Enter your note here... (e.g., 'Call John next Wednesday about the project')"></textarea>
+            <!-- Table View -->
+            <div id="table-view" class="view-container active">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Content</th>
+                            <th>Action</th>
+                            <th>Contact</th>
+                            <th>Date</th>
+                            <th>Priority</th>
+                            <th>Project</th>
+                            <th>Location</th>
+                            <th>Complexity</th>
+                            <th>Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entries-table-body"></tbody>
+                </table>
+            </div>
+
+            <!-- Cards View -->
+            <div id="cards-view" class="view-container"></div>
+
+            <!-- Timeline View -->
+            <div id="timeline-view" class="view-container"></div>
+
+            <!-- Entry Form -->
+            <div id="entry-form" class="hidden">
+                <div class="form-content">
+                    <h2 class="form-title">New Entry</h2>
+                    <textarea id="entry-input" placeholder="Enter your task..."></textarea>
+                    <select id="priority-select">
+                        <option value="None">No Priority</option>
+                        <option value="Low">Low Priority</option>
+                        <option value="Medium">Medium Priority</option>
+                        <option value="High">High Priority</option>
+                        <option value="Urgent">Urgent</option>
+                    </select>
                     <div class="form-controls">
-                        <select id="priority-select">
-                            <option value="None">No Priority</option>
-                            <option value="Low">Low Priority</option>
-                            <option value="Medium">Medium Priority</option>
-                            <option value="High">High Priority</option>
-                            <option value="Urgent">Urgent</option>
-                        </select>
-                        <button id="save-entry" class="primary-btn">Save</button>
                         <button id="cancel-entry" class="secondary-btn">Cancel</button>
+                        <button id="save-entry" class="primary-btn">Save</button>
                     </div>
-                </div>
-            </div>
-
-            <div id="entries-container">
-                <!-- View containers -->
-                <div id="table-view" class="view-container active">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Content</th>
-                                <th>Action</th>
-                                <th>Contact</th>
-                                <th>Date</th>
-                                <th>Priority</th>
-                                <th>Categories</th>
-                            </tr>
-                        </thead>
-                        <tbody id="entries-table-body">
-                            <!-- Dynamically populated -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <div id="cards-view" class="view-container">
-                    <!-- Dynamically populated -->
-                </div>
-
-                <div id="timeline-view" class="view-container">
-                    <!-- Dynamically populated -->
                 </div>
             </div>
         </div>

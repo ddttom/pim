@@ -266,83 +266,130 @@ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH RE
 
 ### Core Attributes
 
-- `action` - The primary action (meet, call, text, review)
-- `datetime` - The parsed date and time
+- `action` - Primary action (call, text, meet, email, review, see → meet, contact → call)
+- `datetime` - Scheduled date and time
+- `dueDate` - Deadline (when using "by", "before", "due")
+- `final_deadline` - Latest of datetime and dueDate
 - `rawContent` - Original input text
 
 ### Time-Related
 
-- `timeOfDay` - Time specification
-  - `period` (morning, afternoon, evening)
-  - `start` and `end` hours
-  - `hour` and `minute` for specific times
-- `duration` - Length of event
+- `timeOfDay`
+  - `hour` - Specific hour (24h format)
+  - `minutes` - Specific minutes
+  - `period` - Time period (morning 9-12, afternoon 12-17, evening 17-21)
+  - `start` and `end` - Period boundaries
+- `duration`
   - `hours`
   - `minutes`
 
 ### People and Teams
 
-- `contact` - Primary contact person
+- `contact` - Primary contact (from "call [name]", "text [name]", "with [name]")
 - `attendees`
   - `people` - Array of attendee names
   - `teams` - Array of team names
-  - `type` (invite, etc.)
 
 ### Location
 
 - `location`
-  - `type` (office, online, travel)
-  - `value` (location name)
-  - `room` (optional)
-  - `link` (for online meetings)
+  - `type` - office, online, travel
+  - `value` - Location name/description
+  - `link` - For online meetings (zoom links etc.)
 
-### Project Management attributes
+### Project Management
 
 - `project`
-  - `project` (project name)
-  - `contexts` (array of technical contexts like $frontend)
+  - `project` - Project name (from "project [name]")
+  - `contexts` - Technical contexts (from $tags)
 - `dependencies`
-  - `after` (dependency condition)
-  - `before` (prerequisite)
-  - `followup`
-    - `time`
-    - `unit`
+  - `after` - Tasks that must complete first
+  - `before` - Prerequisites
+  - `blockedBy` - Current blockers
 
 ### Status and Progress
 
 - `status`
-  - `status` (current state)
-  - `progress` (percentage)
-  - `blocker` or `blockers` (array)
+  - `progress` - Percentage complete
+  - `state` - Current state
 - `complexity`
-  - `level` (high, medium, low)
+  - `level` - high, medium, low
 - `urgency`
-  - `level` (immediate, today, soon)
-- `priority` (high, medium, low)
+  - `level` - immediate, today, soon
+- `priority` - high, medium, low
 
 ### Categories and Tags
 
-- `categories` - Array of category names
+- `categories` - Automatically assigned categories
 - `subject`
-  - `subject` (main topic)
-  - `type` (afterContact, about, hashtag)
-  - `tags` (array of hashtags)
+  - `subject` - Main topic
+  - `type` - hashtag, afterContact, about
+  - `tags` - Array of #hashtags
 
-### Reminders attributes
+### Reminders
 
 - `reminders`
-  - `reminderMinutes` (single value or array)
-  - `type` (custom, default)
+  - `reminderMinutes` - Minutes before event
+  - `type` - custom, default
 
 ### Recurring Patterns
 
 - `recurring`
-  - `type` (daily, weekly, monthly)
-  - `interval` (for weekly patterns)
+  - `type` - daily, weekly, monthly
+  - `interval` - For weekly patterns (monday, tuesday, etc.)
 
 ### Plugin Results
 
 - `plugins` - Results from custom plugins
+
+## Natural Language Examples
+
+### Basic Tasks
+
+- "Call John tomorrow at 2pm" → {action: "call", contact: "john", datetime: "2024-01-25T14:00:00"}
+- "Text Sarah about meeting" → {action: "text", contact: "sarah", subject: {subject: "meeting"}}
+- "See Simon about Project Alpha" → {action: "meet", contact: "simon", project: {project: "Alpha"}}
+- "Contact Ian about project" → {action: "call", contact: "ian"}
+
+### Date Examples
+
+- "Call John by next Wednesday" →
+  ```json
+  {
+    "action": "call",
+    "contact": "john",
+    "datetime": "2024-12-04T00:00:00Z",
+    "dueDate": "2024-12-04T00:00:00Z",
+    "final_deadline": "2024-12-04T00:00:00Z"
+  }
+  ```
+
+### Action Normalization
+
+The parser normalizes various action verbs:
+
+- "see" → "meet"
+- "contact" → "call"
+- "review" → "review"
+- "text" → "text"
+- "email" → "email"
+
+### Date Display
+
+Dates are displayed in user's locale with:
+
+- Short weekday (Mon, Tue, etc.)
+- Short month
+- Day and year
+- 12-hour time with AM/PM
+
+Example: "Mon, Jan 15, 2024, 02:30 PM"
+
+### Date Handling
+
+- When dates are identical (datetime = dueDate = final_deadline), only final_deadline is shown
+- When dates differ, all relevant dates are displayed
+- Timeline view sorts by final_deadline, falling back to dueDate then datetime
 
 ## Plugin System
 
