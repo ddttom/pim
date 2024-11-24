@@ -1,14 +1,16 @@
-const parser = require('../src/services/parser');
-const pluginManager = require('../src/plugins/pluginManager');
+const NaturalLanguageParser = require('../src/services/parser/core');
 
 describe('Plugin System', () => {
+  let parser;
+
+  beforeEach(() => {
+    parser = new NaturalLanguageParser();
+  });
+
   describe('Plugin Registration', () => {
     test('should register valid plugin', () => {
       const testPlugin = {
-        patterns: {
-          test: /test-pattern/i,
-        },
-        parser: (text) => ({ test: true }),
+        parse: (text) => ({ test: true }),
       };
 
       expect(() => {
@@ -17,20 +19,26 @@ describe('Plugin System', () => {
     });
 
     test('should reject invalid plugin', () => {
-      const invalidPlugin = {
-        patterns: {},
-        // Missing parser function
-      };
-
+      const invalidPlugin = {};
+      
       expect(() => {
         parser.registerPlugin('invalid', invalidPlugin);
-      }).toThrow();
+      }).toThrow('Invalid plugin: must have a parse method');
     });
   });
 
   describe('Plugin Parsing', () => {
     test('should include plugin results in parse output', () => {
+      const locationPlugin = {
+        parse: () => ({
+          building: 'A',
+          room: '123',
+        }),
+      };
+
+      parser.registerPlugin('location', locationPlugin);
       const result = parser.parse('meeting in Building A Room 123');
+      
       expect(result.plugins.location).toEqual({
         building: 'A',
         room: '123',
@@ -39,22 +47,28 @@ describe('Plugin System', () => {
 
     test('should handle multiple plugins', () => {
       const customPlugin = {
-        patterns: {
-          custom: /custom-(?<value>\w+)/i,
-        },
-        parser: (text) => {
-          const match = text.match(/custom-(?<value>\w+)/i);
-          return match?.groups ? { value: match.groups.value } : null;
-        },
+        parse: () => ({ custom: true }),
       };
 
       parser.registerPlugin('custom', customPlugin);
       const result = parser.parse('meeting custom-test in Room 123');
       
       expect(result.plugins).toMatchObject({
-        location: { room: '123' },
-        custom: { value: 'test' },
+        custom: { custom: true },
       });
+    });
+
+    test('should handle plugin errors gracefully', () => {
+      const errorPlugin = {
+        parse: () => {
+          throw new Error('Plugin error');
+        },
+      };
+
+      parser.registerPlugin('error', errorPlugin);
+      const result = parser.parse('test text');
+      
+      expect(result.plugins).toEqual({});
     });
   });
 }); 

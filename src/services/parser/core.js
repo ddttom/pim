@@ -20,6 +20,7 @@ const urgencyParser = require('./parsers/urgency');
 const remindersParser = require('./parsers/reminders');
 const priorityParser = require('./parsers/priority');
 const contactParser = require('./parsers/contact');
+const linksParser = require('./parsers/links');
 
 const { validateAndSetDefaults, validateResult } = require('./utils/validation');
 const { compilePatterns } = require('./utils/patterns');
@@ -31,9 +32,20 @@ class NaturalLanguageParser {
     logger.debug('Initializing NaturalLanguageParser');
     this.patterns = CONFIG.patterns;
     this.compiledPatterns = compilePatterns(this.patterns);
+    this.plugins = new Map();
     this.loadDefaultPlugins();
     logger.info('NaturalLanguageParser initialized with patterns:', 
       { patternCount: Object.keys(this.patterns).length });
+  }
+
+  registerPlugin(name, plugin) {
+    logger.debug(`Registering plugin: ${name}`);
+    if (!plugin || typeof plugin.parse !== 'function') {
+      logger.error(`Invalid plugin: ${name}`);
+      throw new Error('Invalid plugin: must have a parse method');
+    }
+    this.plugins.set(name, plugin);
+    logger.info(`Plugin registered: ${name}`);
   }
 
   parse(text) {
@@ -66,6 +78,8 @@ class NaturalLanguageParser {
         priority: this.executeParser('priority', () => priorityParser.parse(text)),
         reminders: this.executeParser('reminders', () => remindersParser.parse(text)),
         contact: this.executeParser('contact', () => contactParser.parse(text)),
+        links: this.executeParser('links', () => linksParser.parse(text)),
+        plugins: {},
       };
 
       logger.debug('Parsing dates with chrono');
@@ -78,14 +92,15 @@ class NaturalLanguageParser {
       }
 
       logger.debug('Running plugin parsers');
-      try {
-        const pluginResults = pluginManager.parseAll(text);
-        if (pluginResults && Object.keys(pluginResults).length > 0) {
-          parsed.plugins = pluginResults;
-          logger.debug('Plugin results:', { plugins: Object.keys(pluginResults) });
+      for (const [name, plugin] of this.plugins) {
+        try {
+          const result = plugin.parse(text);
+          if (result) {
+            parsed.plugins[name] = result;
+          }
+        } catch (pluginError) {
+          logger.error(`Plugin ${name} error:`, pluginError);
         }
-      } catch (pluginError) {
-        logger.error('Plugin parsing error:', pluginError);
       }
 
       logger.debug('Validating and setting defaults');
@@ -128,9 +143,9 @@ class NaturalLanguageParser {
       const datePlugin = require('../../plugins/datePlugin');
       const categoryPlugin = require('../../plugins/categoryPlugin');
 
-      pluginManager.register('location', locationPlugin);
-      pluginManager.register('date', datePlugin);
-      pluginManager.register('category', categoryPlugin);
+      this.registerPlugin('location', locationPlugin);
+      this.registerPlugin('date', datePlugin);
+      this.registerPlugin('category', categoryPlugin);
 
       logger.info('Default plugins loaded');
     } catch (error) {

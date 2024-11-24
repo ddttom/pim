@@ -274,3 +274,287 @@ The ISC License:
 - Includes liability protection for the author
 
 For more information about the ISC License, visit: <https://opensource.org/licenses/ISC>
+
+## Parser Attributes
+
+### Core Attributes
+
+- `action` - The primary action (meet, call, text, review)
+- `datetime` - The parsed date and time
+- `rawContent` - Original input text
+
+### Time-Related
+
+- `timeOfDay` - Time specification
+  - `period` (morning, afternoon, evening)
+  - `start` and `end` hours
+  - `hour` and `minute` for specific times
+- `duration` - Length of event
+  - `hours`
+  - `minutes`
+
+### People and Teams
+
+- `contact` - Primary contact person
+- `attendees`
+  - `people` - Array of attendee names
+  - `teams` - Array of team names
+  - `type` (invite, etc.)
+
+### Location
+
+- `location`
+  - `type` (office, online, travel)
+  - `value` (location name)
+  - `room` (optional)
+  - `link` (for online meetings)
+
+### Project Management attributes
+
+- `project`
+  - `project` (project name)
+  - `contexts` (array of technical contexts like $frontend)
+- `dependencies`
+  - `after` (dependency condition)
+  - `before` (prerequisite)
+  - `followup`
+    - `time`
+    - `unit`
+
+### Status and Progress
+
+- `status`
+  - `status` (current state)
+  - `progress` (percentage)
+  - `blocker` or `blockers` (array)
+- `complexity`
+  - `level` (high, medium, low)
+- `urgency`
+  - `level` (immediate, today, soon)
+- `priority` (high, medium, low)
+
+### Categories and Tags
+
+- `categories` - Array of category names
+- `subject`
+  - `subject` (main topic)
+  - `type` (afterContact, about, hashtag)
+  - `tags` (array of hashtags)
+
+### Reminders attributes
+
+- `reminders`
+  - `reminderMinutes` (single value or array)
+  - `type` (custom, default)
+
+### Recurring Patterns
+
+- `recurring`
+  - `type` (daily, weekly, monthly)
+  - `interval` (for weekly patterns)
+
+### Plugin Results
+
+- `plugins` - Results from custom plugins
+
+## Plugin System docs
+
+The parser includes a powerful plugin system for extending its functionality. Each plugin can add custom parsing capabilities without modifying the core parser code.
+
+## Writing Plugins
+
+A plugin is a JavaScript object that must include:
+
+1. A `parse` method that accepts text input and returns parsed data
+2. Optional patterns for text matching
+3. Proper error handling
+4. Documentation of input/output formats
+
+Example plugin structure:
+
+`
+const myPlugin = {
+  parse: (text) => {
+    // Parse the text
+    return {
+      // Return parsed data
+    };
+  }
+};
+`
+
+## Using Plugins
+
+Register plugins with the parser:
+
+`
+const parser = new NaturalLanguageParser();
+parser.registerPlugin('myPlugin', myPlugin);
+`
+
+The parser will automatically include plugin results in the output under the plugins property:
+
+`
+const result = parser.parse('your text here');
+console.log(result.plugins.myPlugin);
+`
+
+## Built-in Plugins
+
+The parser comes with several built-in plugins:
+
+- Location Plugin: Parses location information from text
+- Date Plugin: Provides enhanced date parsing capabilities
+- Category Plugin: Handles category and tag detection
+
+## Example Plugins
+
+### Location Plugin
+
+`
+const locationPlugin = {
+  parse: (text) => {
+    // Parses: "meeting in Building A Room 123"
+    const match = text.match(/Building (\w+) Room (\d+)/i);
+    return match ? {
+      building: match[1],
+      room: match[2]
+    } : null;
+  }
+};
+`
+
+### Custom Date Plugin
+
+`
+const datePlugin = {
+  parse: (text) => {
+    // Parses: "next quarter review"
+    if (text.includes('quarter')) {
+      return {
+        type: 'quarter',
+        date: calculateQuarterDate()
+      };
+    }
+    return null;
+  }
+};
+`
+
+## Plugin Best Practices
+
+1. Single Responsibility
+   - Each plugin should focus on one specific parsing task
+   - Keep plugins simple and focused
+
+2. Error Handling
+   - Return null for unmatched input
+   - Handle edge cases gracefully
+   - Don't throw errors unless absolutely necessary
+
+3. Performance
+   - Use efficient regex patterns
+   - Avoid expensive operations
+   - Cache results when appropriate
+
+4. Documentation
+   - Document expected input formats
+   - Describe output structure
+   - Include usage examples
+
+5. Testing
+   - Write comprehensive tests
+   - Include edge cases
+   - Test error conditions
+
+## Plugin Development Guidelines
+
+1. Input Validation
+   - Check for required text format
+   - Validate input parameters
+   - Handle empty or invalid input
+
+2. Output Format
+   - Return consistent data structures
+   - Document all possible return values
+   - Include type information
+
+3. Error Cases
+   - Handle parsing failures gracefully
+   - Provide meaningful error messages
+   - Log important errors
+
+4. Integration
+   - Test with other plugins
+   - Avoid naming conflicts
+   - Follow existing patterns
+
+## Example Plugin Implementation
+
+`
+const meetingPlugin = {
+  // Plugin configuration
+  config: {
+    minDuration: 15,
+    maxDuration: 480
+  },
+
+  // Main parse method
+  parse: (text) => {
+    try {
+      // Parse meeting information
+      const info = extractMeetingInfo(text);
+
+      // Validate and return results
+      return info ? {
+        type: 'meeting',
+        ...info
+      } : null;
+    } catch (error) {
+      console.error('Meeting plugin error:', error);
+      return null;
+    }
+  }
+};
+`
+
+## Plugin Results Structure
+
+Plugin results appear in the parser output:
+
+`
+{
+  // Standard parser results
+  action: 'meet',
+  datetime: '2024-01-01T10:00:00',
+  
+  // Plugin results
+  plugins: {
+    location: {
+      building: 'A',
+      room: '123'
+    },
+    custom: {
+      // Custom plugin data
+    }
+  }
+}
+`
+
+## Error Handling process
+
+Plugins execute in a protected context:
+
+`
+const errorPlugin = {
+  parse: () => {
+    throw new Error('Plugin error');
+  }
+};
+
+// Error is caught, parsing continues
+parser.registerPlugin('error', errorPlugin);
+const result = parser.parse('test text');
+`
+
+For more information about plugin development, see the API documentation or contact the development team.
