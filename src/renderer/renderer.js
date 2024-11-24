@@ -89,7 +89,7 @@ document.querySelectorAll('.filter-group input[type="checkbox"]').forEach(checkb
             activeFilters[filterType].delete(value);
         }
 
-        loadEntries();
+        loadEntries().catch(error => console.error('Error loading entries:', error));
     });
 });
 
@@ -101,7 +101,10 @@ function renderTableView(entries) {
     entries.forEach(entry => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${entry.raw_content}</td>
+            <td>
+                <button class="delete-btn" data-id="${entry.id}"><i class="fas fa-trash-alt"></i></button>
+                ${entry.raw_content}
+            </td>
             <td>${entry.action || '-'}</td>
             <td>${entry.contact || '-'}</td>
             <td>${entry.datetime ? new Date(entry.datetime).toLocaleString() : '-'}</td>
@@ -109,6 +112,19 @@ function renderTableView(entries) {
             <td>${entry.categories?.join(', ') || '-'}</td>
         `;
         tbody.appendChild(tr);
+    });
+
+    // Add event listeners for delete buttons
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', async (event) => {
+            const entryId = event.target.dataset.id;
+            try {
+                await db.deleteEntry(entryId);
+                await loadEntries();
+            } catch (error) {
+                console.error('Error deleting entry:', error);
+            }
+        });
     });
 }
 
@@ -120,6 +136,7 @@ function renderCardsView(entries) {
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
+            <button class="delete-btn" data-id="${entry.id}"><i class="fas fa-trash-alt"></i></button>
             <div class="card-priority priority-${entry.priority.toLowerCase()}">${entry.priority}</div>
             <div class="card-content">${entry.raw_content}</div>
             <div class="card-meta">
@@ -130,6 +147,19 @@ function renderCardsView(entries) {
             ${entry.categories?.length ? `<div class="card-categories">${entry.categories.join(', ')}</div>` : ''}
         `;
         container.appendChild(card);
+    });
+
+    // Add event listeners for delete buttons
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', async (event) => {
+            const entryId = event.target.dataset.id;
+            try {
+                await db.deleteEntry(entryId);
+                await loadEntries();
+            } catch (error) {
+                console.error('Error deleting entry:', error);
+            }
+        });
     });
 }
 
@@ -146,6 +176,7 @@ function renderTimelineView(entries) {
         const item = document.createElement('div');
         item.className = 'timeline-item';
         item.innerHTML = `
+            <button class="delete-btn" data-id="${entry.id}"><i class="fas fa-trash-alt"></i></button>
             <div class="timeline-date">${new Date(entry.datetime).toLocaleString()}</div>
             <div class="timeline-content">
                 <div class="priority-${entry.priority.toLowerCase()}">${entry.priority}</div>
@@ -155,11 +186,25 @@ function renderTimelineView(entries) {
         `;
         container.appendChild(item);
     });
+
+    // Add event listeners for delete buttons
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', async (event) => {
+            const entryId = event.target.dataset.id;
+            try {
+                await db.deleteEntry(entryId);
+                await loadEntries();
+            } catch (error) {
+                console.error('Error deleting entry:', error);
+            }
+        });
+    });
 }
 
 async function loadEntries() {
     try {
-        const entries = await db.getEntries(activeFilters);
+        console.log('Active filters:', activeFilters);
+        const entries = await db.getEntries(); // Call without filters for debugging
         
         // Render all views (only the active one will be visible)
         renderTableView(entries);
@@ -171,4 +216,4 @@ async function loadEntries() {
 }
 
 // Initial load
-loadEntries();
+loadEntries().catch(error => console.error('Error loading entries on initial load:', error));

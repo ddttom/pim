@@ -5,15 +5,22 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test:parser": "jest tests/parser.test.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "electron": "^20.0.0",
-    "sqlite3": "^5.1.6",
-    "winston": "^3.10.0",
     "chrono-node": "^2.6.3",
-    "marked": "^5.1.1"
+    "electron": "^24.3.0",
+    "marked": "^5.1.1",
+    "sqlite3": "^5.1.6",
+    "winston": "^3.10.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node"
   }
 }

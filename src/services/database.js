@@ -15,38 +15,38 @@ class DatabaseService {
 
     initializeTables() {
         const queries = [
-            `CREATE TABLE IF NOT EXISTS entries (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                raw_content TEXT NOT NULL,
-                action TEXT,
-                contact TEXT,
-                datetime TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                priority TEXT CHECK(priority IN ('None', 'Low', 'Medium', 'High', 'Urgent')),
-                status TEXT DEFAULT 'active'
-            )`,
+            "CREATE TABLE IF NOT EXISTS entries (\
+                id INTEGER PRIMARY KEY AUTOINCREMENT,\
+                raw_content TEXT NOT NULL,\
+                action TEXT,\
+                contact TEXT,\
+                datetime TEXT,\
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\
+                priority TEXT CHECK(priority IN ('None', 'Low', 'Medium', 'High', 'Urgent')),\
+                status TEXT DEFAULT 'active'\
+            )",
             
-            `CREATE TABLE IF NOT EXISTS categories (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL
-            )`,
+            "CREATE TABLE IF NOT EXISTS categories (\
+                id INTEGER PRIMARY KEY AUTOINCREMENT,\
+                name TEXT UNIQUE NOT NULL\
+            )",
             
-            `CREATE TABLE IF NOT EXISTS entry_categories (
-                entry_id INTEGER,
-                category_id INTEGER,
-                FOREIGN KEY (entry_id) REFERENCES entries(id),
-                FOREIGN KEY (category_id) REFERENCES categories(id),
-                PRIMARY KEY (entry_id, category_id)
-            )`,
+            "CREATE TABLE IF NOT EXISTS entry_categories (\
+                entry_id INTEGER,\
+                category_id INTEGER,\
+                FOREIGN KEY (entry_id) REFERENCES entries(id),\
+                FOREIGN KEY (category_id) REFERENCES categories(id),\
+                PRIMARY KEY (entry_id, category_id)\
+            )",
             
-            `CREATE TABLE IF NOT EXISTS links (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                source_entry_id INTEGER,
-                target_entry_id INTEGER,
-                link_type TEXT,
-                FOREIGN KEY (source_entry_id) REFERENCES entries(id),
-                FOREIGN KEY (target_entry_id) REFERENCES entries(id)
-            )`
+            "CREATE TABLE IF NOT EXISTS links (\
+                id INTEGER PRIMARY KEY AUTOINCREMENT,\
+                source_entry_id INTEGER,\
+                target_entry_id INTEGER,\
+                link_type TEXT,\
+                FOREIGN KEY (source_entry_id) REFERENCES entries(id),\
+                FOREIGN KEY (target_entry_id) REFERENCES entries(id)\
+            )"
         ];
 
         queries.forEach(query => {
@@ -62,14 +62,15 @@ class DatabaseService {
         return new Promise((resolve, reject) => {
             const { rawContent, action, contact, datetime, priority = 'None' } = entry;
             
-            const query = `INSERT INTO entries (raw_content, action, contact, datetime, priority)
-                          VALUES (?, ?, ?, ?, ?)`;
+            const query = "INSERT INTO entries (raw_content, action, contact, datetime, priority) VALUES (?, ?, ?, ?, ?)";
             
             this.db.run(query, [rawContent, action, contact, datetime, priority], function(err) {
                 if (err) {
+                    console.error('Error adding entry:', err);
                     reject(err);
                     return;
                 }
+                console.log('Entry added with ID:', this.lastID);
                 resolve(this.lastID);
             });
         });
@@ -92,9 +93,11 @@ class DatabaseService {
 
             this.db.all(query, params, (err, rows) => {
                 if (err) {
+                    console.error('Error retrieving entries:', err);
                     reject(err);
                     return;
                 }
+                console.log('Entries retrieved:', rows);
                 resolve(rows);
             });
         });
@@ -122,6 +125,21 @@ class DatabaseService {
                     return;
                 }
                 resolve(this.lastID);
+            });
+        });
+    }
+
+    async deleteEntry(entryId) {
+        return new Promise((resolve, reject) => {
+            const query = 'DELETE FROM entries WHERE id = ?';
+            this.db.run(query, [entryId], function(err) {
+                if (err) {
+                    console.error('Error deleting entry:', err);
+                    reject(err);
+                    return;
+                }
+                console.log('Entry deleted with ID:', entryId);
+                resolve();
             });
         });
     }
