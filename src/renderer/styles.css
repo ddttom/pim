@@ -7,9 +7,10 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    line-height: 1.6;
+    line-height: 1.4;
     color: #333;
     background-color: #f5f5f5;
+    font-size: 14px;
 }
 
 .container {
@@ -37,12 +38,14 @@ body {
 .filter-group h4 {
     margin-bottom: 10px;
     color: #34495e;
+    font-size: 14px;
 }
 
 .filter-group label {
     display: block;
     margin-bottom: 8px;
     cursor: pointer;
+    font-size: 13px;
 }
 
 /* Main Content Styles */
@@ -77,6 +80,7 @@ body {
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.3s;
+    font-size: 13px;
 }
 
 .primary-btn:hover {
@@ -91,6 +95,7 @@ body {
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.3s;
+    font-size: 13px;
 }
 
 .secondary-btn:hover {
@@ -102,6 +107,7 @@ body {
     border: 1px solid #ddd;
     padding: 6px 12px;
     cursor: pointer;
+    font-size: 13px;
 }
 
 .view-btn.active {
@@ -150,6 +156,7 @@ body {
     border-radius: 4px;
     resize: vertical;
     font-family: inherit;
+    font-size: 14px;
 }
 
 .form-controls {
@@ -170,9 +177,9 @@ body {
 
 /* Form title */
 .form-title {
-    margin: 0 0 15px 0;
+    margin: 0 0 12px 0;
     color: #333;
-    font-size: 1.2em;
+    font-size: 16px;
 }
 
 /* Table Styles */
@@ -184,14 +191,16 @@ table {
 }
 
 th, td {
-    padding: 12px;
+    padding: 8px;
     text-align: left;
     border-bottom: 1px solid #ddd;
+    font-size: 13px;
 }
 
 th {
     background-color: #f8f9fa;
     font-weight: 600;
+    font-size: 13px;
 }
 
 /* View Container Styles */
@@ -236,33 +245,6 @@ th {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* Timeline View Styles */
-#timeline-view {
-    display: none;
-    padding: 20px;
-}
-
-#timeline-view.active {
-    display: block;
-}
-
-.timeline-item {
-    position: relative;
-    padding-left: 30px;
-    margin-bottom: 20px;
-}
-
-.timeline-item::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background-color: #3498db;
-}
-
 /* Priority Colors */
 .priority-urgent { color: #e74c3c; }
 .priority-high { color: #e67e22; }
@@ -303,15 +285,13 @@ th {
 }
 
 .details-row.hidden,
-.card-details.hidden,
-.timeline-details.hidden {
+.card-details.hidden {
   display: none;
 }
 
 /* Details content styling */
 .details-content,
-.card-details,
-.timeline-details {
+.card-details {
   padding: 16px;
   margin: 8px;
   background-color: #fff;
@@ -321,13 +301,12 @@ th {
 
 /* Pre-formatted text styling */
 .details-content pre,
-.card-details pre,
-.timeline-details pre {
+.card-details pre {
   white-space: pre-wrap;
   word-wrap: break-word;
   font-family: monospace;
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 11px;
+  line-height: 1.3;
   margin: 0;
   padding: 8px;
   background-color: #f5f5f5;
@@ -356,30 +335,9 @@ th {
   margin-top: 8px;
 }
 
-/* Timeline specific styling */
-.timeline-item {
-  position: relative;
-  margin-bottom: 24px;
-  padding: 16px;
-  border-left: 3px solid #dee2e6;
-}
-
-.timeline-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.timeline-details {
-  margin-top: 16px;
-  border-top: 1px solid #eee;
-}
-
 /* Animation for expand/collapse */
 .details-row:not(.hidden),
-.card-details:not(.hidden),
-.timeline-details:not(.hidden) {
+.card-details:not(.hidden) {
   animation: fadeIn 0.3s ease;
 }
 
@@ -410,15 +368,39 @@ th {
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .details-content,
-  .card-details,
-  .timeline-details {
+  .card-details {
     margin: 4px;
     padding: 8px;
   }
 
   .details-content pre,
-  .card-details pre,
-  .timeline-details pre {
+  .card-details pre {
     font-size: 11px;
   }
+}
+
+/* Add to existing styles */
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: 20px !important;
+}
+
+.sortable:hover {
+    background-color: #e9ecef;
+}
+
+.sortable i {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.5;
+}
+
+.sortable i.fa-sort-up,
+.sortable i.fa-sort-down {
+    opacity: 1;
+    color: #3498db;
 }

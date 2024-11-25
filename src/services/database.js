@@ -175,34 +175,66 @@ class DatabaseService {
 
     async getEntries(filters = {}) {
         return new Promise((resolve, reject) => {
-            let query = `
-                SELECT * FROM entries 
-                WHERE 1=1
-            `;
-            const params = [];
+            console.log('Building query with filters:', filters);
 
-            if (filters.priority) {
-                query += ' AND priority = ?';
-                params.push(filters.priority);
+            let query = `
+                SELECT e.*, GROUP_CONCAT(c.name) as categories
+                FROM entries e
+                LEFT JOIN entry_categories ec ON e.id = ec.entry_id
+                LEFT JOIN categories c ON ec.category_id = c.id
+            `;
+
+            const params = [];
+            let whereConditions = [];
+
+            // Handle priority filter properly
+            if (filters.priority && filters.priority.size > 0) {
+                whereConditions.push(`e.priority IN (${Array.from(filters.priority).map(() => '?').join(',')})`);
+                params.push(...Array.from(filters.priority));
             }
 
+            // Add status filter if needed
             if (filters.status) {
-                query += ' AND status = ?';
+                whereConditions.push('e.status = ?');
                 params.push(filters.status);
             }
 
-            // Add ORDER BY clause with priority for dates
-            query += `
-                ORDER BY 
-                    CASE 
-                        WHEN due_date IS NOT NULL THEN 1
-                        WHEN datetime IS NOT NULL THEN 2
-                        ELSE 3
-                    END,
-                    due_date DESC,
-                    datetime DESC,
-                    created_at DESC
-            `;
+            // Add WHERE clause if we have conditions
+            if (whereConditions.length > 0) {
+                query += ' WHERE ' + whereConditions.join(' AND ');
+            }
+
+            // Add GROUP BY before ORDER BY
+            query += ' GROUP BY e.id';
+
+            // Add dynamic ORDER BY clause
+            if (filters.sort) {
+                const { column, direction } = filters.sort;
+                const safeColumn = this.getSafeColumnName(column);
+                const safeDirection = direction.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+                
+                query += `
+                    ORDER BY 
+                        CASE WHEN e.${safeColumn} IS NULL THEN 1 ELSE 0 END,
+                        e.${safeColumn} ${safeDirection}
+                `;
+            } else {
+                // Default sorting
+                query += `
+                    ORDER BY 
+                        CASE 
+                            WHEN e.due_date IS NOT NULL THEN 1
+                            WHEN e.datetime IS NOT NULL THEN 2
+                            ELSE 3
+                        END,
+                        e.due_date DESC,
+                        e.datetime DESC,
+                        e.created_at DESC
+                `;
+            }
+
+            console.log('Executing query:', query);
+            console.log('With params:', params);
 
             this.db.all(query, params, (err, rows) => {
                 if (err) {
@@ -210,10 +242,27 @@ class DatabaseService {
                     reject(err);
                     return;
                 }
-                console.log('Entries retrieved:', rows);
-                resolve(rows);
+
+                // Process the rows
+                const entries = rows.map(row => ({
+                    ...row,
+                    categories: row.categories ? row.categories.split(',') : []
+                }));
+
+                console.log('Retrieved entries:', entries);
+                resolve(entries);
             });
         });
+    }
+
+    // Add helper method to prevent SQL injection
+    getSafeColumnName(column) {
+        const safeColumns = [
+            'raw_content', 'action', 'contact', 'datetime', 'priority',
+            'complexity', 'location', 'duration', 'project', 'final_deadline',
+            'due_date', 'created_at'
+        ];
+        return safeColumns.includes(column) ? column : 'created_at';
     }
 
     async addCategory(name) {

@@ -297,7 +297,7 @@ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH RE
   - `value` - Location name/description
   - `link` - For online meetings (zoom links etc.)
 
-### Project Management
+### Project Management 2
 
 - `project`
   - `project` - Project name (from "project [name]")
@@ -326,7 +326,7 @@ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH RE
   - `type` - hashtag, afterContact, about
   - `tags` - Array of #hashtags
 
-### Reminders
+### Reminders 2
 
 - `reminders`
   - `reminderMinutes` - Minutes before event
@@ -342,9 +342,9 @@ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH RE
 
 - `plugins` - Results from custom plugins
 
-## Natural Language Examples
+## Natural Language Examples 2
 
-### Basic Tasks
+### Basic Tasks 2
 
 - "Call John tomorrow at 2pm" → {action: "call", contact: "john", datetime: "2024-01-25T14:00:00"}
 - "Text Sarah about meeting" → {action: "text", contact: "sarah", subject: {subject: "meeting"}}
@@ -354,6 +354,7 @@ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH RE
 ### Date Examples
 
 - "Call John by next Wednesday" →
+
   ```json
   {
     "action": "call",

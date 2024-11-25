@@ -1,7 +1,7 @@
 const { ipcRenderer } = require('electron');
 const Parser = require('../services/parser');
 const DatabaseService = require('../services/database');
-const db = new DatabaseService();
+let db; // Declare db at module scope
 
 // Initialize parser with a basic logger
 const logger = {
@@ -13,8 +13,229 @@ const logger = {
 
 const parser = new Parser(logger);
 
-// Add this at the start of your renderer.js file, after the imports
-document.addEventListener('DOMContentLoaded', () => {
+// Add helper functions first
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat(navigator.language, {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    }).format(date);
+}
+
+function areDatesEqual(...dates) {
+    const validDates = dates.filter(date => date != null);
+    if (validDates.length <= 1) return true;
+    
+    const firstDate = new Date(validDates[0]).getTime();
+    return validDates.every(date => new Date(date).getTime() === firstDate);
+}
+
+function getSortIndicator(column) {
+    if (currentSort.column !== column) {
+        return '<i class="fas fa-sort"></i>';
+    }
+    return currentSort.direction === 'asc' 
+        ? '<i class="fas fa-sort-up"></i>' 
+        : '<i class="fas fa-sort-down"></i>';
+}
+
+// Add view rendering functions before they're used
+function renderTableView(entries) {
+    const tbody = document.getElementById('entries-table-body');
+    tbody.innerHTML = '';
+
+    // Update table header with sort indicators and click handlers
+    const thead = document.querySelector('table thead tr');
+    if (thead) {
+        thead.innerHTML = `
+            <th class="sortable" data-sort="raw_content">
+                Content ${getSortIndicator('raw_content')}
+            </th>
+            <th class="sortable" data-sort="action">
+                Action ${getSortIndicator('action')}
+            </th>
+            <th class="sortable" data-sort="contact">
+                Contact ${getSortIndicator('contact')}
+            </th>
+            <th class="sortable" data-sort="final_deadline">
+                Date ${getSortIndicator('final_deadline')}
+            </th>
+            <th class="sortable" data-sort="priority">
+                Priority ${getSortIndicator('priority')}
+            </th>
+            <th class="sortable" data-sort="project">
+                Project ${getSortIndicator('project')}
+            </th>
+            <th class="sortable" data-sort="location">
+                Location ${getSortIndicator('location')}
+            </th>
+            <th class="sortable" data-sort="complexity">
+                Complexity ${getSortIndicator('complexity')}
+            </th>
+            <th class="sortable" data-sort="duration">
+                Duration ${getSortIndicator('duration')}
+            </th>
+        `;
+
+        // Add click handlers to sortable headers
+        thead.querySelectorAll('.sortable').forEach(th => {
+            th.addEventListener('click', () => {
+                handleSort(th.dataset.sort);
+            });
+        });
+    }
+
+    entries.forEach(entry => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="action-cell">
+                <button class="delete-btn" data-id="${entry.id}">
+                    <i class="fas fa-trash-alt" data-id="${entry.id}"></i>
+                </button>
+                <button class="expand-btn" data-id="${entry.id}">
+                    <i class="fas fa-chevron-down" data-id="${entry.id}"></i>
+                </button>
+                ${entry.raw_content}
+            </td>
+            <td>${entry.action || '-'}</td>
+            <td>${entry.contact || '-'}</td>
+            <td>
+                ${areDatesEqual(entry.datetime, entry.due_date, entry.final_deadline) ?
+                    `Final Deadline: ${formatDate(entry.final_deadline)}` :
+                    `${entry.datetime ? `Scheduled: ${formatDate(entry.datetime)}<br>` : ''}
+                     ${entry.due_date ? `Due: ${formatDate(entry.due_date)}<br>` : ''}
+                     ${entry.final_deadline ? `Final Deadline: ${formatDate(entry.final_deadline)}` : ''}`
+                }
+            </td>
+            <td class="priority-${entry.priority.toLowerCase()}">${entry.priority}</td>
+            <td>${entry.project || '-'}</td>
+            <td>${entry.location || '-'}</td>
+            <td>${entry.complexity || '-'}</td>
+            <td>${entry.duration ? `${entry.duration}min` : '-'}</td>
+        `;
+
+        // Add expandable details row
+        const detailsRow = document.createElement('tr');
+        detailsRow.className = 'details-row hidden';
+        detailsRow.dataset.parentId = entry.id;
+        detailsRow.innerHTML = `
+            <td colspan="10">
+                <div class="details-content">
+                    <h4>Full Details</h4>
+                    <pre>${JSON.stringify(entry, null, 2)}</pre>
+                </div>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+        tbody.appendChild(detailsRow);
+    });
+
+    // Add event listeners for delete and expand buttons
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', handleDelete);
+    });
+
+    document.querySelectorAll('.expand-btn').forEach(button => {
+        button.addEventListener('click', handleExpand);
+    });
+}
+
+function renderCardsView(entries) {
+    const container = document.getElementById('cards-view');
+    container.innerHTML = '';
+
+    entries.forEach(entry => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <div class="card-header">
+                <button class="delete-btn" data-id="${entry.id}">
+                    <i class="fas fa-trash-alt" data-id="${entry.id}"></i>
+                </button>
+                <button class="expand-btn" data-id="${entry.id}">
+                    <i class="fas fa-chevron-down" data-id="${entry.id}"></i>
+                </button>
+                ${entry.priority !== 'None' ? 
+                    `<div class="card-priority priority-${entry.priority.toLowerCase()}">${entry.priority}</div>` 
+                    : ''}
+            </div>
+            <div class="card-content">${entry.raw_content}</div>
+            <div class="card-meta">
+                ${entry.action ? `<div class="card-action">${entry.action}</div>` : ''}
+                ${entry.contact ? `<div class="card-contact">${entry.contact}</div>` : ''}
+                ${areDatesEqual(entry.datetime, entry.due_date, entry.final_deadline) ?
+                    `<div class="card-final-deadline">Final Deadline: ${formatDate(entry.final_deadline)}</div>` :
+                    `${entry.datetime ? `<div class="card-date">Scheduled: ${formatDate(entry.datetime)}</div>` : ''}
+                     ${entry.due_date ? `<div class="card-due-date">Due: ${formatDate(entry.due_date)}</div>` : ''}
+                     ${entry.final_deadline ? `<div class="card-final-deadline">Final Deadline: ${formatDate(entry.final_deadline)}</div>` : ''}`
+                }
+                ${entry.project ? `<div class="card-project">Project: ${entry.project}</div>` : ''}
+                ${entry.location ? `<div class="card-location">Location: ${entry.location}</div>` : ''}
+                ${entry.complexity ? `<div class="card-complexity">Complexity: ${entry.complexity}</div>` : ''}
+                ${entry.duration ? `<div class="card-duration">Duration: ${entry.duration}min</div>` : ''}
+            </div>
+            <div class="card-details hidden" data-id="${entry.id}">
+                <h4>Full Details</h4>
+                <pre>${JSON.stringify(entry, null, 2)}</pre>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+
+    // Add event listeners for delete and expand buttons
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', handleDelete);
+    });
+
+    document.querySelectorAll('.expand-btn').forEach(button => {
+        button.addEventListener('click', handleExpand);
+    });
+}
+
+// Then add loadEntries
+async function loadEntries() {
+    try {
+        console.log('Loading entries...');
+        const entries = await db.getEntries({
+            ...activeFilters,
+            sort: currentSort
+        });
+        console.log('Loaded entries:', entries);
+        
+        renderTableView(entries);
+        renderCardsView(entries);
+    } catch (error) {
+        console.error('Error loading entries:', error);
+    }
+}
+
+// State variables should also be outside initializeUI
+let activeFilters = {
+    priority: new Set(),
+    date: new Set(),
+    categories: new Set()
+};
+
+let currentSort = {
+    column: 'final_deadline',
+    direction: 'desc'
+};
+
+// DOMContentLoaded event listener
+document.addEventListener('DOMContentLoaded', async () => {
+    // Create and initialize database
+    db = new DatabaseService();
+    
+    // Wait for database to initialize
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     // Debug logging to check if elements exist
     console.log('New Entry Button:', document.getElementById('new-entry-btn'));
     console.log('Entry Form:', document.getElementById('entry-form'));
@@ -23,6 +244,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize UI elements
     initializeUI();
+    
+    // Initial load
+    await loadEntries().catch(error => console.error('Error loading entries on initial load:', error));
 });
 
 // Move all UI initialization into a separate function
@@ -42,13 +266,6 @@ function initializeUI() {
         console.error('Required UI elements not found!');
         return;
     }
-
-    // State
-    let activeFilters = {
-        priority: new Set(),
-        date: new Set(),
-        categories: new Set()
-    };
 
     // Event Listeners
     newEntryBtn.addEventListener('click', () => {
@@ -70,6 +287,8 @@ function initializeUI() {
         try {
             const parsedEntry = parser.parse(content);
             parsedEntry.priority = prioritySelect.value;
+
+            console.log('Saving entry:', parsedEntry); // Debug log
 
             // Extract project name from project object
             const projectName = parsedEntry.project?.project || null;
@@ -125,6 +344,7 @@ function initializeUI() {
             
             // Refresh the view
             await loadEntries();
+            console.log('Entries reloaded after save');
         } catch (error) {
             console.error('Error saving entry:', error);
             console.error('Parsed Entry:', parsedEntry); // Debug log
@@ -163,273 +383,56 @@ function initializeUI() {
             loadEntries().catch(error => console.error('Error loading entries:', error));
         });
     });
+}
 
-    // Add a date formatting helper function at the top
-    function formatDate(dateString) {
-        if (!dateString) return '-';
-        const date = new Date(dateString);
-        return new Intl.DateTimeFormat(navigator.language, {
-            weekday: 'short', // 'ddd' format (Mon, Tue, etc.)
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        }).format(date);
+// Move handlers outside of initializeUI to make them globally available
+async function handleDelete(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Get the entry ID from either the button or the icon
+    const entryId = event.target.dataset.id || event.target.parentElement.dataset.id;
+    
+    if (!entryId) {
+        console.error('No entry ID found for delete operation');
+        return;
     }
 
-    // Add a helper function to check if dates are equal
-    function areDatesEqual(...dates) {
-        const validDates = dates.filter(date => date != null);
-        if (validDates.length <= 1) return true;
-        
-        const firstDate = new Date(validDates[0]).getTime();
-        return validDates.every(date => new Date(date).getTime() === firstDate);
+    try {
+        await db.deleteEntry(entryId);
+        await loadEntries(); // Refresh the view
+    } catch (error) {
+        console.error('Error deleting entry:', error);
+    }
+}
+
+function handleSort(column) {
+    // Toggle direction if clicking same column
+    if (currentSort.column === column) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSort.column = column;
+        currentSort.direction = 'desc';
     }
 
-    // View rendering functions
-    function renderTableView(entries) {
-        const tbody = document.getElementById('entries-table-body');
-        tbody.innerHTML = '';
+    loadEntries();
+}
 
-        // First, let's update the table header if it exists
-        const thead = document.querySelector('table thead tr');
-        if (thead) {
-            thead.innerHTML = `
-                <th>Content</th>
-                <th>Action</th>
-                <th>Contact</th>
-                <th>Date</th>
-                <th>Priority</th>
-                <th>Project</th>
-                <th>Location</th>
-                <th>Complexity</th>
-                <th>Duration</th>
-            `;
-        }
-
-        entries.forEach(entry => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="action-cell">
-                    <button class="delete-btn" data-id="${entry.id}">
-                        <i class="fas fa-trash-alt" data-id="${entry.id}"></i>
-                    </button>
-                    <button class="expand-btn" data-id="${entry.id}">
-                        <i class="fas fa-chevron-down" data-id="${entry.id}"></i>
-                    </button>
-                    ${entry.raw_content}
-                </td>
-                <td>${entry.action || '-'}</td>
-                <td>${entry.contact || '-'}</td>
-                <td>
-                    ${areDatesEqual(entry.datetime, entry.due_date, entry.final_deadline) ?
-                        `Final Deadline: ${formatDate(entry.final_deadline)}` :
-                        `${entry.datetime ? `Scheduled: ${formatDate(entry.datetime)}<br>` : ''}
-                         ${entry.due_date ? `Due: ${formatDate(entry.due_date)}<br>` : ''}
-                         ${entry.final_deadline ? `Final Deadline: ${formatDate(entry.final_deadline)}` : ''}`
-                    }
-                </td>
-                <td class="priority-${entry.priority.toLowerCase()}">${entry.priority}</td>
-                <td>${entry.project || '-'}</td>
-                <td>${entry.location || '-'}</td>
-                <td>${entry.complexity || '-'}</td>
-                <td>${entry.duration ? `${entry.duration}min` : '-'}</td>
-            `;
-
-            // Add expandable details row
-            const detailsRow = document.createElement('tr');
-            detailsRow.className = 'details-row hidden';
-            detailsRow.dataset.parentId = entry.id;
-            detailsRow.innerHTML = `
-                <td colspan="10">
-                    <div class="details-content">
-                        <h4>Full Details</h4>
-                        <pre>${JSON.stringify(entry, null, 2)}</pre>
-                    </div>
-                </td>
-            `;
-
-            tbody.appendChild(tr);
-            tbody.appendChild(detailsRow);
-        });
-
-        // Add event listeners for delete and expand buttons
-        document.querySelectorAll('.delete-btn').forEach(button => {
-            button.addEventListener('click', handleDelete);
-        });
-
-        document.querySelectorAll('.expand-btn').forEach(button => {
-            button.addEventListener('click', handleExpand);
-        });
-    }
-
-    function renderCardsView(entries) {
-        const container = document.getElementById('cards-view');
-        container.innerHTML = '';
-
-        entries.forEach(entry => {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = `
-                <div class="card-header">
-                    <button class="delete-btn" data-id="${entry.id}">
-                        <i class="fas fa-trash-alt" data-id="${entry.id}"></i>
-                    </button>
-                    <button class="expand-btn" data-id="${entry.id}">
-                        <i class="fas fa-chevron-down" data-id="${entry.id}"></i>
-                    </button>
-                    <div class="card-priority priority-${entry.priority.toLowerCase()}">${entry.priority}</div>
-                </div>
-                <div class="card-content">${entry.raw_content}</div>
-                <div class="card-meta">
-                    ${entry.action ? `<div class="card-action">${entry.action}</div>` : ''}
-                    ${entry.contact ? `<div class="card-contact">${entry.contact}</div>` : ''}
-                    ${areDatesEqual(entry.datetime, entry.due_date, entry.final_deadline) ?
-                        `<div class="card-final-deadline">Final Deadline: ${formatDate(entry.final_deadline)}</div>` :
-                        `${entry.datetime ? `<div class="card-date">Scheduled: ${formatDate(entry.datetime)}</div>` : ''}
-                         ${entry.due_date ? `<div class="card-due-date">Due: ${formatDate(entry.due_date)}</div>` : ''}
-                         ${entry.final_deadline ? `<div class="card-final-deadline">Final Deadline: ${formatDate(entry.final_deadline)}</div>` : ''}`
-                    }
-                    ${entry.project ? `<div class="card-project">Project: ${entry.project}</div>` : ''}
-                    ${entry.location ? `<div class="card-location">Location: ${entry.location}</div>` : ''}
-                    ${entry.complexity ? `<div class="card-complexity">Complexity: ${entry.complexity}</div>` : ''}
-                    ${entry.duration ? `<div class="card-duration">Duration: ${entry.duration}min</div>` : ''}
-                </div>
-                <div class="card-details hidden" data-id="${entry.id}">
-                    <h4>Full Details</h4>
-                    <pre>${JSON.stringify(entry, null, 2)}</pre>
-                </div>
-            `;
-            container.appendChild(card);
-        });
-
-        // Add event listeners for delete and expand buttons
-        document.querySelectorAll('.delete-btn').forEach(button => {
-            button.addEventListener('click', handleDelete);
-        });
-
-        document.querySelectorAll('.expand-btn').forEach(button => {
-            button.addEventListener('click', handleExpand);
-        });
-    }
-
-    function renderTimelineView(entries) {
-        const container = document.getElementById('timeline-view');
-        container.innerHTML = '';
-
-        const sortedEntries = entries
-            .filter(entry => entry.datetime || entry.due_date || entry.final_deadline)
-            .sort((a, b) => {
-                const dateA = new Date(a.final_deadline || a.due_date || a.datetime);
-                const dateB = new Date(b.final_deadline || b.due_date || b.datetime);
-                return dateB - dateA;
-            });
-
-        sortedEntries.forEach(entry => {
-            const item = document.createElement('div');
-            item.className = 'timeline-item';
-            item.innerHTML = `
-                <div class="timeline-header">
-                    <button class="delete-btn" data-id="${entry.id}">
-                        <i class="fas fa-trash-alt" data-id="${entry.id}"></i>
-                    </button>
-                    <button class="expand-btn" data-id="${entry.id}">
-                        <i class="fas fa-chevron-down" data-id="${entry.id}"></i>
-                    </button>
-                </div>
-                <div class="timeline-date">
-                    ${areDatesEqual(entry.datetime, entry.due_date, entry.final_deadline) ?
-                        `Final Deadline: ${formatDate(entry.final_deadline)}` :
-                        `${entry.datetime ? `Scheduled: ${formatDate(entry.datetime)}<br>` : ''}
-                         ${entry.due_date ? `Due: ${formatDate(entry.due_date)}<br>` : ''}
-                         ${entry.final_deadline ? `Final Deadline: ${formatDate(entry.final_deadline)}` : ''}`
-                    }
-                </div>
-                <div class="timeline-content">
-                    <div class="priority-${entry.priority.toLowerCase()}">${entry.priority}</div>
-                    <div>${entry.raw_content}</div>
-                    ${entry.project ? `<div class="timeline-project">Project: ${entry.project}</div>` : ''}
-                    ${entry.location ? `<div class="timeline-location">Location: ${entry.location}</div>` : ''}
-                    ${entry.complexity ? `<div class="timeline-complexity">Complexity: ${entry.complexity}</div>` : ''}
-                    ${entry.duration ? `<div class="timeline-duration">Duration: ${entry.duration}min</div>` : ''}
-                </div>
-                <div class="timeline-details hidden" data-id="${entry.id}">
-                    <h4>Full Details</h4>
-                    <pre>${JSON.stringify(entry, null, 2)}</pre>
-                </div>
-            `;
-            container.appendChild(item);
-        });
-
-        // Add event listeners for delete and expand buttons
-        document.querySelectorAll('.delete-btn').forEach(button => {
-            button.addEventListener('click', handleDelete);
-        });
-
-        document.querySelectorAll('.expand-btn').forEach(button => {
-            button.addEventListener('click', handleExpand);
-        });
-    }
-
-    // Centralized delete handler
-    async function handleDelete(event) {
-        event.preventDefault();
-        event.stopPropagation();
-        
-        // Get the entry ID from either the button or the icon
-        const entryId = event.target.dataset.id || event.target.parentElement.dataset.id;
-        
-        if (!entryId) {
-            console.error('No entry ID found for delete operation');
-            return;
-        }
-
-        try {
-            await db.deleteEntry(entryId);
-            await loadEntries(); // Refresh the view
-        } catch (error) {
-            console.error('Error deleting entry:', error);
-        }
-    }
-
-    async function loadEntries() {
-        try {
-            console.log('Active filters:', activeFilters);
-            const entries = await db.getEntries(); // Call without filters for debugging
-            
-            // Render all views (only the active one will be visible)
-            renderTableView(entries);
-            renderCardsView(entries);
-            renderTimelineView(entries);
-        } catch (error) {
-            console.error('Error loading entries:', error);
-        }
-    }
-
-    // Initial load
-    loadEntries().catch(error => console.error('Error loading entries on initial load:', error));
-
-    // Add expand/collapse handler
-    function handleExpand(event) {
-        event.preventDefault();
-        event.stopPropagation();
-        
-        const entryId = event.target.dataset.id || event.target.parentElement.dataset.id;
-        const icon = event.target.tagName === 'I' ? event.target : event.target.querySelector('i');
-        
-        // Toggle icon
-        icon.classList.toggle('fa-chevron-down');
-        icon.classList.toggle('fa-chevron-up');
-        
-        // Find and toggle details based on view type
-        const detailsRow = document.querySelector(`.details-row[data-parent-id="${entryId}"]`);
-        const cardDetails = document.querySelector(`.card-details[data-id="${entryId}"]`);
-        const timelineDetails = document.querySelector(`.timeline-details[data-id="${entryId}"]`);
-        
-        if (detailsRow) detailsRow.classList.toggle('hidden');
-        if (cardDetails) cardDetails.classList.toggle('hidden');
-        if (timelineDetails) timelineDetails.classList.toggle('hidden');
-    }
+function handleExpand(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const entryId = event.target.dataset.id || event.target.parentElement.dataset.id;
+    const icon = event.target.tagName === 'I' ? event.target : event.target.querySelector('i');
+    
+    // Toggle icon
+    icon.classList.toggle('fa-chevron-down');
+    icon.classList.toggle('fa-chevron-up');
+    
+    // Find and toggle details based on view type
+    const detailsRow = document.querySelector(`.details-row[data-parent-id="${entryId}"]`);
+    const cardDetails = document.querySelector(`.card-details[data-id="${entryId}"]`);
+    
+    if (detailsRow) detailsRow.classList.toggle('hidden');
+    if (cardDetails) cardDetails.classList.toggle('hidden');
 }
