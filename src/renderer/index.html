@@ -1,98 +1,61 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Personal Information Manager</title>
+    <title>PIM</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
-    <div class="container">
+    <div class="app-container">
+        <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-buttons">
-                <button id="sidebar-new-entry" class="sidebar-btn">
-                    <i class="fas fa-plus"></i> Add Entry
+                <button id="new-entry-btn" class="sidebar-btn">
+                    <i class="fas fa-plus"></i>
+                    New Entry
                 </button>
-                <button id="sidebar-settings" class="sidebar-btn">
-                    <i class="fas fa-cog"></i> Settings
+                <button id="settings-btn" class="sidebar-btn">
+                    <i class="fas fa-cog"></i>
+                    Settings
                 </button>
             </div>
-
             <div class="filters">
-                <h3>Filters</h3>
-                <div class="filter-group">
-                    <h4>Priority</h4>
-                    <label>
-                        <input type="checkbox" value="high"> High
-                    </label>
-                    <label>
-                        <input type="checkbox" value="medium"> Medium
-                    </label>
-                    <label>
-                        <input type="checkbox" value="low"> Low
-                    </label>
-                </div>
+                <!-- Filter sections will be added dynamically -->
             </div>
         </div>
 
-        <div class="main-content">
+        <!-- Main Content -->
+        <div id="main-content">
             <!-- Table View -->
-            <div id="table-view" class="view-container active">
-                <table>
+            <div id="table-view">
+                <table id="entries-table" class="entries-table">
                     <thead>
                         <tr>
                             <th>Content</th>
                             <th>Action</th>
                             <th>Contact</th>
-                            <th>Date</th>
-                            <th>Priority</th>
                             <th>Project</th>
-                            <th>Location</th>
-                            <th>Complexity</th>
-                            <th>Duration</th>
+                            <th>Date</th>
+                            <th>Due</th>
+                            <th>Deadline</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="entries-table-body"></tbody>
+                    <tbody></tbody>
                 </table>
             </div>
 
-            <!-- Cards View -->
-            <div id="cards-view" class="view-container"></div>
-
             <!-- Entry Form -->
             <div id="entry-form" class="hidden">
-                <div class="form-content">
-                    <h2 class="form-title">New Entry</h2>
-                    <textarea id="entry-input" placeholder="Enter your task..."></textarea>
-                    <select id="priority-select">
-                        <option value="None">No Priority</option>
-                        <option value="Low">Low Priority</option>
-                        <option value="Medium">Medium Priority</option>
-                        <option value="High">High Priority</option>
-                        <option value="Urgent">Urgent</option>
-                    </select>
-                    <div class="form-controls">
-                        <button id="cancel-entry" class="secondary-btn">Cancel</button>
-                        <button id="save-entry" class="primary-btn">Save</button>
-                    </div>
-                </div>
+                <!-- Form content will be created dynamically -->
             </div>
 
             <!-- Settings Form -->
             <div id="settings-form" class="hidden">
-                <div class="form-content">
-                    <div class="form-header">
-                        <button class="close-btn" id="close-settings">
-                            <i class="fas fa-times"></i>
-                        </button>
-                        <h2 class="form-title">Settings</h2>
-                    </div>
-                    <div id="settings-container">
-                        <!-- Will be populated dynamically -->
-                    </div>
-                    <div class="form-controls">
-                        <button id="cancel-settings" class="secondary-btn">Cancel</button>
-                        <button id="save-settings" class="primary-btn">Save</button>
-                    </div>
+                <div id="settings-container">
+                    <!-- Settings content will be created dynamically -->
                 </div>
             </div>
         </div>

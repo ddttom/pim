@@ -1,557 +1,130 @@
 const { ipcRenderer } = require('electron');
-const Parser = require('../services/parser');
-const DatabaseService = require('../services/database');
-const fs = require('fs').promises;
-const path = require('path');
-let db; // Declare db at module scope
 
-// Initialize parser with a basic logger
-const logger = {
-  info: console.log,
-  error: console.error,
-  debug: console.debug,
-  warn: console.warn
-};
+console.log('=== Starting renderer.js ===');
 
-const parser = new Parser(logger);
-
-// Add helper functions first
-function formatDate(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat(navigator.language, {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-    }).format(date);
-}
-
-function areDatesEqual(...dates) {
-    const validDates = dates.filter(date => date != null);
-    if (validDates.length <= 1) return true;
-    
-    const firstDate = new Date(validDates[0]).getTime();
-    return validDates.every(date => new Date(date).getTime() === firstDate);
-}
-
-function getSortIndicator(column) {
-    if (currentSort.column !== column) {
-        return '<i class="fas fa-sort"></i>';
-    }
-    return currentSort.direction === 'asc' 
-        ? '<i class="fas fa-sort-up"></i>' 
-        : '<i class="fas fa-sort-down"></i>';
-}
-
-// Add view rendering functions before they're used
-function renderTableView(entries) {
-    const tbody = document.getElementById('entries-table-body');
-    tbody.innerHTML = '';
-
-    // Update table header with sort indicators and click handlers
-    const thead = document.querySelector('table thead tr');
-    if (thead) {
-        thead.innerHTML = `
-            <th class="sortable" data-sort="raw_content">
-                Content ${getSortIndicator('raw_content')}
-            </th>
-            <th class="sortable" data-sort="action">
-                Action ${getSortIndicator('action')}
-            </th>
-            <th class="sortable" data-sort="contact">
-                Contact ${getSortIndicator('contact')}
-            </th>
-            <th class="sortable" data-sort="final_deadline">
-                Date ${getSortIndicator('final_deadline')}
-            </th>
-            <th class="sortable" data-sort="priority">
-                Priority ${getSortIndicator('priority')}
-            </th>
-            <th class="sortable" data-sort="project">
-                Project ${getSortIndicator('project')}
-            </th>
-            <th class="sortable" data-sort="location">
-                Location ${getSortIndicator('location')}
-            </th>
-            <th class="sortable" data-sort="complexity">
-                Complexity ${getSortIndicator('complexity')}
-            </th>
-            <th class="sortable" data-sort="duration">
-                Duration ${getSortIndicator('duration')}
-            </th>
-        `;
-
-        // Add click handlers to sortable headers
-        thead.querySelectorAll('.sortable').forEach(th => {
-            th.addEventListener('click', () => {
-                handleSort(th.dataset.sort);
-            });
-        });
-    }
-
-    entries.forEach(entry => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td class="action-cell">
-                <button class="delete-btn" data-id="${entry.id}">
-                    <i class="fas fa-trash-alt" data-id="${entry.id}"></i>
-                </button>
-                <button class="expand-btn" data-id="${entry.id}">
-                    <i class="fas fa-chevron-down" data-id="${entry.id}"></i>
-                </button>
-                ${entry.raw_content}
-            </td>
-            <td>${entry.action || '-'}</td>
-            <td>${entry.contact || '-'}</td>
-            <td>
-                ${areDatesEqual(entry.datetime, entry.due_date, entry.final_deadline) ?
-                    `Final Deadline: ${formatDate(entry.final_deadline)}` :
-                    `${entry.datetime ? `Scheduled: ${formatDate(entry.datetime)}<br>` : ''}
-                     ${entry.due_date ? `Due: ${formatDate(entry.due_date)}<br>` : ''}
-                     ${entry.final_deadline ? `Final Deadline: ${formatDate(entry.final_deadline)}` : ''}`
-                }
-            </td>
-            <td class="priority-${entry.priority.toLowerCase()}">${entry.priority}</td>
-            <td>${entry.project || '-'}</td>
-            <td>${entry.location || '-'}</td>
-            <td>${entry.complexity || '-'}</td>
-            <td>${entry.duration ? `${entry.duration}min` : '-'}</td>
-        `;
-
-        // Update the details row with copy button
-        const detailsRow = document.createElement('tr');
-        detailsRow.className = 'details-row hidden';
-        detailsRow.dataset.parentId = entry.id;
-        detailsRow.innerHTML = `
-            <td colspan="10">
-                <div class="details-content">
-                    <div class="details-header">
-                        <h4>Full Details</h4>
-                        <button class="copy-btn" data-content='${JSON.stringify(entry)}'>
-                            <i class="fas fa-copy"></i> Copy
-                        </button>
-                    </div>
-                    <pre>${JSON.stringify(entry, null, 2)}</pre>
-                </div>
-            </td>
-        `;
-
-        tbody.appendChild(tr);
-        tbody.appendChild(detailsRow);
-    });
-
-    // Add event listeners for delete and expand buttons
-    document.querySelectorAll('.delete-btn').forEach(button => {
-        button.addEventListener('click', handleDelete);
-    });
-
-    document.querySelectorAll('.expand-btn').forEach(button => {
-        button.addEventListener('click', handleExpand);
-    });
-
-    // Add copy button handlers
-    document.querySelectorAll('.copy-btn').forEach(button => {
-        button.addEventListener('click', handleCopy);
-    });
-}
-
-function renderCardsView(entries) {
-    const container = document.getElementById('cards-view');
-    container.innerHTML = '';
-
-    entries.forEach(entry => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-            <div class="card-header">
-                <button class="delete-btn" data-id="${entry.id}">
-                    <i class="fas fa-trash-alt" data-id="${entry.id}"></i>
-                </button>
-                <button class="expand-btn" data-id="${entry.id}">
-                    <i class="fas fa-chevron-down" data-id="${entry.id}"></i>
-                </button>
-                ${entry.priority !== 'None' ? 
-                    `<div class="card-priority priority-${entry.priority.toLowerCase()}">${entry.priority}</div>` 
-                    : ''}
-            </div>
-            <div class="card-content">${entry.raw_content}</div>
-            <div class="card-meta">
-                ${entry.action ? `<div class="card-action">${entry.action}</div>` : ''}
-                ${entry.contact ? `<div class="card-contact">${entry.contact}</div>` : ''}
-                ${areDatesEqual(entry.datetime, entry.due_date, entry.final_deadline) ?
-                    `<div class="card-final-deadline">Final Deadline: ${formatDate(entry.final_deadline)}</div>` :
-                    `${entry.datetime ? `<div class="card-date">Scheduled: ${formatDate(entry.datetime)}</div>` : ''}
-                     ${entry.due_date ? `<div class="card-due-date">Due: ${formatDate(entry.due_date)}</div>` : ''}
-                     ${entry.final_deadline ? `<div class="card-final-deadline">Final Deadline: ${formatDate(entry.final_deadline)}</div>` : ''}`
-                }
-                ${entry.project ? `<div class="card-project">Project: ${entry.project}</div>` : ''}
-                ${entry.location ? `<div class="card-location">Location: ${entry.location}</div>` : ''}
-                ${entry.complexity ? `<div class="card-complexity">Complexity: ${entry.complexity}</div>` : ''}
-                ${entry.duration ? `<div class="card-duration">Duration: ${entry.duration}min</div>` : ''}
-            </div>
-            <div class="card-details hidden" data-id="${entry.id}">
-                <div class="details-header">
-                    <h4>Full Details</h4>
-                    <button class="copy-btn" data-content='${JSON.stringify(entry)}'>
-                        <i class="fas fa-copy"></i> Copy
-                    </button>
-                </div>
-                <pre>${JSON.stringify(entry, null, 2)}</pre>
-            </div>
-        `;
-        container.appendChild(card);
-    });
-
-    // Add event listeners for delete and expand buttons
-    document.querySelectorAll('.delete-btn').forEach(button => {
-        button.addEventListener('click', handleDelete);
-    });
-
-    document.querySelectorAll('.expand-btn').forEach(button => {
-        button.addEventListener('click', handleExpand);
-    });
-
-    // Add copy button handlers along with other handlers
-    document.querySelectorAll('.copy-btn').forEach(button => {
-        button.addEventListener('click', handleCopy);
-    });
-}
-
-// Then add loadEntries
-async function loadEntries() {
-    try {
-        console.log('Loading entries...');
-        const entries = await ipcRenderer.invoke('get-entries', {
-            ...activeFilters,
-            sort: currentSort
-        });
-        console.log('Loaded entries:', entries);
-        
-        renderTableView(entries);
-        renderCardsView(entries);
-    } catch (error) {
-        console.error('Error loading entries:', error);
-    }
-}
-
-// State variables should also be outside initializeUI
-let activeFilters = {
-    priority: new Set(),
-    date: new Set(),
-    categories: new Set()
-};
-
-let currentSort = {
-    column: 'final_deadline',
-    direction: 'desc'
-};
-
-// Update the DOMContentLoaded event listener
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        // Initialize UI elements
-        initializeUI();
-        
-        // Add menu event listeners
-        ipcRenderer.on('menu-new-entry', () => {
-            showNewEntryForm();
-        });
-
-        ipcRenderer.on('show-settings', () => {
-            showSettingsForm();
-        });
-
-        // Initial load
-        await loadEntries();
-    } catch (error) {
-        console.error('Initialization error:', error);
-    }
-});
-
-// Add these helper functions
-function showNewEntryForm() {
-    const entryForm = document.getElementById('entry-form');
-    const entryInput = document.getElementById('entry-input');
-    if (entryForm && entryInput) {
+// Keep all function declarations at the top
+function showSettingsForm() {
+    console.log('Showing settings form');
+    const settingsForm = document.getElementById('settings-form');
+    if (settingsForm) {
         hideAllForms();
-        entryForm.classList.remove('hidden');
-        entryInput.focus();
+        settingsForm.classList.remove('hidden');
+        populateSettingsForm();
     }
 }
 
-async function showSettingsForm() {
-    console.log('Showing settings form...');
-    
+function hideSettingsForm() {
+    console.log('Hiding settings form');
+    const settingsForm = document.getElementById('settings-form');
+    if (settingsForm) {
+        settingsForm.classList.add('hidden');
+    }
+}
+
+function hideAllForms() {
+    console.log('Hiding all forms');
+    const forms = document.querySelectorAll('.form');
+    forms.forEach(form => form.classList.add('hidden'));
+}
+
+async function populateSettingsForm() {
+    console.log('=== Populating Settings Form ===');
     const settingsForm = document.getElementById('settings-form');
     const settingsContainer = document.getElementById('settings-container');
-    const sidebarSettings = document.getElementById('sidebar-settings');
     
-    if (!settingsForm || !settingsContainer) {
-        console.error('Settings form elements not found:', {
-            form: settingsForm,
-            container: settingsContainer
-        });
-        return;
-    }
-
     try {
-        console.log('Loading settings...');
-        const settings = await db.getAllSettingsWithDefaults();
-        console.log('Loaded settings:', settings);
+        const settings = await ipcRenderer.invoke('get-settings');
+        console.log('Retrieved settings:', settings);
         
         if (!settings || Object.keys(settings).length === 0) {
-            console.error('No settings loaded');
+            console.error('No settings received');
+            settingsContainer.innerHTML = '<div class="error">No settings available</div>';
             return;
         }
 
-        // Get the parser config for comparison
-        const parserConfig = require('../config/parser.config.js');
-        console.log('Parser config:', parserConfig);
-
-        // Generate HTML with the parser config as fallback
-        const html = generateSettingsHTML(settings || parserConfig);
-        console.log('Generated settings HTML length:', html.length);
-        console.log('First 500 chars of HTML:', html.substring(0, 500));
+        // Generate and set HTML
+        settingsForm.innerHTML = generateSettingsHTML(settings);
         
-        settingsContainer.innerHTML = html;
-        hideAllForms();
-        settingsForm.classList.remove('hidden');
-        if (sidebarSettings) {
-            sidebarSettings.classList.add('active');
+        // Add event listeners after HTML is set
+        console.log('Adding settings form event listeners');
+        
+        // Add close button listener
+        const closeBtn = document.getElementById('settings-close');
+        if (closeBtn) {
+            console.log('Adding close button listener');
+            closeBtn.addEventListener('click', () => {
+                console.log('Close button clicked');
+                hideSettingsForm();
+            });
         }
 
-        // Verify the content was set
-        console.log('Settings container content length:', settingsContainer.innerHTML.length);
+        const cancelBtn = document.getElementById('settings-cancel');
+        if (cancelBtn) {
+            console.log('Adding cancel button listener');
+            cancelBtn.addEventListener('click', () => {
+                console.log('Cancel button clicked');
+                hideSettingsForm();
+            });
+        }
+
+        const saveBtn = document.getElementById('settings-save');
+        if (saveBtn) {
+            console.log('Adding save button listener');
+            saveBtn.addEventListener('click', async () => {
+                console.log('Save button clicked');
+                try {
+                    const newSettings = collectSettingsFromForm();
+                    await ipcRenderer.invoke('save-settings', newSettings);
+                    hideSettingsForm();
+                    showSuccess('Settings saved successfully');
+                } catch (error) {
+                    console.error('Error saving settings:', error);
+                    showError('Failed to save settings: ' + error.message);
+                }
+            });
+        }
+
     } catch (error) {
-        console.error('Error showing settings:', error);
-        alert('Error showing settings: ' + error.message);
+        console.error('Error loading settings:', error);
+        settingsContainer.innerHTML = `<div class="error">Error loading settings: ${error.message}</div>`;
     }
 }
 
-// Update initializeUI function
-function initializeUI() {
-    // Add sidebar button handlers
-    const sidebarNewEntry = document.getElementById('sidebar-new-entry');
-    const sidebarSettings = document.getElementById('sidebar-settings');
-
-    if (sidebarNewEntry) {
-        sidebarNewEntry.addEventListener('click', () => {
-            showNewEntryForm();
-        });
-    }
-
-    if (sidebarSettings) {
-        sidebarSettings.addEventListener('click', () => {
+// Move all initialization code into DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('=== DOM Content Loaded ===');
+    
+    // Set up settings button
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) {
+        console.log('Found settings button, adding click listener');
+        settingsBtn.addEventListener('click', () => {
+            console.log('Settings button clicked');
             showSettingsForm();
         });
-    }
-
-    // Add form button handlers
-    const saveEntryBtn = document.getElementById('save-entry');
-    const cancelEntryBtn = document.getElementById('cancel-entry');
-    const saveSettingsBtn = document.getElementById('save-settings');
-    const cancelSettingsBtn = document.getElementById('cancel-settings');
-    const closeSettingsBtn = document.getElementById('close-settings');
-
-    if (cancelEntryBtn) {
-        cancelEntryBtn.addEventListener('click', () => {
-            hideAllForms();
-            const entryInput = document.getElementById('entry-input');
-            const prioritySelect = document.getElementById('priority-select');
-            if (entryInput) entryInput.value = '';
-            if (prioritySelect) prioritySelect.value = 'None';
-        });
-    }
-
-    if (saveEntryBtn) {
-        saveEntryBtn.addEventListener('click', async () => {
-            const content = entryInput.value.trim();
-            if (!content) return;
-
-            try {
-                const parsedEntry = parser.parse(content);
-                parsedEntry.priority = prioritySelect.value;
-
-                console.log('Saving entry:', parsedEntry);
-
-                // Only set dates if they were actually parsed
-                const datetime = parsedEntry.datetime ? parsedEntry.datetime.toISOString() : null;
-                const dueDate = content.match(/\b(by|before|due)\b/i) ? datetime : null;
-                const final_deadline = datetime || dueDate || null;
-
-                const entryId = await db.addEntry({
-                    raw_content: content,
-                    rawContent: content,
-                    action: parsedEntry.action,
-                    contact: parsedEntry.contact,
-                    datetime: datetime,
-                    priority: parsedEntry.priority,
-                    complexity: parsedEntry.complexity,
-                    location: parsedEntry.location,
-                    duration: parsedEntry.duration,
-                    project: parsedEntry.project?.project,
-                    recurringPattern: parsedEntry.recurring,
-                    dependencies: parsedEntry.dependencies,
-                    dueDate: dueDate,
-                    final_deadline: final_deadline,
-                    categories: parsedEntry.categories || []
-                });
-
-                // Add categories if they exist
-                if (parsedEntry.categories && parsedEntry.categories.length > 0) {
-                    for (const category of parsedEntry.categories) {
-                        const categoryId = await db.addCategory(category);
-                        await db.linkEntryToCategory(entryId, categoryId);
-                    }
-                }
-
-                hideAllForms();
-                entryInput.value = '';
-                prioritySelect.value = 'None';
-                
-                // Refresh the view
-                await loadEntries();
-            } catch (error) {
-                console.error('Error saving entry:', error);
-                alert('Error saving entry: ' + error.message);
-            }
-        });
-    }
-
-    if (saveSettingsBtn) {
-        saveSettingsBtn.addEventListener('click', () => {
-            hideSettingsForm();
-        });
-    }
-
-    if (cancelSettingsBtn) {
-        cancelSettingsBtn.addEventListener('click', hideSettingsForm);
-    }
-
-    if (closeSettingsBtn) {
-        closeSettingsBtn.addEventListener('click', hideSettingsForm);
-    }
-}
-
-// Move handlers outside of initializeUI to make them globally available
-async function handleDelete(event) {
-    event.preventDefault();
-    event.stopPropagation();
-    
-    // Get the entry ID from either the button or the icon
-    const entryId = event.target.dataset.id || event.target.parentElement.dataset.id;
-    
-    if (!entryId) {
-        console.error('No entry ID found for delete operation');
-        return;
-    }
-
-    try {
-        await db.deleteEntry(entryId);
-        await loadEntries(); // Refresh the view
-    } catch (error) {
-        console.error('Error deleting entry:', error);
-    }
-}
-
-function handleSort(column) {
-    // Toggle direction if clicking same column
-    if (currentSort.column === column) {
-        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
     } else {
-        currentSort.column = column;
-        currentSort.direction = 'desc';
+        console.error('Settings button not found');
     }
 
-    loadEntries();
-}
+    // Debug elements
+    debugElement('settings-btn');
+    debugElement('settings-form');
+    debugElement('settings-container');
+});
 
-function handleExpand(event) {
-    event.preventDefault();
-    event.stopPropagation();
-    
-    const entryId = event.target.dataset.id || event.target.parentElement.dataset.id;
-    const icon = event.target.tagName === 'I' ? event.target : event.target.querySelector('i');
-    
-    // Toggle icon
-    icon.classList.toggle('fa-chevron-down');
-    icon.classList.toggle('fa-chevron-up');
-    
-    // Find and toggle details based on view type
-    const detailsRow = document.querySelector(`.details-row[data-parent-id="${entryId}"]`);
-    const cardDetails = document.querySelector(`.card-details[data-id="${entryId}"]`);
-    
-    if (detailsRow) detailsRow.classList.toggle('hidden');
-    if (cardDetails) cardDetails.classList.toggle('hidden');
-}
-
-function convertToCSV(entries) {
-    if (!entries || entries.length === 0) return '';
-
-    // Get all possible fields from the entries
-    const fields = new Set();
-    entries.forEach(entry => {
-        Object.keys(entry).forEach(key => fields.add(key));
+// Keep the debug helper
+function debugElement(id) {
+    const element = document.getElementById(id);
+    console.log(`Debug element "${id}":`, {
+        exists: !!element,
+        display: element ? getComputedStyle(element).display : 'N/A',
+        classes: element ? element.className : 'N/A',
+        parent: element ? element.parentElement : 'N/A'
     });
-    
-    // Convert Set to Array and sort for consistent order
-    const headers = Array.from(fields).sort();
-
-    // Create CSV header row
-    const headerRow = headers.join(',');
-
-    // Create data rows
-    const dataRows = entries.map(entry => {
-        return headers.map(field => {
-            const value = entry[field];
-            
-            // Handle different value types
-            if (value === null || value === undefined) return '';
-            if (typeof value === 'object') return `"${JSON.stringify(value).replace(/"/g, '""')}"`;
-            if (typeof value === 'string') return `"${value.replace(/"/g, '""')}"`;
-            return value;
-        }).join(',');
-    });
-
-    // Combine header and data rows
-    return [headerRow, ...dataRows].join('\n');
+    return element;
 }
 
-// Add CSV parsing function
-function parseCSV(content) {
-    const lines = content.split('\n');
-    const headers = lines[0].split(',').map(h => h.trim());
-    
-    return lines.slice(1)
-        .filter(line => line.trim())
-        .map(line => {
-            const values = line.split(',').map(v => {
-                // Handle quoted values
-                if (v.startsWith('"') && v.endsWith('"')) {
-                    try {
-                        return JSON.parse(v);
-                    } catch {
-                        return v.slice(1, -1).replace(/""/g, '"');
-                    }
-                }
-                return v.trim();
-            });
-            
-            // Create object from headers and values
-            const entry = {};
-            headers.forEach((header, index) => {
-                if (values[index] !== undefined && values[index] !== '') {
-                    entry[header] = values[index];
-                }
-            });
-            return entry;
-        });
-}
-
+// Add this function to generate settings HTML
 function generateSettingsHTML(settings) {
     console.log('Generating settings HTML for:', settings);
     
@@ -561,181 +134,126 @@ function generateSettingsHTML(settings) {
     }
 
     // Process settings for copy functionality
-    const processedSettings = processSettingsForCopy(settings);
+    const processedSettings = JSON.stringify(settings, null, 2);
 
-    // Add copy all button at the top with processed settings
-    const html = `
-        <div class="settings-header">
-            <button class="copy-all-btn" data-settings='${JSON.stringify(processedSettings)}'>
-                <i class="fas fa-copy"></i> Copy All Settings
-            </button>
+    return `
+        <div class="form-content">
+            <div class="settings-header">
+                <h2>Settings</h2>
+                <button class="close-btn" id="settings-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="settings-container">
+                ${formatSettingsGroups(settings)}
+            </div>
+            
+            <div class="settings-footer">
+                <button class="settings-cancel-btn" id="settings-cancel">Cancel</button>
+                <button class="settings-save-btn" id="settings-save">Save Changes</button>
+            </div>
         </div>
-        ${formatSettingsGroups(settings)}
     `;
-
-    return html;
 }
 
-// Add this helper function to process settings for copying
-function processSettingsForCopy(settings) {
-    if (!settings || typeof settings !== 'object') {
-        return settings;
+// Add helper function to format settings groups
+function formatSettingsGroups(settings) {
+    const groups = [];
+    
+    // Format patterns group
+    if (settings.patterns) {
+        groups.push(formatSettingsGroup('Patterns', settings.patterns));
+    }
+    
+    // Format categories group
+    if (settings.categories) {
+        groups.push(formatSettingsGroup('Categories', settings.categories));
+    }
+    
+    // Format other groups as needed
+    if (settings.defaultTimes) {
+        groups.push(formatSettingsGroup('Default Times', settings.defaultTimes));
+    }
+    
+    if (settings.defaultReminders) {
+        groups.push(formatSettingsGroup('Default Reminders', settings.defaultReminders));
     }
 
-    // Handle RegExp objects
-    if (settings instanceof RegExp) {
-        return settings.toString();
-    }
-
-    // Handle arrays
-    if (Array.isArray(settings)) {
-        return settings.map(item => processSettingsForCopy(item));
-    }
-
-    // Handle objects
-    const processed = {};
-    for (const [key, value] of Object.entries(settings)) {
-        if (value instanceof RegExp) {
-            processed[key] = value.toString();
-        } else if (typeof value === 'object' && value !== null) {
-            processed[key] = processSettingsForCopy(value);
-        } else {
-            processed[key] = value;
-        }
-    }
-
-    return processed;
+    return groups.join('');
 }
 
-function formatSettingsGroups(settings, level = 0) {
-    return Object.entries(settings).map(([key, value]) => {
-        let content = '';
+// Add helper function to format a single settings group
+function formatSettingsGroup(title, settings) {
+    const items = Object.entries(settings).map(([key, value]) => {
+        const displayValue = value instanceof RegExp ? value.toString() : 
+                           Array.isArray(value) ? value.join(', ') :
+                           typeof value === 'object' ? JSON.stringify(value, null, 2) :
+                           value;
         
-        if (value instanceof RegExp) {
-            // Handle RegExp objects directly
-            content = `
-                <div class="setting-item">
-                    <label>${formatKey(key)}</label>
-                    <textarea 
-                        class="setting-input code-input" 
-                        name="${key}"
-                        rows="3"
-                    >${value.toString()}</textarea>
-                </div>
-            `;
-        } else if (value && typeof value === 'object') {
-            if (value.type === 'regex') {
-                // Handle RegExp-like objects
-                content = `
-                    <div class="setting-item">
-                        <label>${formatKey(key)}</label>
-                        <textarea 
-                            class="setting-input code-input" 
-                            name="${key}"
-                            rows="3"
-                        >/${value.pattern}/${value.flags}</textarea>
-                    </div>
-                `;
-            } else if (Array.isArray(value)) {
-                // Handle arrays
-                const displayValue = value.map(item => {
-                    if (item instanceof RegExp) {
-                        return item.toString();
-                    }
-                    if (item && typeof item === 'object') {
-                        if (item.type === 'regex') {
-                            return `/${item.pattern}/${item.flags}`;
-                        }
-                        return JSON.stringify(item, null, 2);
-                    }
-                    return item;
-                }).join('\n');
-                
-                content = `
-                    <div class="setting-item">
-                        <label>${formatKey(key)}</label>
-                        <textarea 
-                            class="setting-input" 
-                            name="${key}"
-                            rows="${Math.max(4, value.length + 1)}"
-                        >${displayValue}</textarea>
-                    </div>
-                `;
-            } else {
-                // Handle nested objects
-                content = `
-                    <div class="nested-settings">
-                        ${Object.entries(value).map(([nestedKey, nestedValue]) => {
-                            if (nestedValue instanceof RegExp) {
-                                return `
-                                    <div class="setting-item">
-                                        <label>${formatKey(nestedKey)}</label>
-                                        <textarea 
-                                            class="setting-input code-input" 
-                                            name="${key}.${nestedKey}"
-                                            rows="3"
-                                        >${nestedValue.toString()}</textarea>
-                                    </div>
-                                `;
-                            }
-                            return `
-                                <div class="setting-item">
-                                    <label>${formatKey(nestedKey)}</label>
-                                    <textarea 
-                                        class="setting-input ${typeof nestedValue === 'object' ? 'code-input' : ''}" 
-                                        name="${key}.${nestedKey}"
-                                        rows="${typeof nestedValue === 'object' ? 3 : 1}"
-                                    >${nestedValue instanceof RegExp ? nestedValue.toString() : 
-                                       JSON.stringify(nestedValue, null, 2)}</textarea>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                `;
-            }
-        } else {
-            // Handle primitive values
-            content = `
-                <div class="setting-item">
-                    <label>${formatKey(key)}</label>
-                    <textarea 
-                        class="setting-input" 
-                        name="${key}"
-                        rows="1"
-                    >${value !== undefined ? value : ''}</textarea>
-                </div>
-            `;
-        }
-
         return `
-            <div class="settings-group">
-                <h3>${formatKey(key)}</h3>
-                <div class="settings-grid">
-                    ${content}
-                </div>
+            <div class="setting-item">
+                <label for="${key}">${formatLabel(key)}</label>
+                <input type="text" 
+                       id="${key}" 
+                       name="${key}" 
+                       class="setting-input ${value instanceof RegExp ? 'code-input' : ''}"
+                       value="${escapeHtml(displayValue)}"
+                />
             </div>
         `;
-    }).join('');
+    });
+
+    return `
+        <div class="settings-group">
+            <h3>${title}</h3>
+            <div class="settings-grid">
+                ${items.join('')}
+            </div>
+        </div>
+    `;
 }
 
-// Helper function to format setting keys
-function formatKey(key) {
+// Add helper function to format labels
+function formatLabel(key) {
     return key
-        .split(/(?=[A-Z])|_/)
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join(' ');
+        .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+        .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
+        .trim();
+}
+
+// Add helper function to escape HTML
+function escapeHtml(str) {
+    if (typeof str !== 'string') {
+        str = String(str);
+    }
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 // Update the collectSettingsFromForm function
 function collectSettingsFromForm() {
+    console.log('=== Collecting Settings From Form ===');
     const settings = {};
-    document.querySelectorAll('.setting-input').forEach(input => {
-        const key = input.name;
+    const inputs = document.querySelectorAll('.setting-input');
+    console.log(`Found ${inputs.length} setting inputs`);
+
+    inputs.forEach(input => {
+        const keyPath = input.name.split('.');
         let value = input.value.trim();
+        console.log(`Processing setting ${input.name}:`, {
+            keyPath,
+            rawValue: value,
+            inputType: input.type
+        });
 
         try {
             // Check if it's a RegExp
-            if (value.startsWith('/') && value.includes('/')) {
+            if (value.startsWith('/') && value.lastIndexOf('/') > 0) {
                 const lastSlash = value.lastIndexOf('/');
                 const pattern = value.slice(1, lastSlash);
                 const flags = value.slice(lastSlash + 1);
@@ -744,13 +262,17 @@ function collectSettingsFromForm() {
                     pattern: pattern,
                     flags: flags
                 };
-            } else {
+                console.log(`Converted RegExp ${input.name}:`, value);
+            } else if (value.startsWith('[') || value.startsWith('{')) {
                 // Try to parse as JSON
-                value = JSON.parse(value);
-            }
-        } catch (e) {
-            // If not valid JSON or RegExp, check if it's a list
-            if (value.includes('\n')) {
+                try {
+                    value = JSON.parse(value);
+                    console.log(`Parsed JSON ${input.name}:`, value);
+                } catch (e) {
+                    console.warn(`Failed to parse JSON for ${input.name}:`, e);
+                }
+            } else if (value.includes('\n')) {
+                // Handle multiline input as array
                 value = value.split('\n')
                     .map(item => item.trim())
                     .filter(item => item)
@@ -769,153 +291,422 @@ function collectSettingsFromForm() {
                             return item;
                         }
                     });
+                console.log(`Processed list ${input.name}:`, value);
             }
-            // Otherwise keep as string
+        } catch (e) {
+            console.error(`Error processing setting ${input.name}:`, e);
         }
 
-        settings[key] = value;
+        // Build nested structure
+        let current = settings;
+        for (let i = 0; i < keyPath.length; i++) {
+            const key = keyPath[i];
+            if (i === keyPath.length - 1) {
+                current[key] = value;
+                console.log(`Set value for ${key}:`, value);
+            } else {
+                current[key] = current[key] || {};
+                current = current[key];
+                console.log(`Created/accessed nested object for ${key}`);
+            }
+        }
     });
+
+    console.log('Final collected settings:', settings);
     return settings;
 }
 
-// Add this helper method to ensure forms are properly hidden when switching between them
-function hideAllForms() {
-    const forms = ['entry-form', 'settings-form'];
-    forms.forEach(formId => {
-        const form = document.getElementById(formId);
-        if (form) {
-            form.classList.add('hidden');
-        }
-    });
+// Add this helper function to show success/error messages
+function showSuccess(message) {
+    console.log('Success:', message);
+    const successDiv = document.createElement('div');
+    successDiv.className = 'success-message';
+    successDiv.textContent = message;
+    document.body.appendChild(successDiv);
+    setTimeout(() => successDiv.remove(), 3000);
 }
 
-// Update the form show/hide logic
-function showForm(formId) {
+function showError(message) {
+    console.error('Error:', message);
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+    setTimeout(() => errorDiv.remove(), 3000);
+}
+
+// Add these functions for new entry handling
+function showNewEntryForm() {
+    console.log('=== Showing New Entry Form ===');
+    const entryForm = document.getElementById('entry-form');
+    if (!entryForm) {
+        console.error('Entry form not found');
+        return;
+    }
+
+    // Create the form content
+    const formHTML = `
+        <div class="form-content">
+            <div class="form-header">
+                <h2>New Entry</h2>
+                <button class="close-btn" id="entry-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <textarea 
+                id="entry-input" 
+                placeholder="Enter your task (e.g., 'Call John about Project X tomorrow at 2pm')"
+                rows="3"
+            ></textarea>
+            <div class="form-actions">
+                <button class="settings-cancel-btn" id="entry-cancel">Cancel</button>
+                <button class="settings-save-btn" id="entry-save">Save</button>
+            </div>
+        </div>
+    `;
+
+    entryForm.innerHTML = formHTML;
     hideAllForms();
-    const form = document.getElementById(formId);
-    if (form) {
-        form.classList.remove('hidden');
+    entryForm.classList.remove('hidden');
+
+    // Add event listeners
+    const closeBtn = document.getElementById('entry-close');
+    const cancelBtn = document.getElementById('entry-cancel');
+    const saveBtn = document.getElementById('entry-save');
+    const input = document.getElementById('entry-input');
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', hideNewEntryForm);
+    }
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', hideNewEntryForm);
+    }
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', handleSaveEntry);
+    }
+
+    if (input) {
+        input.focus();
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                handleSaveEntry();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                hideNewEntryForm();
+            }
+        });
     }
 }
 
-// Add the copy handler function
-async function handleCopy(event) {
-    const button = event.currentTarget;
-    const content = button.dataset.content;
+function hideNewEntryForm() {
+    console.log('Hiding new entry form');
+    const entryForm = document.getElementById('entry-form');
+    if (entryForm) {
+        entryForm.classList.add('hidden');
+        entryForm.innerHTML = '';
+    }
+}
+
+async function handleSaveEntry() {
+    console.log('=== Handling Save Entry ===');
+    const input = document.getElementById('entry-input');
+    if (!input) {
+        console.error('Entry input not found');
+        showError('Entry form not properly initialized');
+        return;
+    }
+
+    const content = input.value.trim();
+    if (!content) {
+        console.log('No content entered');
+        showError('Please enter a task');
+        return;
+    }
 
     try {
-        await navigator.clipboard.writeText(content);
+        console.log('Saving entry:', content);
+        const result = await ipcRenderer.invoke('add-entry', content);
+        console.log('Entry saved:', result);
         
-        // Visual feedback
-        const icon = button.querySelector('i');
-        const originalClass = icon.className;
-        icon.className = 'fas fa-check';
-        button.classList.add('copied');
-        
-        // Reset after 2 seconds
-        setTimeout(() => {
-            icon.className = originalClass;
-            button.classList.remove('copied');
-        }, 2000);
-    } catch (err) {
-        console.error('Failed to copy:', err);
-        alert('Failed to copy to clipboard');
+        hideNewEntryForm();
+        await loadEntries(); // Refresh the entries list
+        showSuccess('Entry added successfully');
+    } catch (error) {
+        console.error('Error saving entry:', error);
+        showError('Failed to save entry: ' + error.message);
     }
 }
 
-// Update the settings form show/hide logic
-function showSettingsForm() {
-    const settingsForm = document.getElementById('settings-form');
-    const sidebarSettings = document.getElementById('sidebar-settings');
-    if (settingsForm) {
-        settingsForm.classList.remove('hidden');
-        if (sidebarSettings) {
-            sidebarSettings.classList.add('active');
-        }
-    }
-}
-
-function hideSettingsForm() {
-    const settingsForm = document.getElementById('settings-form');
-    const sidebarSettings = document.getElementById('sidebar-settings');
-    if (settingsForm) {
-        settingsForm.classList.add('hidden');
-        if (sidebarSettings) {
-            sidebarSettings.classList.remove('active');
-        }
-    }
-}
-
-// Add to your initialization code
-const closeSettingsBtn = document.getElementById('close-settings');
-if (closeSettingsBtn) {
-    closeSettingsBtn.addEventListener('click', () => {
-        hideSettingsForm();
-    });
-}
-
-// Add this function near your other DOM-related functions
-const populateSettingsForm = async () => {
-    const settingsContainer = document.getElementById('settings-container');
-    
+// Update the loadEntries function
+async function loadEntries() {
     try {
-        const settings = await ipcRenderer.invoke('get-settings');
-        console.log('Retrieved settings:', settings);
+        console.log('=== Loading Entries ===');
+        console.log('Active filters:', activeFilters);
         
-        if (!settings || Object.keys(settings).length === 0) {
-            console.error('No settings received');
-            settingsContainer.innerHTML = '<div class="error">No settings available</div>';
+        const entries = await ipcRenderer.invoke('get-entries', {
+            ...activeFilters,
+            sort: currentSort
+        });
+        
+        console.log('Entries received:', entries);
+        console.log('Entries count:', entries?.length || 0);
+        
+        if (!entries || entries.length === 0) {
+            console.log('No entries found, showing empty state');
+            renderEmptyState();
             return;
         }
-
-        const settingsHTML = generateSettingsHTML(settings);
-        settingsContainer.innerHTML = settingsHTML;
         
-        // Add event listener to copy button
-        const copyAllBtn = settingsContainer.querySelector('.copy-all-btn');
-        if (copyAllBtn) {
-            copyAllBtn.addEventListener('click', handleCopyAllSettings);
-        }
+        console.log('Rendering entries to UI...');
+        renderTableView(entries);
+        console.log('Entries rendered successfully');
     } catch (error) {
-        console.error('Error loading settings:', error);
-        settingsContainer.innerHTML = `<div class="error">Error loading settings: ${error.message}</div>`;
+        console.error('=== Load Entries Error ===');
+        console.error('Error details:', error);
+        showError('Failed to load entries: ' + error.message);
     }
-};
+}
 
-// Find the event listener for the settings button and modify it
-document.getElementById('sidebar-settings').addEventListener('click', () => {
-    const settingsForm = document.getElementById('settings-form');
-    settingsForm.classList.remove('hidden');
-    populateSettingsForm(); // Add this line
+// Add these variables at the top of the file
+const activeFilters = {};
+const currentSort = { column: 'final_deadline', direction: 'desc' };
+
+// Add this to your initialization code
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('=== DOM Content Loaded ===');
+    
+    // Set up new entry button
+    const newEntryBtn = document.getElementById('new-entry-btn');
+    if (newEntryBtn) {
+        console.log('Found new entry button, adding click listener');
+        newEntryBtn.addEventListener('click', () => {
+            console.log('New entry button clicked');
+            showNewEntryForm();
+        });
+    } else {
+        console.error('New entry button not found');
+    }
+
+    // Set up settings button
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) {
+        console.log('Found settings button, adding click listener');
+        settingsBtn.addEventListener('click', () => {
+            console.log('Settings button clicked');
+            showSettingsForm();
+        });
+    } else {
+        console.error('Settings button not found');
+    }
+
+    // Load initial entries
+    console.log('Loading initial entries...');
+    await loadEntries();
+    console.log('Initial entries loaded');
 });
 
-// Add this function to handle copying all settings
-async function handleCopyAllSettings(event) {
-    const button = event.currentTarget;
-    const settingsStr = button.dataset.settings;
+// Add this function to render the table view
+function renderTableView(entries) {
+    console.log('=== Rendering Table View ===');
+    const tableBody = document.querySelector('#entries-table tbody');
+    if (!tableBody) {
+        console.error('Table body element not found');
+        return;
+    }
+
+    console.log(`Building table HTML for ${entries.length} entries`);
+    const html = entries.map((entry, index) => {
+        console.log(`Processing entry ${index + 1}:`, entry);
+        return `
+            <tr>
+                <td>${entry.raw_content || ''}</td>
+                <td>${entry.action || ''}</td>
+                <td>${entry.contact || ''}</td>
+                <td>${entry.project || ''}</td>
+                <td>${formatDate(entry.datetime) || ''}</td>
+                <td>${formatDate(entry.due_date) || ''}</td>
+                <td>${formatDate(entry.final_deadline) || ''}</td>
+                <td>${entry.priority || ''}</td>
+                <td>${entry.status || ''}</td>
+                <td class="actions-cell">
+                    <button class="delete-btn" data-id="${entry.id}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button class="expand-btn" data-id="${entry.id}">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    console.log('Setting table HTML');
+    tableBody.innerHTML = html;
+    console.log('Table HTML set');
+
+    // Add event listeners
+    console.log('Adding event listeners to buttons');
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', handleDelete);
+    });
+
+    document.querySelectorAll('.expand-btn').forEach(button => {
+        button.addEventListener('click', handleExpand);
+    });
+    console.log('Event listeners added');
+}
+
+// Add this helper function to format dates
+function formatDate(dateStr) {
+    if (!dateStr) return '';
     
     try {
-        // Parse the settings to get the object
-        const settings = JSON.parse(settingsStr);
+        const date = new Date(dateStr);
         
-        // Convert to a nicely formatted string
-        const formattedSettings = JSON.stringify(settings, null, 2);
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+            console.warn('Invalid date:', dateStr);
+            return '';
+        }
         
-        await navigator.clipboard.writeText(formattedSettings);
+        // Format the date
+        const options = {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
         
-        // Visual feedback
-        const icon = button.querySelector('i');
-        const originalClass = icon.className;
-        icon.className = 'fas fa-check';
-        button.classList.add('copied');
-        
-        // Reset after 2 seconds
-        setTimeout(() => {
-            icon.className = originalClass;
-            button.classList.remove('copied');
-        }, 2000);
-    } catch (err) {
-        console.error('Failed to copy settings:', err);
-        alert('Failed to copy settings to clipboard');
+        return date.toLocaleDateString('en-US', options);
+    } catch (error) {
+        console.error('Error formatting date:', error, 'for value:', dateStr);
+        return '';
+    }
+}
+
+// Add these functions to handle delete and expand
+async function handleDelete(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const button = event.target.closest('.delete-btn');
+    if (!button) return;
+    
+    const entryId = button.dataset.id;
+    if (!entryId) {
+        console.error('No entry ID found for delete operation');
+        return;
+    }
+
+    try {
+        console.log('Deleting entry:', entryId);
+        await ipcRenderer.invoke('delete-entry', entryId);
+        console.log('Entry deleted successfully');
+        await loadEntries(); // Refresh the view
+    } catch (error) {
+        console.error('Error deleting entry:', error);
+        showError('Failed to delete entry: ' + error.message);
+    }
+}
+
+// Update the handleExpand function
+function handleExpand(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const button = event.target.closest('.expand-btn');
+    if (!button) return;
+    
+    const icon = button.querySelector('i');
+    const row = button.closest('tr');
+    const entryId = button.dataset.id;
+    
+    if (!icon || !row || !entryId) {
+        console.error('Missing required elements for expand operation');
+        return;
+    }
+    
+    // Toggle icon
+    if (icon.classList.contains('fa-chevron-down')) {
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+    } else {
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+    }
+    
+    // Get all the data from the row
+    const entry = {
+        id: entryId,
+        raw_content: row.cells[0].textContent,
+        action: row.cells[1].textContent,
+        contact: row.cells[2].textContent,
+        project: row.cells[3].textContent,
+        datetime: row.cells[4].textContent,
+        due_date: row.cells[5].textContent,
+        final_deadline: row.cells[6].textContent,
+        priority: row.cells[7].textContent,
+        status: row.cells[8].textContent
+    };
+    
+    // Toggle details row
+    const detailsRow = row.nextElementSibling;
+    if (detailsRow && detailsRow.classList.contains('details-row')) {
+        detailsRow.classList.toggle('hidden');
+    } else {
+        const details = document.createElement('tr');
+        details.className = 'details-row';
+        details.innerHTML = `
+            <td colspan="10">
+                <div class="details-content">
+                    <div class="details-section">
+                        <div class="details-header">
+                            <h4>Entry Details</h4>
+                            <button class="copy-json-btn" onclick="copyToClipboard('${entryId}')">
+                                <i class="fas fa-copy"></i> Copy JSON
+                            </button>
+                        </div>
+                        <pre id="json-${entryId}" class="json-view">${JSON.stringify(entry, null, 2)}</pre>
+                    </div>
+                </div>
+            </td>
+        `;
+        row.parentNode.insertBefore(details, row.nextSibling);
+    }
+}
+
+// Add the copyToClipboard function
+async function copyToClipboard(entryId) {
+    const jsonElement = document.getElementById(`json-${entryId}`);
+    if (!jsonElement) {
+        console.error('JSON element not found');
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(jsonElement.textContent);
+        showSuccess('JSON copied to clipboard');
+    } catch (error) {
+        console.error('Failed to copy to clipboard:', error);
+        showError('Failed to copy to clipboard');
+    }
+}
+
+// Add this function to render empty state
+function renderEmptyState() {
+    console.log('Rendering empty state');
+    const tableBody = document.querySelector('#entries-table tbody');
+    if (tableBody) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="10" class="empty-state">
+                    No entries found. Create a new entry to get started.
+                </td>
+            </tr>
+        `;
     }
 }

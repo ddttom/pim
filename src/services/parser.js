@@ -377,13 +377,13 @@ class Parser {
    * @returns {string|null} Priority level
    */
   parsePriority(text) {
-    if (text.includes('urgent') || text.includes('important')) {
+    if (text.match(/\b(urgent|urgently|asap|important)\b/i)) {
       return 'high';
     }
-    if (text.includes('normal priority')) {
+    if (text.match(/\b(normal priority)\b/i)) {
       return 'medium';
     }
-    if (text.includes('low priority')) {
+    if (text.match(/\b(low priority|whenever)\b/i)) {
       return 'low';
     }
     return null;
@@ -430,10 +430,12 @@ class Parser {
       'call': 'call',
       'text': 'text',
       'meet': 'meet',
+      'meeting': 'meet',
       'email': 'email',
       'review': 'review',
       'contact': 'call',
-      'see': 'meet'  // Normalize "see" to "meet"
+      'see': 'meet',
+      'zoom': 'meet'
     };
     
     const actions = Object.keys(actionMap);
@@ -446,12 +448,19 @@ class Parser {
       return actionMap[action];
     }
     
-    // Look for action anywhere in text
-    const midActionRegex = new RegExp(`\\b(${actions.join('|')})\\b`, 'i');
-    const midActionMatch = lowerText.match(midActionRegex);
-    if (midActionMatch) {
-      const action = midActionMatch[1].toLowerCase();
-      return actionMap[action];
+    // If not found at start, look for action words in specific patterns
+    const patterns = [
+      /\b(?:zoom|team)\s+meeting\b/i,
+      /\b(?:text|call|meet|email|review)\s+\w+/i,
+      /\bmeeting\s+(?:with|for)\b/i
+    ];
+
+    for (const pattern of patterns) {
+      const match = lowerText.match(pattern);
+      if (match) {
+        const action = match[0].split(/\s+/)[0].toLowerCase();
+        return actionMap[action] || (match[0].includes('meeting') ? 'meet' : null);
+      }
     }
     
     return null;
@@ -466,23 +475,19 @@ class Parser {
     // Handle text message format
     if (text.match(/\btext\s+/i)) {
       const match = text.match(/\btext\s+(\w+)(?=\s|$)/i);
-      if (match) return match[1].toLowerCase();
-    }
-
-    // Handle call/contact/see format
-    const contactMatch = text.match(/\b(?:call|contact|see)\s+(\w+)(?=\s|$)/i);
-    if (contactMatch) {
-      return contactMatch[1].toLowerCase();
+      if (match) return match[1];
     }
 
     // Handle "with" format for multiple contacts
-    const withMatch = text.match(/\bwith\s+([^,\.]+?)(?=\s+(?:every|tomorrow|morning|afternoon|evening|about|at|in|for|$))/i);
+    const withMatch = text.match(/\bwith\s+(\w+)(?:\s+(?:and|,)\s+\w+)*(?=\s|$)/i);
     if (withMatch) {
-      const contactText = withMatch[1];
-      const contacts = contactText.split(/(?:,|\s+and\s+)/)
-        .map(name => name.trim().toLowerCase())
-        .filter(name => !name.startsWith('team')); // Filter out team mentions
-      return contacts[0] || null; // Return first contact or null
+      return withMatch[1];
+    }
+
+    // Handle call/contact format
+    const contactMatch = text.match(/\b(?:call|contact|meet)\s+(\w+)(?=\s|$)/i);
+    if (contactMatch) {
+      return contactMatch[1];
     }
 
     return null;
@@ -576,27 +581,27 @@ class Parser {
    * @returns {Object|null} Project information
    */
   parseProject(text) {
-    // Parse project name with better boundaries
-    const projectMatch = text.match(/project\s+([^,\s]+(?:\s+[^,\s]+)*?)(?=\s*(?:before|after|by|tomorrow|morning|afternoon|evening|about|at|in|for|next|last|this|on|$))/i);
+    const result = {};
+
+    // Parse project name with better boundaries and negative lookahead
+    const projectMatch = text.match(/\bProject\s+([A-Z][a-z]*(?:\s+[A-Z][a-z]*)*?)(?=\s+(?:tomorrow|next|at|on|in|this|last|every|by|\$|#|,|$))/i);
     if (projectMatch) {
-      // Proper case the project name
-      const projectName = projectMatch[1]
-        .trim()
-        .split(/\s+/)
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join(' ');
-      
-      console.log('Found project:', projectName); // Debug log
-      return { project: projectName };
+        result.project = `Project ${projectMatch[1].trim()}`;
+    } else {
+        // Try alternative pattern for "for Project X" format
+        const forProjectMatch = text.match(/\bfor\s+Project\s+([A-Z][a-z]*(?:\s+[A-Z][a-z]*)*?)(?=\s+(?:tomorrow|next|at|on|in|this|last|every|by|\$|#|,|$))/i);
+        if (forProjectMatch) {
+            result.project = `Project ${forProjectMatch[1].trim()}`;
+        }
     }
 
     // Parse contexts
     const contexts = text.match(/\$(\w+)/g);
-    if (contexts) {
-      return { contexts: contexts.map(ctx => ctx.substring(1)) };
+    if (contexts && contexts.length > 0) {
+        result.contexts = contexts.map(ctx => ctx.substring(1));
     }
 
-    return null;
+    return Object.keys(result).length > 0 ? result : null;
   }
 
   /**
@@ -636,7 +641,56 @@ class Parser {
     // Try to parse relative date
     const relativeDate = this.calculateRelativeDate(text);
     if (relativeDate) {
-      return relativeDate;
+        // Get time of day if specified
+        const timeOfDay = this.parseTimeOfDay(text);
+        if (timeOfDay && timeOfDay.hour !== undefined) {
+            relativeDate.setHours(timeOfDay.hour, timeOfDay.minutes || 0);
+        } else if (timeOfDay && timeOfDay.period) {
+            // Set default time based on period
+            switch (timeOfDay.period) {
+                case 'morning':
+                    relativeDate.setHours(9, 0);
+                    break;
+                case 'afternoon':
+                    relativeDate.setHours(14, 0);
+                    break;
+                case 'evening':
+                    relativeDate.setHours(17, 0);
+                    break;
+            }
+        }
+        return relativeDate;
+    }
+    
+    // Try to parse specific time
+    const timeMatch = text.match(/at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    if (timeMatch) {
+        const date = new Date();
+        let hour = parseInt(timeMatch[1], 10);
+        const minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
+        const meridian = timeMatch[3]?.toLowerCase();
+        
+        // Convert to 24-hour format
+        if (meridian === 'pm' && hour < 12) hour += 12;
+        if (meridian === 'am' && hour === 12) hour = 0;
+        
+        date.setHours(hour, minutes);
+        return date;
+    }
+
+    // Check for "tomorrow" keyword
+    if (text.toLowerCase().includes('tomorrow')) {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        // Get time of day if specified
+        const timeOfDay = this.parseTimeOfDay(text);
+        if (timeOfDay && timeOfDay.hour !== undefined) {
+            tomorrow.setHours(timeOfDay.hour, timeOfDay.minutes || 0);
+        } else {
+            tomorrow.setHours(9, 0); // Default to 9 AM
+        }
+        return tomorrow;
     }
     
     return null;
