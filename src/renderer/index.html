@@ -8,6 +8,15 @@
 <body>
     <div class="container">
         <div class="sidebar">
+            <div class="sidebar-buttons">
+                <button id="sidebar-new-entry" class="sidebar-btn">
+                    <i class="fas fa-plus"></i> Add Entry
+                </button>
+                <button id="sidebar-settings" class="sidebar-btn">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+            </div>
+
             <div class="filters">
                 <h3>Filters</h3>
                 <div class="filter-group">
@@ -26,14 +35,6 @@
         </div>
 
         <div class="main-content">
-            <div class="toolbar">
-                <div class="view-controls">
-                    <button class="view-btn active" data-view="table">Table</button>
-                    <button class="view-btn" data-view="cards">Cards</button>
-                </div>
-                <button id="new-entry-btn" class="primary-btn">New Entry</button>
-            </div>
-
             <!-- Table View -->
             <div id="table-view" class="view-container active">
                 <table>
@@ -72,6 +73,25 @@
                     <div class="form-controls">
                         <button id="cancel-entry" class="secondary-btn">Cancel</button>
                         <button id="save-entry" class="primary-btn">Save</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Form -->
+            <div id="settings-form" class="hidden">
+                <div class="form-content">
+                    <div class="form-header">
+                        <button class="close-btn" id="close-settings">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <h2 class="form-title">Settings</h2>
+                    </div>
+                    <div id="settings-container">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                    <div class="form-controls">
+                        <button id="cancel-settings" class="secondary-btn">Cancel</button>
+                        <button id="save-settings" class="primary-btn">Save</button>
                     </div>
                 </div>
             </div>

@@ -58,64 +58,6 @@ body {
     flex-direction: column;
 }
 
-/* Toolbar Styles */
-.toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    position: sticky;
-    top: 0;
-    background-color: #f5f5f5;
-    padding: 10px 0;
-    z-index: 10;
-}
-
-/* Button Styles */
-.primary-btn {
-    background-color: #3498db;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-    font-size: 13px;
-}
-
-.primary-btn:hover {
-    background-color: #2980b9;
-}
-
-.secondary-btn {
-    background-color: #95a5a6;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-    font-size: 13px;
-}
-
-.secondary-btn:hover {
-    background-color: #7f8c8d;
-}
-
-.view-btn {
-    background-color: #fff;
-    border: 1px solid #ddd;
-    padding: 6px 12px;
-    cursor: pointer;
-    font-size: 13px;
-}
-
-.view-btn.active {
-    background-color: #3498db;
-    color: white;
-    border-color: #3498db;
-}
-
 /* Modal/Form Styles */
 .modal,
 #entry-form {
@@ -177,9 +119,9 @@ body {
 
 /* Form title */
 .form-title {
-    margin: 0 0 12px 0;
-    color: #333;
-    font-size: 16px;
+    margin: 0;
+    flex: 1;
+    text-align: center;
 }
 
 /* Table Styles */
@@ -213,17 +155,6 @@ th {
 
 .view-container.active {
     display: block;
-}
-
-/* View Controls */
-.view-controls {
-    display: flex;
-    gap: 10px;
-}
-
-/* New Entry Button */
-#new-entry-btn {
-    z-index: 11;
 }
 
 /* Cards View Styles */
@@ -403,4 +334,322 @@ th {
 .sortable i.fa-sort-down {
     opacity: 1;
     color: #3498db;
+}
+
+/* Settings Form Styles */
+#settings-form {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#settings-form.hidden {
+    display: none;
+}
+
+#settings-form:not(.hidden) {
+    display: flex;
+}
+
+#settings-form .form-content {
+    width: 90vw;
+    max-width: 1400px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.settings-group {
+    margin-bottom: 2rem;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.settings-group h3 {
+    padding: 1rem;
+    margin: 0;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+    border-radius: 8px 8px 0 0;
+    font-size: 1rem;
+    color: #333;
+}
+
+.settings-grid {
+    padding: 1.5rem;
+}
+
+.setting-item {
+    margin-bottom: 1.5rem;
+}
+
+.setting-item label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+.setting-input {
+    width: 100%;
+    min-height: 2.5em;
+    padding: 0.75rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: vertical;
+    background: #fff;
+}
+
+.code-input {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    background: #f8f9fa;
+    min-height: 4em;
+    white-space: pre;
+    overflow-x: auto;
+}
+
+.nested-settings {
+    padding: 1rem;
+    border-left: 3px solid #e9ecef;
+    margin: 0.5rem 0 0.5rem 1rem;
+    background: #f8f9fa;
+    border-radius: 0 4px 4px 0;
+}
+
+.setting-item {
+    margin-bottom: 1.5rem;
+}
+
+.setting-item label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+.setting-item textarea::placeholder {
+    color: #adb5bd;
+    font-style: italic;
+}
+
+.settings-group {
+    margin-bottom: 2rem;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.settings-grid {
+    padding: 1.5rem;
+}
+
+/* Error message styling */
+.error {
+    padding: 1rem;
+    margin: 1rem 0;
+    background-color: #fff3f3;
+    border: 1px solid #ffcdd2;
+    border-radius: 4px;
+    color: #d32f2f;
+}
+
+/* Settings form container */
+#settings-container {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+/* Scrollbar styling */
+#settings-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+#settings-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+#settings-container::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+#settings-container::-webkit-scrollbar-thumb:hover {
+    background: #999;
+}
+
+/* Copy button styles */
+.details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #fff;
+    color: #666;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.copy-btn.copied {
+    background-color: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.copy-btn i {
+    font-size: 14px;
+}
+
+/* Sidebar Buttons */
+.sidebar-buttons {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sidebar-btn {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #fff;
+    color: #333;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.sidebar-btn:hover {
+    background-color: #f5f5f5;
+    border-color: #ccc;
+}
+
+.sidebar-btn i {
+    font-size: 14px;
+    color: #666;
+}
+
+.sidebar-btn:hover i {
+    color: #333;
+}
+
+/* Add active state styling */
+.sidebar-btn.active {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+    color: #212529;
+}
+
+.sidebar-btn.active i {
+    color: #212529;
+}
+
+/* Form Header Styles */
+.form-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.close-btn {
+    position: absolute;
+    left: -8px;
+    top: -8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background-color: #f8f9fa;
+    color: #666;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.close-btn:hover {
+    background-color: #e9ecef;
+    color: #333;
+}
+
+.close-btn i {
+    font-size: 14px;
+}
+
+/* Add these styles for the copy all button */
+.settings-header {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 1rem 1rem 1rem;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 1rem;
+}
+
+.copy-all-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #fff;
+    color: #666;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.copy-all-btn:hover {
+    background-color: #f5f5f5;
+    color: #333;
+    border-color: #ccc;
+}
+
+.copy-all-btn i {
+    font-size: 14px;
+}
+
+.copy-all-btn.copied {
+    background-color: #28a745;
+    color: white;
+    border-color: #28a745;
 }

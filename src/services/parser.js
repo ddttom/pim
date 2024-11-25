@@ -208,7 +208,7 @@ class Parser {
   /**
    * Calculate relative date from natural language
    * @param {string} text - Input text describing relative date
-   * @returns {Date} Calculated date
+   * @returns {Date|null} Calculated date
    */
   calculateRelativeDate(text) {
     const now = new Date();
@@ -290,7 +290,8 @@ class Parser {
       return new Date(now.getFullYear() + 1, 0, 1);
     }
 
-    return now;
+    // Return null instead of now if no patterns match
+    return null;
   }
 
   /**
