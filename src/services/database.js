@@ -3,6 +3,7 @@ const { open } = require('sqlite');
 const path = require('path');
 const DEFAULT_CONFIG = require('../config/parser.config.js');
 const fs = require('fs');
+const { migrate } = require('../scripts/migration');
 
 class DatabaseService {
     constructor(dbPath) {
@@ -21,6 +22,14 @@ class DatabaseService {
                 driver: sqlite3.Database
             });
 
+            // Run migrations
+            try {
+                await migrate();
+            } catch (error) {
+                console.error('Migration failed:', error);
+                throw error;
+            }
+
             await this.setupDatabase();            
             this.initialized = true;
         } catch (error) {
@@ -38,16 +47,16 @@ class DatabaseService {
                     raw_content TEXT,
                     action TEXT,
                     contact TEXT,
-                    datetime TEXT,
                     priority TEXT,
                     complexity TEXT,
                     location TEXT,
                     duration INTEGER,
                     project TEXT,
                     recurring_pattern TEXT,
-                    due_date TEXT,
                     final_deadline TEXT,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    status TEXT,
+                    created_at TEXT,
+                    updated_at TEXT
                 )
             `);
 
@@ -387,7 +396,20 @@ class DatabaseService {
             console.log('Filters:', filters);
             
             let query = `
-                SELECT e.*, GROUP_CONCAT(c.name) as categories
+                SELECT e.id, 
+                       e.raw_content, 
+                       e.action, 
+                       e.contact,
+                       e.priority, 
+                       e.complexity, 
+                       e.location, 
+                       e.duration,
+                       e.project, 
+                       e.recurring_pattern, 
+                       e.final_deadline,
+                       e.created_at,
+                       e.updated_at,
+                       GROUP_CONCAT(c.name) as categories
                 FROM entries e
                 LEFT JOIN entry_categories ec ON e.id = ec.entry_id
                 LEFT JOIN categories c ON ec.category_id = c.id
@@ -450,25 +472,24 @@ class DatabaseService {
             
             const result = await this.db.run(`
                 INSERT INTO entries (
-                    raw_content, action, contact, datetime, priority,
+                    raw_content, action, contact, priority,
                     complexity, location, duration, project,
-                    recurring_pattern, due_date, final_deadline,
-                    created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    recurring_pattern, final_deadline,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
                 entry.raw_content || null,
                 entry.action || null,
                 entry.contact || null,
-                entry.datetime || null,
                 entry.priority || null,
                 entry.complexity || null,
                 entry.location || null,
                 entry.duration || null,
                 entry.project || null,
                 entry.recurring_pattern || null,
-                entry.due_date || null,
                 entry.final_deadline || null,
-                entry.created_at || new Date().toISOString()
+                entry.created_at || new Date().toISOString(),
+                entry.updated_at || new Date().toISOString()
             ]);
 
             console.log('Entry added with result:', result);
@@ -619,6 +640,50 @@ class DatabaseService {
             return true;
         } catch (error) {
             console.error('Error restoring settings:', error);
+            throw error;
+        }
+    }
+
+    async updateEntry(entry) {
+        try {
+            await this.db.run(`
+                UPDATE entries 
+                SET raw_content = ?,
+                    action = ?,
+                    contact = ?,
+                    project = ?,
+                    final_deadline = ?,
+                    priority = ?,
+                    status = ?,
+                    updated_at = ?
+                WHERE id = ?
+            `, [
+                entry.raw_content,
+                entry.action,
+                entry.contact,
+                entry.project,
+                entry.final_deadline,
+                entry.priority,
+                entry.status,
+                entry.updated_at,
+                entry.id
+            ]);
+        } catch (error) {
+            console.error('Error updating entry:', error);
+            throw error;
+        }
+    }
+
+    async updateEntryContent(id, content) {
+        try {
+            await this.db.run(`
+                UPDATE entries 
+                SET raw_content = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            `, [content, id]);
+        } catch (error) {
+            console.error('Error updating entry content:', error);
             throw error;
         }
     }

@@ -14,6 +14,17 @@ const config = {
     afternoon: { start: 12, end: 17 },
     evening: { start: 17, end: 21 },
   },
+  status: {
+    values: ['None', 'Blocked', 'Complete', 'Started', 'Closed', 'Abandoned'],
+    default: 'None',
+    patterns: {
+      'Blocked': [/\bblocked\b/i, /\bstuck\b/i],
+      'Complete': [/\bcomplete\b/i, /\bfinished\b/i, /\bdone\b/i],
+      'Started': [/\bstarted\b/i, /\bin progress\b/i, /\bbegun\b/i],
+      'Closed': [/\bclosed\b/i, /\bended\b/i],
+      'Abandoned': [/\babandoned\b/i, /\bcancelled\b/i, /\bdropped\b/i]
+    }
+  },
 };
 
 // Import LinksParser
@@ -24,6 +35,7 @@ class Parser {
     this.logger = logger;
     this.plugins = new Map();
     this.parsers = new Map();
+    this.config = config;
     this.initializeDefaultParsers();
   }
 
@@ -81,30 +93,35 @@ class Parser {
     // Handle null/undefined input
     if (!text) {
       return {
-        plugins: {},
-        links: [],
+        raw_content: '',
+        parsed: {
+          status: this.config.status.default
+        },
+        plugins: {}  // Initialize empty plugins object
       };
     }
 
+    // Parse all fields
+    const parsedDateTime = this.parseDateTime(text);
+    
     const result = {
-      reminders: this.parseReminders(text),
-      duration: this.parseDuration(text),
-      timeOfDay: this.parseTimeOfDay(text),
-      recurring: this.parseRecurring(text),
-      priority: this.parsePriority(text),
-      location: this.parseLocation(text),
-      action: this.parseAction(text),
-      contact: this.parseContact(text),
-      subject: this.parseSubject(text),
-      links: linksParser.parse(text),
-      urgency: this.parseUrgency(text),
-      complexity: this.parseComplexity(text),
-      attendees: this.parseAttendees(text),
-      project: this.parseProject(text),
-      status: this.parseStatus(text),
-      plugins: {},
-      categories: this.parseCategories(text),
-      datetime: this.parseDateTime(text),
+      raw_content: text,
+      parsed: {
+        action: this.parseAction(text),
+        contact: this.parseContact(text),
+        project: this.parseProject(text),
+        final_deadline: parsedDateTime,
+        location: this.parseLocation(text),
+        priority: this.parsePriority(text),
+        subject: this.parseSubject(text),
+        urgency: this.parseUrgency(text),
+        complexity: this.parseComplexity(text),
+        attendees: this.parseAttendees(text),
+        status: this.parseStatus(text),
+        categories: this.parseCategories(text),
+        reminders: this.parseReminders(text)
+      },
+      plugins: {}  // Initialize empty plugins object
     };
 
     // Run plugins
@@ -119,6 +136,14 @@ class Parser {
       }
     }
 
+    // Remove null values from parsed results
+    Object.keys(result.parsed).forEach(key => {
+      if (result.parsed[key] === null) {
+        delete result.parsed[key];
+      }
+    });
+
+    this.logger.debug('Parsed result:', result);
     return result;
   }
 
@@ -211,86 +236,37 @@ class Parser {
    * @returns {Date|null} Calculated date
    */
   calculateRelativeDate(text) {
-    const now = new Date();
+    const now = this.getCurrentDate();
     
+    // Handle "tomorrow"
+    if (text.toLowerCase().includes('tomorrow')) {
+        const date = new Date(now);
+        date.setDate(now.getDate() + 1);
+        return date;
+    }
+
     // Handle "next Wednesday" type patterns
     const nextDayMatch = text.match(/next\s+(\w+)/i);
     if (nextDayMatch) {
-      const day = this.getDayNumber(nextDayMatch[1]);
-      if (day !== undefined) {
-        const date = new Date(now);
-        date.setDate(now.getDate() + ((day + 7 - now.getDay()) % 7) + 7);
-        return date;
-      }
+        const day = this.getDayNumber(nextDayMatch[1]);
+        if (day !== undefined) {
+            const date = new Date(now);
+            date.setDate(now.getDate() + ((day + 7 - now.getDay()) % 7) + 7);
+            return date;
+        }
     }
 
     // Handle "this Wednesday" patterns
     const thisDayMatch = text.match(/this\s+(\w+)/i);
     if (thisDayMatch) {
-      const day = this.getDayNumber(thisDayMatch[1]);
-      if (day !== undefined) {
-        const date = new Date(now);
-        date.setDate(now.getDate() + ((day + 7 - now.getDay()) % 7));
-        return date;
-      }
-    }
-
-    // Handle "last Wednesday" patterns
-    const lastDayMatch = text.match(/last\s+(\w+)(?!\s+of)/i);
-    if (lastDayMatch) {
-      const day = this.getDayNumber(lastDayMatch[1]);
-      if (day !== undefined) {
-        const date = new Date(now);
-        // First go back 7 days
-        date.setDate(date.getDate() - 7);
-        // Then adjust to the target day within that week
-        const currentDay = date.getDay();
-        const daysToAdd = ((day - currentDay + 7) % 7);
-        date.setDate(date.getDate() + daysToAdd);
-        return date;
-      }
-    }
-
-    // Handle "last X of the month" patterns
-    const lastOfMonthMatch = text.match(/last\s+(\w+)\s+of\s+the\s+month/i);
-    if (lastOfMonthMatch) {
-      const targetDay = this.getDayNumber(lastOfMonthMatch[1]);
-      if (targetDay !== undefined) {
-        const date = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        while (date.getDay() !== targetDay) {
-          date.setDate(date.getDate() - 1);
+        const day = this.getDayNumber(thisDayMatch[1]);
+        if (day !== undefined) {
+            const date = new Date(now);
+            date.setDate(now.getDate() + ((day + 7 - now.getDay()) % 7));
+            return date;
         }
-        return date;
-      }
     }
 
-    // Handle "the weekend" and "next weekend"
-    if (text.includes('weekend')) {
-      const date = new Date(now);
-      const saturday = 6;
-      const daysToAdd = text.includes('next') ? 
-        ((saturday + 7 - now.getDay()) % 7) + 7 :
-        ((saturday + 7 - now.getDay()) % 7);
-      date.setDate(now.getDate() + daysToAdd);
-      return date;
-    }
-
-    // Handle "end of month"
-    if (text.includes('end of month')) {
-      return new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    }
-
-    // Handle "beginning of next month"
-    if (text.includes('beginning of next month')) {
-      return new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    }
-
-    // Handle "next year"
-    if (text.includes('next year')) {
-      return new Date(now.getFullYear() + 1, 0, 1);
-    }
-
-    // Return null instead of now if no patterns match
     return null;
   }
 
@@ -437,15 +413,11 @@ class Parser {
       'see': 'meet',
       'zoom': 'meet'
     };
-    
-    const actions = Object.keys(actionMap);
-    
+
     // Look for action at the start of the text
-    const startActionRegex = new RegExp(`^(${actions.join('|')})\\b`, 'i');
-    const actionMatch = lowerText.match(startActionRegex);
-    if (actionMatch) {
-      const action = actionMatch[1].toLowerCase();
-      return actionMap[action];
+    const startWords = lowerText.split(/\s+/);
+    if (startWords[0] in actionMap) {
+      return actionMap[startWords[0]];
     }
     
     // If not found at start, look for action words in specific patterns
@@ -458,8 +430,8 @@ class Parser {
     for (const pattern of patterns) {
       const match = lowerText.match(pattern);
       if (match) {
-        const action = match[0].split(/\s+/)[0].toLowerCase();
-        return actionMap[action] || (match[0].includes('meeting') ? 'meet' : null);
+        const actionWord = match[0].split(/\s+/)[0].toLowerCase();
+        return actionMap[actionWord] || (match[0].includes('meeting') ? 'meet' : null);
       }
     }
     
@@ -473,21 +445,20 @@ class Parser {
    */
   parseContact(text) {
     // Handle text message format
-    if (text.match(/\btext\s+/i)) {
-      const match = text.match(/\btext\s+(\w+)(?=\s|$)/i);
-      if (match) return match[1];
-    }
+    const contactPatterns = [
+      /(?:call|text|contact|meet|email)\s+(\w+)(?=\s|$|\s*,|\s+about)/i,
+      /\bwith\s+(\w+)(?:\s+(?:and|,)\s+\w+)*(?=\s|$|\s*,|\s+about)/i
+    ];
 
-    // Handle "with" format for multiple contacts
-    const withMatch = text.match(/\bwith\s+(\w+)(?:\s+(?:and|,)\s+\w+)*(?=\s|$)/i);
-    if (withMatch) {
-      return withMatch[1];
-    }
-
-    // Handle call/contact format
-    const contactMatch = text.match(/\b(?:call|contact|meet)\s+(\w+)(?=\s|$)/i);
-    if (contactMatch) {
-      return contactMatch[1];
+    for (const pattern of contactPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        // Don't return common words that might be mistaken for names
+        const commonWords = ['me', 'him', 'her', 'them', 'now', 'later', 'team'];
+        if (!commonWords.includes(match[1].toLowerCase())) {
+          return match[1];
+        }
+      }
     }
 
     return null;
@@ -583,38 +554,55 @@ class Parser {
   parseProject(text) {
     const result = {};
 
-    // Parse project name with better boundaries and negative lookahead
-    const projectMatch = text.match(/\bProject\s+([A-Z][a-z]*(?:\s+[A-Z][a-z]*)*?)(?=\s+(?:tomorrow|next|at|on|in|this|last|every|by|\$|#|,|$))/i);
-    if (projectMatch) {
-        result.project = `Project ${projectMatch[1].trim()}`;
-    } else {
-        // Try alternative pattern for "for Project X" format
-        const forProjectMatch = text.match(/\bfor\s+Project\s+([A-Z][a-z]*(?:\s+[A-Z][a-z]*)*?)(?=\s+(?:tomorrow|next|at|on|in|this|last|every|by|\$|#|,|$))/i);
-        if (forProjectMatch) {
-            result.project = `Project ${forProjectMatch[1].trim()}`;
+    // Parse project name patterns with better boundaries
+    const projectPatterns = [
+        /\bProject\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?=\s*(?:meeting|tomorrow|next|at|on|in|this|last|every|by|\$|#|,|$))/i,
+        /\bfor\s+Project\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?=\s*(?:meeting|tomorrow|next|at|on|in|this|last|every|by|\$|#|,|$))/i,
+        /\bproject\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?=\s|$|\s*,)/i,
+        /\babout\s+(?:project\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?=\s|$|\s*,)/i
+    ];
+
+    for (const pattern of projectPatterns) {
+        const match = text.match(pattern);
+        if (match && match[1]) {
+            // Extract just the project name without any following words
+            const projectName = match[1].trim().split(/\s+(?:meeting|tomorrow|next)/i)[0];
+            result.project = projectName;
+            break;
         }
     }
 
-    // Parse contexts
-    const contexts = text.match(/\$(\w+)/g);
-    if (contexts && contexts.length > 0) {
-        result.contexts = contexts.map(ctx => ctx.substring(1));
+    // Parse hashtags
+    const hashtags = text.match(/#(\w+)/g);
+    if (hashtags) {
+        result.tags = hashtags.map(tag => tag.substring(1));
     }
 
     return Object.keys(result).length > 0 ? result : null;
   }
 
   /**
-   * Parse status information from text
+   * Parse status from text
    * @param {string} text - Input text
-   * @returns {Object|null} Status information
+   * @returns {string} Status value
    */
   parseStatus(text) {
-    const progressMatch = text.match(/(\d+)%/);
-    if (progressMatch) {
-      return { progress: parseInt(progressMatch[1], 10) };
+    if (!text) return this.config.status.default;
+    
+    const lowerText = text.toLowerCase();
+    const statusPatterns = this.config.status.patterns;
+
+    // Check each status pattern
+    for (const [status, patterns] of Object.entries(statusPatterns)) {
+        for (const pattern of patterns) {
+            if (pattern.test(lowerText)) {
+                return status;
+            }
+        }
     }
-    return null;
+
+    // Default to None if no patterns match
+    return this.config.status.default;
   }
 
   /**
@@ -637,63 +625,36 @@ class Parser {
    */
   parseDateTime(text) {
     if (!text) return null;
+
+    const lowerText = text.toLowerCase();
+
+    // Check for "now" keyword
+    if (lowerText.includes('now')) {
+        return this.getCurrentDate().toISOString();
+    }
+
+    // Check for "next week"
+    if (lowerText.includes('next week')) {
+        const date = this.getCurrentDate();
+        date.setDate(date.getDate() + 7);
+        date.setHours(9, 0, 0, 0);
+        return date.toISOString();
+    }
     
     // Try to parse relative date
     const relativeDate = this.calculateRelativeDate(text);
     if (relativeDate) {
-        // Get time of day if specified
-        const timeOfDay = this.parseTimeOfDay(text);
-        if (timeOfDay && timeOfDay.hour !== undefined) {
-            relativeDate.setHours(timeOfDay.hour, timeOfDay.minutes || 0);
-        } else if (timeOfDay && timeOfDay.period) {
-            // Set default time based on period
-            switch (timeOfDay.period) {
-                case 'morning':
-                    relativeDate.setHours(9, 0);
-                    break;
-                case 'afternoon':
-                    relativeDate.setHours(14, 0);
-                    break;
-                case 'evening':
-                    relativeDate.setHours(17, 0);
-                    break;
-            }
-        }
-        return relativeDate;
-    }
-    
-    // Try to parse specific time
-    const timeMatch = text.match(/at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
-    if (timeMatch) {
-        const date = new Date();
-        let hour = parseInt(timeMatch[1], 10);
-        const minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
-        const meridian = timeMatch[3]?.toLowerCase();
-        
-        // Convert to 24-hour format
-        if (meridian === 'pm' && hour < 12) hour += 12;
-        if (meridian === 'am' && hour === 12) hour = 0;
-        
-        date.setHours(hour, minutes);
-        return date;
+        // Always set to 9 AM for any date without specific time
+        relativeDate.setHours(9, 0, 0, 0);
+        return relativeDate.toISOString();
     }
 
-    // Check for "tomorrow" keyword
-    if (text.toLowerCase().includes('tomorrow')) {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        // Get time of day if specified
-        const timeOfDay = this.parseTimeOfDay(text);
-        if (timeOfDay && timeOfDay.hour !== undefined) {
-            tomorrow.setHours(timeOfDay.hour, timeOfDay.minutes || 0);
-        } else {
-            tomorrow.setHours(9, 0); // Default to 9 AM
-        }
-        return tomorrow;
-    }
-    
     return null;
+  }
+
+  // Add helper method to get current date
+  getCurrentDate() {
+    return new Date();
   }
 }
 

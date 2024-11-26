@@ -35,8 +35,6 @@
                             <th>Action</th>
                             <th>Contact</th>
                             <th>Project</th>
-                            <th>Date</th>
-                            <th>Due</th>
                             <th>Deadline</th>
                             <th>Priority</th>
                             <th>Status</th>
@@ -50,6 +48,29 @@
             <!-- Entry Form -->
             <div id="entry-form" class="hidden">
                 <!-- Form content will be created dynamically -->
+                <button id="parse-btn" class="form-btn">
+                    <i class="fas fa-magic"></i>
+                    Parse
+                </button>
+            </div>
+
+            <!-- Add the parser dialog -->
+            <div id="parser-dialog" class="dialog hidden">
+                <div class="dialog-content">
+                    <div class="dialog-header">
+                        <h2>Parser Results</h2>
+                        <button class="close-btn">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="dialog-body">
+                        <pre id="parser-results"></pre>
+                        <button id="copy-results" class="icon-btn">
+                            <i class="fas fa-copy"></i>
+                            Copy
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- Settings Form -->

@@ -1,5 +1,6 @@
 const ConfigManager = require('../src/config/ConfigManager');
 const MockDatabase = require('./__mocks__/database');
+const Parser = require('../src/services/parser');
 
 describe('Parser Config Tests', () => {
   let configManager;
@@ -142,4 +143,158 @@ describe('Parser Config Tests', () => {
       expect(logMessages).toContain('Environment override: pim.parser.maxDepth=5');
     });
   });
+});
+
+describe('Parser Tests', () => {
+    let parser;
+    let mockLogger;
+    let mockNow;
+
+    beforeEach(() => {
+        mockLogger = {
+            debug: jest.fn(),
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn()
+        };
+
+        // Set up mock date
+        mockNow = new Date('2024-01-01T12:00:00.000Z');
+        jest.spyOn(global, 'Date').mockImplementation(() => mockNow);
+
+        parser = new Parser(mockLogger);
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    describe('Status Parsing', () => {
+        test('should default to None status', () => {
+            const result = parser.parse('Call John');
+            expect(result.parsed.status).toBe('None');
+        });
+
+        test('should parse Blocked status', () => {
+            const result = parser.parse('Call John - blocked by network issues');
+            expect(result.parsed.status).toBe('Blocked');
+        });
+
+        test('should parse Complete status', () => {
+            const result = parser.parse('Call John - complete');
+            expect(result.parsed.status).toBe('Complete');
+        });
+
+        test('should parse Started status', () => {
+            const result = parser.parse('Call John - started');
+            expect(result.parsed.status).toBe('Started');
+        });
+
+        test('should parse Closed status', () => {
+            const result = parser.parse('Call John - closed');
+            expect(result.parsed.status).toBe('Closed');
+        });
+
+        test('should parse Abandoned status', () => {
+            const result = parser.parse('Call John - abandoned');
+            expect(result.parsed.status).toBe('Abandoned');
+        });
+    });
+
+    describe('Date Parsing', () => {
+        test('should parse "next week"', () => {
+            const result = parser.parse('Call John next week');
+            expect(result.parsed.final_deadline).toBe('2024-01-08T09:00:00.000Z');
+        });
+
+        test('should set time to 9 AM when no time specified', () => {
+            const result = parser.parse('Meet Sarah tomorrow');
+            expect(result.parsed.final_deadline).toBe('2024-01-02T09:00:00.000Z');
+        });
+
+        test('should handle "now" keyword', () => {
+            const result = parser.parse('Call John now');
+            expect(result.parsed.final_deadline).toBe('2024-01-01T12:00:00.000Z');
+        });
+    });
+
+    describe('Action Parsing', () => {
+        test('should parse call action', () => {
+            const result = parser.parse('Call John');
+            expect(result.parsed.action).toBe('call');
+        });
+
+        test('should parse text action', () => {
+            const result = parser.parse('Text Sarah');
+            expect(result.parsed.action).toBe('text');
+        });
+
+        test('should parse meet action', () => {
+            const result = parser.parse('Meet with team');
+            expect(result.parsed.action).toBe('meet');
+        });
+
+        test('should handle action at start of text', () => {
+            const result = parser.parse('email John about project');
+            expect(result.parsed.action).toBe('email');
+        });
+    });
+
+    describe('Project Parsing', () => {
+        test('should parse project from "about project" format', () => {
+            const result = parser.parse('Call John about project Cheesecake');
+            expect(result.parsed.project.project).toBe('Cheesecake');
+        });
+
+        test('should parse project from "Project X" format', () => {
+            const result = parser.parse('Project Alpha meeting tomorrow');
+            expect(result.parsed.project.project).toBe('Alpha');
+        });
+
+        test('should handle multi-word project names', () => {
+            const result = parser.parse('about project Big Launch');
+            expect(result.parsed.project.project).toBe('Big Launch');
+        });
+    });
+
+    describe('Contact Parsing', () => {
+        test('should parse contact after action', () => {
+            const result = parser.parse('Call John about project');
+            expect(result.parsed.contact).toBe('John');
+        });
+
+        test('should parse contact after with', () => {
+            const result = parser.parse('Meeting with Sarah tomorrow');
+            expect(result.parsed.contact).toBe('Sarah');
+        });
+
+        test('should not parse common words as contacts', () => {
+            const result = parser.parse('Call me later');
+            expect(result.parsed.contact).toBeUndefined();
+        });
+    });
+
+    describe('Full Text Parsing', () => {
+        test('should parse complex entry with multiple components', () => {
+            const result = parser.parse('Call John about project Cheesecake next week - started');
+            
+            expect(result.parsed.action).toBe('call');
+            expect(result.parsed.contact).toBe('John');
+            expect(result.parsed.project.project).toBe('Cheesecake');
+            expect(result.parsed.status).toBe('Started');
+            expect(result.parsed.final_deadline).toBeDefined();
+        });
+
+        test('should handle empty input', () => {
+            const result = parser.parse('');
+            expect(result.raw_content).toBe('');
+            expect(result.parsed.status).toBe('None');
+        });
+
+        test('should handle null input', () => {
+            const result = parser.parse(null);
+            expect(result.raw_content).toBe('');
+            expect(result.parsed.status).toBe('None');
+        });
+    });
 });

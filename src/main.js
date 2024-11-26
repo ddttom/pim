@@ -3,10 +3,18 @@ const path = require('path');
 const fs = require('fs');
 const DatabaseService = require('./services/database');
 const ConfigManager = require('./config/ConfigManager');
+const Parser = require('./services/parser');
+const Logger = require('./services/logger');
 
 let db = null;
 let mainWindow = null;
 let configManager = null;
+
+// Initialize logger
+const logger = new Logger({
+  level: 'info',
+  prefix: 'PIM'
+});
 
 // Initialize database when app is ready
 app.whenReady().then(async () => {
@@ -485,22 +493,38 @@ ipcMain.handle('delete-entry', async (event, entryId) => {
     }
 });
 
-// Add this IPC handler
+// Update the add-entry handler
 ipcMain.handle('add-entry', async (event, content) => {
     try {
         if (!db.initialized) {
             await db.initialize();
         }
         
+        // Parse the content first
+        const parser = new Parser(logger);
+        const parseResults = await parser.parse(content);
+        
+        // Get current timestamp
+        const now = new Date().toISOString();
+        
+        // Create entry object combining raw content and parsed fields
         const entry = {
             raw_content: content,
-            created_at: new Date().toISOString()
+            created_at: now,
+            updated_at: now,
+            action: parseResults.parsed.action || '',
+            contact: parseResults.parsed.contact || '',
+            project: parseResults.parsed.project?.project || '',
+            final_deadline: parseResults.parsed.final_deadline || '',
+            priority: parseResults.parsed.priority || '',
+            status: parseResults.parsed.status?.progress || ''
         };
         
+        logger.debug('Adding entry:', entry);
         const id = await db.addEntry(entry);
-        return { success: true, id };
+        return { success: true, id, entry };
     } catch (error) {
-        console.error('Error adding entry:', error);
+        logger.error('Error adding entry:', error);
         throw error;
     }
 });
@@ -517,3 +541,67 @@ async function parseFiles(directory) {
   console.log(`Parsing files up to ${maxDepth} levels deep`);
   console.log(`Ignoring these files: ${filesToIgnore.join(', ')}`);
 }
+
+// Update the parse-text handler
+ipcMain.handle('parse-text', async (event, text) => {
+    try {
+        const parser = new Parser(logger);
+        const results = await parser.parse(text);
+        return results;
+    } catch (error) {
+        logger.error('Parser error:', error);
+        throw error;
+    }
+});
+
+// Update the reparse-entry handler
+ipcMain.handle('reparse-entry', async (event, { id, content, created_at }) => {
+    try {
+        if (!db.initialized) {
+            await db.initialize();
+        }
+        
+        // Parse the content
+        const parser = new Parser(logger);
+        const parseResults = await parser.parse(content);
+        
+        logger.debug('Parse results:', parseResults); // Add debug logging
+        
+        // Create entry object with preserved created_at
+        const entry = {
+            id,
+            raw_content: content,
+            created_at: created_at,
+            updated_at: new Date().toISOString(),
+            action: parseResults.parsed.action || '',
+            contact: parseResults.parsed.contact || '',
+            project: parseResults.parsed.project?.project || '',
+            final_deadline: parseResults.parsed.final_deadline || '',
+            priority: parseResults.parsed.priority || '',
+            status: parseResults.parsed.status || 'None'  // Access status directly from parsed results
+        };
+        
+        logger.debug('Reparsing entry:', { original: parseResults, processed: entry });
+        
+        // Update the entry
+        await db.updateEntry(entry);
+        return { success: true, entry };
+    } catch (error) {
+        logger.error('Error reparsing entry:', error);
+        throw error;
+    }
+});
+
+ipcMain.handle('update-entry-content', async (event, { id, content }) => {
+    try {
+        if (!db.initialized) {
+            await db.initialize();
+        }
+        
+        await db.updateEntryContent(id, content);
+        return { success: true };
+    } catch (error) {
+        logger.error('Error updating entry content:', error);
+        throw error;
+    }
+});

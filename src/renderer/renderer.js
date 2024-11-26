@@ -336,8 +336,8 @@ function showError(message) {
 }
 
 // Add these functions for new entry handling
-function showNewEntryForm() {
-    console.log('=== Showing New Entry Form ===');
+function showNewEntryForm(editData = null) {
+    console.log('=== Showing Entry Form ===', editData);
     const entryForm = document.getElementById('entry-form');
     if (!entryForm) {
         console.error('Entry form not found');
@@ -348,57 +348,44 @@ function showNewEntryForm() {
     const formHTML = `
         <div class="form-content">
             <div class="form-header">
-                <h2>New Entry</h2>
+                <h2>${editData ? 'Edit Entry' : 'New Entry'}</h2>
                 <button class="close-btn" id="entry-close">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <textarea 
                 id="entry-input" 
+                name="content"
                 placeholder="Enter your task (e.g., 'Call John about Project X tomorrow at 2pm')"
                 rows="3"
-            ></textarea>
+            >${editData ? editData.content : ''}</textarea>
             <div class="form-actions">
-                <button class="settings-cancel-btn" id="entry-cancel">Cancel</button>
-                <button class="settings-save-btn" id="entry-save">Save</button>
+                <button class="parse-btn" id="parse-btn">
+                    <i class="fas fa-magic"></i>
+                    Parse
+                </button>
+                <div class="form-buttons">
+                    <button class="settings-cancel-btn" id="entry-cancel">Cancel</button>
+                    <button class="settings-save-btn" id="entry-save">Save</button>
+                </div>
             </div>
         </div>
     `;
 
     entryForm.innerHTML = formHTML;
+    if (editData) {
+        entryForm.dataset.editId = editData.id;
+        entryForm.dataset.createdAt = editData.created_at;
+    } else {
+        delete entryForm.dataset.editId;
+        delete entryForm.dataset.createdAt;
+    }
+
     hideAllForms();
     entryForm.classList.remove('hidden');
 
     // Add event listeners
-    const closeBtn = document.getElementById('entry-close');
-    const cancelBtn = document.getElementById('entry-cancel');
-    const saveBtn = document.getElementById('entry-save');
-    const input = document.getElementById('entry-input');
-
-    if (closeBtn) {
-        closeBtn.addEventListener('click', hideNewEntryForm);
-    }
-
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', hideNewEntryForm);
-    }
-
-    if (saveBtn) {
-        saveBtn.addEventListener('click', handleSaveEntry);
-    }
-
-    if (input) {
-        input.focus();
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                handleSaveEntry();
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                hideNewEntryForm();
-            }
-        });
-    }
+    setupFormEventListeners(editData);
 }
 
 function hideNewEntryForm() {
@@ -410,8 +397,7 @@ function hideNewEntryForm() {
     }
 }
 
-async function handleSaveEntry() {
-    console.log('=== Handling Save Entry ===');
+async function handleSaveEntry(editData) {
     const input = document.getElementById('entry-input');
     if (!input) {
         console.error('Entry input not found');
@@ -427,13 +413,23 @@ async function handleSaveEntry() {
     }
 
     try {
-        console.log('Saving entry:', content);
-        const result = await ipcRenderer.invoke('add-entry', content);
+        let result;
+        if (editData) {
+            // Handle edit
+            result = await ipcRenderer.invoke('reparse-entry', {
+                id: editData.id,
+                content: content,
+                created_at: editData.created_at
+            });
+        } else {
+            // Handle new entry
+            result = await ipcRenderer.invoke('add-entry', content);
+        }
+
         console.log('Entry saved:', result);
-        
         hideNewEntryForm();
-        await loadEntries(); // Refresh the entries list
-        showSuccess('Entry added successfully');
+        await loadEntries();
+        showSuccess(editData ? 'Entry updated successfully' : 'Entry added successfully');
     } catch (error) {
         console.error('Error saving entry:', error);
         showError('Failed to save entry: ' + error.message);
@@ -508,7 +504,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('Initial entries loaded');
 });
 
-// Add this function to render the table view
+// Update the renderTableView function
 function renderTableView(entries) {
     console.log('=== Rendering Table View ===');
     const tableBody = document.querySelector('#entries-table tbody');
@@ -520,18 +516,30 @@ function renderTableView(entries) {
     console.log(`Building table HTML for ${entries.length} entries`);
     const html = entries.map((entry, index) => {
         console.log(`Processing entry ${index + 1}:`, entry);
+        
+        // Check if deadline is overdue
+        const isOverdue = entry.final_deadline ? 
+            new Date(entry.final_deadline) <= new Date() : 
+            false;
+        
+        // Format priority to be blank if 'None'
+        const priority = entry.priority === 'None' ? '' : (entry.priority || '');
+        
         return `
-            <tr>
-                <td>${entry.raw_content || ''}</td>
+            <tr data-id="${entry.id}"
+                data-created-at="${entry.created_at || ''}" 
+                data-updated-at="${entry.updated_at || ''}">
+                <td class="content-cell">${entry.raw_content || ''}</td>
                 <td>${entry.action || ''}</td>
                 <td>${entry.contact || ''}</td>
                 <td>${entry.project || ''}</td>
-                <td>${formatDate(entry.datetime) || ''}</td>
-                <td>${formatDate(entry.due_date) || ''}</td>
-                <td>${formatDate(entry.final_deadline) || ''}</td>
-                <td>${entry.priority || ''}</td>
+                <td class="${isOverdue ? 'overdue' : ''}">${formatDate(entry.final_deadline) || ''}</td>
+                <td>${priority}</td>
                 <td>${entry.status || ''}</td>
                 <td class="actions-cell">
+                    <button class="edit-btn" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
                     <button class="delete-btn" data-id="${entry.id}">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -548,7 +556,6 @@ function renderTableView(entries) {
     console.log('Table HTML set');
 
     // Add event listeners
-    console.log('Adding event listeners to buttons');
     document.querySelectorAll('.delete-btn').forEach(button => {
         button.addEventListener('click', handleDelete);
     });
@@ -556,7 +563,132 @@ function renderTableView(entries) {
     document.querySelectorAll('.expand-btn').forEach(button => {
         button.addEventListener('click', handleExpand);
     });
-    console.log('Event listeners added');
+
+    // Add edit button listeners
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', handleEdit);
+    });
+}
+
+// Add the handleEdit function
+async function handleEdit(event) {
+    const button = event.target.closest('.edit-btn');
+    const row = button.closest('tr');
+    const contentCell = row.querySelector('.content-cell');
+    const entryId = row.dataset.id;
+    const createdAt = row.dataset.createdAt;
+    const content = contentCell.textContent.trim();
+
+    // Show the entry form with existing content
+    showNewEntryForm({
+        id: entryId,
+        content: content,
+        created_at: createdAt,
+        isEdit: true
+    });
+}
+
+// Add setupFormEventListeners function
+function setupFormEventListeners(editData) {
+    const closeBtn = document.getElementById('entry-close');
+    const cancelBtn = document.getElementById('entry-cancel');
+    const saveBtn = document.getElementById('entry-save');
+    const parseBtn = document.getElementById('parse-btn');
+    const input = document.getElementById('entry-input');
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', hideNewEntryForm);
+    }
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', hideNewEntryForm);
+    }
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', () => handleSaveEntry(editData));
+    }
+
+    if (parseBtn) {
+        parseBtn.addEventListener('click', async () => {
+            const content = input.value;
+            try {
+                const results = await ipcRenderer.invoke('parse-text', content);
+                parserResults.textContent = JSON.stringify(results, null, 2);
+                parserDialog.classList.remove('hidden');
+            } catch (error) {
+                console.error('Parser error:', error);
+                showError('Error parsing text: ' + error.message);
+            }
+        });
+    }
+
+    if (input) {
+        input.focus();
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                handleSaveEntry(editData);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                hideNewEntryForm();
+            }
+        });
+    }
+}
+
+// Add the handleReparse function
+async function handleReparse(event) {
+    const button = event.target.closest('.reparse-btn');
+    const row = button.closest('tr');
+    const contentCell = row.querySelector('.content-cell');
+    const entryId = row.dataset.id;
+    const createdAt = row.dataset.createdAt;
+
+    try {
+        // Get the current content
+        const content = contentCell.textContent.trim();
+        
+        // Parse the content while preserving created_at
+        const results = await ipcRenderer.invoke('reparse-entry', {
+            id: entryId,
+            content: content,
+            created_at: createdAt
+        });
+
+        // Refresh the entries list
+        await loadEntries();
+        
+        showSuccess('Entry reparsed successfully');
+    } catch (error) {
+        console.error('Error reparsing entry:', error);
+        showError('Failed to reparse entry: ' + error.message);
+    }
+}
+
+// Update the handleCellEdit function
+async function handleCellEdit(cell) {
+    const row = cell.closest('tr');
+    const entryId = row.dataset.id;
+    const newContent = cell.textContent.trim();
+    const createdAt = row.dataset.createdAt;
+
+    try {
+        // Reparse the content while preserving created_at
+        const results = await ipcRenderer.invoke('reparse-entry', {
+            id: entryId,
+            content: newContent,
+            created_at: createdAt
+        });
+
+        // Refresh the entries list
+        await loadEntries();
+        showSuccess('Entry updated successfully');
+    } catch (error) {
+        console.error('Error updating entry:', error);
+        showError('Failed to update entry: ' + error.message);
+        // Reload entries to revert changes
+        await loadEntries();
+    }
 }
 
 // Add this helper function to format dates
@@ -639,18 +771,18 @@ function handleExpand(event) {
         icon.classList.add('fa-chevron-down');
     }
     
-    // Get all the data from the row
+    // Get all the data from the row and include all datetime fields
     const entry = {
         id: entryId,
         raw_content: row.cells[0].textContent,
         action: row.cells[1].textContent,
         contact: row.cells[2].textContent,
         project: row.cells[3].textContent,
-        datetime: row.cells[4].textContent,
-        due_date: row.cells[5].textContent,
-        final_deadline: row.cells[6].textContent,
-        priority: row.cells[7].textContent,
-        status: row.cells[8].textContent
+        final_deadline: row.cells[4].textContent || '',
+        priority: row.cells[5].textContent,
+        status: row.cells[6].textContent,
+        created_at: row.dataset.createdAt || '',
+        updated_at: row.dataset.updatedAt || ''
     };
     
     // Toggle details row
@@ -661,14 +793,21 @@ function handleExpand(event) {
         const details = document.createElement('tr');
         details.className = 'details-row';
         details.innerHTML = `
-            <td colspan="10">
+            <td colspan="8">
                 <div class="details-content">
                     <div class="details-section">
                         <div class="details-header">
                             <h4>Entry Details</h4>
+                            <div class="details-timestamps">
+                                <span class="timestamp">Created: ${formatDate(entry.created_at)}</span>
+                                <span class="timestamp">Updated: ${formatDate(entry.updated_at)}</span>
+                            </div>
                             <button class="copy-json-btn" onclick="copyToClipboard('${entryId}')">
                                 <i class="fas fa-copy"></i> Copy JSON
                             </button>
+                        </div>
+                        <div class="details-dates">
+                            <span class="date-field">Deadline: ${entry.final_deadline}</span>
                         </div>
                         <pre id="json-${entryId}" class="json-view">${JSON.stringify(entry, null, 2)}</pre>
                     </div>
@@ -710,3 +849,51 @@ function renderEmptyState() {
         `;
     }
 }
+
+// Add near the top with other DOM element references
+const parserDialog = document.getElementById('parser-dialog');
+const parserResults = document.getElementById('parser-results');
+const parseBtn = document.getElementById('parse-btn');
+const copyResultsBtn = document.getElementById('copy-results');
+const closeDialogBtn = document.querySelector('.close-btn');
+
+// Add the event listeners
+parseBtn.addEventListener('click', async () => {
+    const contentInput = document.querySelector('#entry-form textarea[name="content"]');
+    const content = contentInput.value;
+    
+    try {
+        // Call the parser through IPC
+        const results = await window.electronAPI.parseText(content);
+        
+        // Display results
+        parserResults.textContent = JSON.stringify(results, null, 2);
+        parserDialog.classList.remove('hidden');
+    } catch (error) {
+        console.error('Parser error:', error);
+        // Show error notification
+        showNotification('Error parsing text', 'error');
+    }
+});
+
+// Close dialog when clicking close button or outside
+closeDialogBtn.addEventListener('click', () => {
+    parserDialog.classList.add('hidden');
+});
+
+parserDialog.addEventListener('click', (e) => {
+    if (e.target === parserDialog) {
+        parserDialog.classList.add('hidden');
+    }
+});
+
+// Copy results to clipboard
+copyResultsBtn.addEventListener('click', async () => {
+    try {
+        await navigator.clipboard.writeText(parserResults.textContent);
+        showNotification('Results copied to clipboard', 'success');
+    } catch (error) {
+        console.error('Copy error:', error);
+        showNotification('Error copying to clipboard', 'error');
+    }
+});
