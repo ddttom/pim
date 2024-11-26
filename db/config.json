@@ -1,0 +1,12 @@
+{
+  "parser": {
+    "maxDepth": 5,
+    "ignoreFiles": [".git", "node_modules", "dist"],
+    "outputFormat": "json",
+    "tellTruth": true
+  },
+  "reminders": {
+    "defaultMinutes": 30,
+    "allowMultiple": true
+  }
+} 

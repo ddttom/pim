@@ -2,9 +2,11 @@ const { app, BrowserWindow, Menu, dialog, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const DatabaseService = require('./services/database');
+const ConfigManager = require('./config/ConfigManager');
 
 let db = null;
 let mainWindow = null;
+let configManager = null;
 
 // Initialize database when app is ready
 app.whenReady().then(async () => {
@@ -12,9 +14,14 @@ app.whenReady().then(async () => {
     const dbPath = path.join(app.getPath('userData'), 'pim.db');
     db = new DatabaseService(dbPath);
     await db.initialize();
+    
+    // Create and initialize ConfigManager
+    configManager = new ConfigManager(db);
+    await configManager.initialize();
+    
     createWindow();
   } catch (error) {
-    console.error('Failed to initialize database:', error);
+    console.error('Failed to initialize:', error);
     await dialog.showMessageBox({
       type: 'error',
       title: 'Initialization Error',
@@ -137,71 +144,15 @@ app.on('activate', () => {
 
 // Update the settings-related IPC handlers
 ipcMain.handle('get-settings', async () => {
-  try {
-    if (!db.initialized) {
-      await db.initialize();
-    }
-    const settings = await db.getAllSettings();
-    return settings;
-  } catch (error) {
-    console.error('Error getting settings:', error);
-    await dialog.showMessageBox({
-      type: 'error',
-      title: 'Settings Error',
-      message: 'Failed to load settings',
-      detail: error.message
-    });
-    throw error;
-  }
+  return configManager.currentConfig;
 });
 
-ipcMain.handle('save-settings', async (event, settings) => {
+ipcMain.handle('save-settings', async (event, category, settings) => {
   try {
-    console.log('Received settings save request:', settings);
-    
-    if (!db.initialized) {
-      console.log('Initializing database...');
-      await db.initialize();
-    }
-
-    // First verify the settings structure
-    if (!settings || typeof settings !== 'object') {
-      console.error('Invalid settings format:', settings);
-      throw new Error('Invalid settings format');
-    }
-
-    console.log('Saving settings...');
-    // Save each setting
-    for (const [key, value] of Object.entries(settings)) {
-      console.log(`Saving setting ${key}...`);
-      await db.saveSetting(key, value);
-    }
-
-    // Verify all settings were saved correctly
-    console.log('Verifying all settings...');
-    const verified = await db.verifySettings();
-    if (!verified) {
-      throw new Error('Settings verification failed after save');
-    }
-
-    console.log('Settings saved and verified successfully');
-    await dialog.showMessageBox({
-      type: 'info',
-      title: 'Settings Saved',
-      message: 'Settings have been saved successfully',
-      buttons: ['OK']
-    });
-
-    return true;
+    const updatedConfig = await configManager.updateSettings(category, settings);
+    return updatedConfig;
   } catch (error) {
     console.error('Error saving settings:', error);
-    await dialog.showMessageBox({
-      type: 'error',
-      title: 'Settings Error',
-      message: 'Failed to save settings',
-      detail: error.message,
-      buttons: ['OK']
-    });
     throw error;
   }
 });
@@ -553,3 +504,16 @@ ipcMain.handle('add-entry', async (event, content) => {
         throw error;
     }
 });
+
+async function parseFiles(directory) {
+  // Get the settings we need
+  const parserConfig = configManager.get('parser');
+  
+  // Use the settings
+  const maxDepth = parserConfig.maxDepth;        // will be 3 by default
+  const filesToIgnore = parserConfig.ignoreFiles; // will be ['.git', 'node_modules'] by default
+  
+  // Now use these values in your code
+  console.log(`Parsing files up to ${maxDepth} levels deep`);
+  console.log(`Ignoring these files: ${filesToIgnore.join(', ')}`);
+}
