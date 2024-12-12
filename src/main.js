@@ -152,13 +152,40 @@ app.on('activate', () => {
 
 // Update the settings-related IPC handlers
 ipcMain.handle('get-settings', async () => {
-  return configManager.currentConfig;
+  try {
+    // Get the actual config from ConfigManager
+    const parserConfig = configManager.get('parser');
+    const remindersConfig = configManager.get('reminders');
+    
+    // Return the actual configuration
+    return {
+      parser: {
+        maxDepth: parserConfig.maxDepth,
+        ignoreFiles: parserConfig.ignoreFiles,
+        outputFormat: parserConfig.outputFormat,
+        tellTruth: parserConfig.tellTruth
+      },
+      reminders: {
+        defaultMinutes: remindersConfig.defaultMinutes,
+        allowMultiple: remindersConfig.allowMultiple
+      }
+    };
+  } catch (error) {
+    console.error('Error getting settings:', error);
+    throw error;
+  }
 });
 
-ipcMain.handle('save-settings', async (event, category, settings) => {
+ipcMain.handle('save-settings', async (event, newSettings) => {
   try {
-    const updatedConfig = await configManager.updateSettings(category, settings);
-    return updatedConfig;
+    // Update each category separately
+    if (newSettings.parser) {
+      await configManager.updateSettings('parser', newSettings.parser);
+    }
+    if (newSettings.reminders) {
+      await configManager.updateSettings('reminders', newSettings.reminders);
+    }
+    return true;
   } catch (error) {
     console.error('Error saving settings:', error);
     throw error;

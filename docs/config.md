@@ -9,9 +9,31 @@ The PIM application uses a multi-tiered configuration system with clear priority
 3. User Config File
 4. Default Values (Lowest)
 
+## Settings Management System
+
+The application includes a modal-based settings UI that provides configuration for:
+
+### Time Periods
+
+- Morning hours configuration
+- Afternoon hours configuration
+- Evening hours configuration
+
+### Action Defaults
+
+- Default times for different actions (call, meet, review, etc.)
+- Default reminder intervals
+- Default status settings
+
+### UI Settings
+
+- Form layout preferences
+- Display options
+- Notification settings
+
 ## Configuration Values
 
-### Parser Configuration code
+### Parser Configuration
 
 ```javascript
 parser: {
@@ -80,6 +102,25 @@ pim.parser.ignoreFiles='[".git","node_modules","dist"]'
 pim.reminders.defaultMinutes=30
 pim.reminders.allowMultiple=true
 ```
+
+## Settings Synchronization
+
+The application maintains synchronization between:
+
+1. Parser Configuration
+   - Natural language processing patterns
+   - Default values for parsing
+   - Pattern matching rules
+
+2. UI Settings
+   - Form layout and structure
+   - Modal display options
+   - User interface preferences
+
+3. Stored Preferences
+   - Database-stored settings
+   - Configuration file values
+   - Environment variable overrides
 
 ## Testing Configuration
 
@@ -214,6 +255,11 @@ console.log('Looking for config at:', configPath);
    - Database overrides config file
    - Config file overrides defaults
 
+4. **Settings Modal Issues**
+   - Check for duplicate form content
+   - Verify data flow between main and renderer processes
+   - Validate form structure and nesting
+
 ## Best Practices
 
 1. **Development**
@@ -231,198 +277,45 @@ console.log('Looking for config at:', configPath);
    - Use database for user preferences
    - Use environment variables for emergency overrides
 
-## Configuration Variables Reference
+4. **Settings Management**
+   - Keep UI and parser configurations in sync
+   - Validate all settings values
+   - Implement proper save/load functionality
+   - Add error handling and user feedback
+   - Maintain form layout and responsiveness
 
-### Parser Configuration text
+## Known Issues and Solutions
 
-#### maxDepth
+### Settings Form Issues
 
-- **Type**: Number
-- **Default**: 3
-- **Valid Values**: Positive integers
-- **Purpose**: Controls how deep the parser will traverse in recursive operations
-- **Example Use Cases**:
-  - Directory scanning
-  - Nested structure parsing
-  - Recursive data processing
-- **Environment Override**: `pim.parser.maxDepth=5`
+1. **Duplicate Form Content**
+   - Problem: Form content appearing multiple times in settings modal
+   - Solution: Ensure single instance of form components
+   - Prevention: Implement proper component lifecycle management
 
-#### ignoreFiles
+2. **Settings Retrieval**
+   - Problem: Settings not properly retrieved from main process
+   - Solution: Implement proper IPC communication
+   - Prevention: Add error handling and validation
 
-- **Type**: Array of strings
-- **Default**: ['.git', 'node_modules']
-- **Valid Values**: Array of file/directory names
-- **Purpose**: Specifies which files or directories to skip during processing
-- **Example Use Cases**:
-  - Skip version control directories
-  - Ignore build artifacts
-  - Skip dependency directories
-- **Environment Override**: `pim.parser.ignoreFiles='[".git","node_modules","dist"]'`
+3. **Form Structure**
+   - Problem: Nested form issues causing layout problems
+   - Solution: Flatten form structure where possible
+   - Prevention: Follow form design best practices
 
-#### outputFormat
+### Configuration Management Issues
 
-- **Type**: String
-- **Default**: 'json'
-- **Valid Values**: ['json', 'text']
-- **Purpose**: Determines the format of parser output
-- **Example Use Cases**:
-  - API responses
-  - File exports
-  - Data interchange
-- **Environment Override**: `pim.parser.outputFormat=json`
+1. **Synchronization**
+   - Problem: Configuration not properly syncing between components
+   - Solution: Implement proper state management
+   - Prevention: Use centralized configuration store
 
-#### tellTruth
+2. **Validation**
+   - Problem: Invalid settings values being saved
+   - Solution: Add comprehensive validation
+   - Prevention: Implement type checking and validation rules
 
-- **Type**: Boolean
-- **Default**: true
-- **Valid Values**: true/false
-- **Purpose**: Controls validation strictness and error reporting
-- **Example Use Cases**:
-  - Development debugging
-  - Testing environments
-  - Production safety checks
-- **Environment Override**: `pim.parser.tellTruth=false`
-
-### Reminder Configuration text
-
-#### defaultMinutes
-
-- **Type**: Number
-- **Default**: 15
-- **Valid Values**: Positive integers
-- **Purpose**: Sets the default reminder time in minutes
-- **Example Use Cases**:
-  - Meeting reminders
-  - Task notifications
-  - Event alerts
-- **Environment Override**: `pim.reminders.defaultMinutes=30`
-
-#### allowMultiple
-
-- **Type**: Boolean
-- **Default**: true
-- **Valid Values**: true/false
-- **Purpose**: Controls whether multiple reminders are allowed per item
-- **Example Use Cases**:
-  - Multiple meeting reminders
-  - Staged notifications
-  - Escalating alerts
-- **Environment Override**: `pim.reminders.allowMultiple=false`
-
-### Configuration Interactions
-
-#### Variable Dependencies
-
-Some configuration variables interact with each other:
-
-```javascript
-{
-  "parser": {
-    "maxDepth": 3,
-    "tellTruth": true    // Affects validation of maxDepth
-  }
-}
-```
-
-#### Validation Rules text
-
-Each variable has specific validation rules:
-
-1. **Numbers**
-   - Must be positive
-   - Must be integers for certain values
-   - May have maximum limits
-
-2. **Arrays**
-   - Must be valid JSON arrays
-   - Elements must be strings for ignoreFiles
-   - Duplicates are removed
-
-3. **Strings**
-   - Must be one of predefined values for outputFormat
-   - Case sensitive unless specified
-
-4. **Booleans**
-   - Must be true/false
-   - String values "true"/"false" are converted
-
-### Testing Configurations
-
-#### Unit Testing Variables
-
-```javascript
-test('should validate maxDepth', () => {
-  expect(() => configManager.updateSettings('parser', {
-    maxDepth: -1
-  })).toThrow();
-  
-  expect(() => configManager.updateSettings('parser', {
-    maxDepth: 5
-  })).not.toThrow();
-});
-```
-
-#### Integration Testing
-
-```javascript
-test('should respect variable interactions', async () => {
-  await configManager.updateSettings('parser', {
-    maxDepth: 5,
-    tellTruth: false
-  });
-  
-  const config = configManager.get('parser');
-  expect(config.maxDepth).toBe(5);
-  expect(config.tellTruth).toBe(false);
-});
-```
-
-### Common Configuration Patterns
-
-#### Development Setup
-
-```json
-{
-  "parser": {
-    "maxDepth": 10,
-    "tellTruth": true,
-    "outputFormat": "json"
-  },
-  "reminders": {
-    "defaultMinutes": 5,
-    "allowMultiple": true
-  }
-}
-```
-
-#### Production Setup
-
-```json
-{
-  "parser": {
-    "maxDepth": 3,
-    "tellTruth": true,
-    "outputFormat": "json"
-  },
-  "reminders": {
-    "defaultMinutes": 15,
-    "allowMultiple": true
-  }
-}
-```
-
-#### Testing Setup
-
-```json
-{
-  "parser": {
-    "maxDepth": 1,
-    "tellTruth": false,
-    "outputFormat": "json"
-  },
-  "reminders": {
-    "defaultMinutes": 1,
-    "allowMultiple": false
-  }
-}
-```
+3. **Data Flow**
+   - Problem: Inconsistent data flow between processes
+   - Solution: Standardize IPC communication
+   - Prevention: Follow established communication patterns

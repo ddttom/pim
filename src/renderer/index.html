@@ -73,10 +73,22 @@
                 </div>
             </div>
 
-            <!-- Settings Form -->
-            <div id="settings-form" class="hidden">
-                <div id="settings-container">
-                    <!-- Settings content will be created dynamically -->
+            <!-- Single Settings Modal -->
+            <div id="settings-form" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Settings</h2>
+                        <button class="close-btn" id="settings-close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="settings-container">
+                        <!-- Settings content will be dynamically inserted here -->
+                    </div>
+                    <div class="modal-footer">
+                        <button class="cancel-btn" id="settings-cancel">Cancel</button>
+                        <button class="save-btn" id="settings-save">Save Changes</button>
+                    </div>
                 </div>
             </div>
         </div>

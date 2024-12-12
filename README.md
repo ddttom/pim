@@ -12,6 +12,7 @@ A modern desktop application for managing personal information, tasks, and notes
 - Priority system (high, medium, low)
 - Category tagging
 - Advanced filtering capabilities
+- Settings management system with UI configuration
 
 ### Natural Language Examples
 
@@ -99,6 +100,21 @@ npm start
 - **Delete Entry**: Click the delete icon to remove an entry
 - **View Details**: Click the expand icon to see full entry details
 
+### Settings Management
+
+The application includes a comprehensive settings management system accessible through a modal interface. Configure:
+
+- Time periods (morning, afternoon, evening)
+- Default times for different actions
+- Default reminder intervals
+- Status management preferences
+
+Settings are automatically synchronized between:
+
+- Parser configuration
+- UI settings
+- Stored preferences
+
 ### Status Management
 
 Entries can have the following statuses:
@@ -124,7 +140,7 @@ The parser understands various date formats:
 - Immediate ("now")
 - Default time is set to 9 AM for dates without specific times
 
-### Project References 2
+### Projects
 
 Projects can be specified in multiple formats:
 
@@ -158,6 +174,8 @@ status: {
   }
 }
 ```
+
+For detailed configuration options and settings management, see `docs/config.md`.
 
 ## License
 

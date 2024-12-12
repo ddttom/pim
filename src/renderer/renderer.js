@@ -4,27 +4,45 @@ console.log('=== Starting renderer.js ===');
 
 // Keep all function declarations at the top
 function showSettingsForm() {
-    console.log('Showing settings form');
     const settingsForm = document.getElementById('settings-form');
-    if (settingsForm) {
+    if (!settingsForm) {
+        showError('Settings form not found');
+        return;
+    }
+    
+    try {
         hideAllForms();
         settingsForm.classList.remove('hidden');
         populateSettingsForm();
+    } catch (error) {
+        showError(`Error showing settings: ${error.message}`);
+        console.error('Error in showSettingsForm:', error);
     }
 }
 
 function hideSettingsForm() {
-    console.log('Hiding settings form');
     const settingsForm = document.getElementById('settings-form');
-    if (settingsForm) {
+    if (!settingsForm) {
+        showError('Settings form not found');
+        return;
+    }
+    
+    try {
         settingsForm.classList.add('hidden');
+    } catch (error) {
+        showError(`Error hiding settings: ${error.message}`);
+        console.error('Error in hideSettingsForm:', error);
     }
 }
 
 function hideAllForms() {
-    console.log('Hiding all forms');
-    const forms = document.querySelectorAll('.form');
-    forms.forEach(form => form.classList.add('hidden'));
+    try {
+        const forms = document.querySelectorAll('.modal');
+        forms.forEach(form => form.classList.add('hidden'));
+    } catch (error) {
+        showError(`Error hiding forms: ${error.message}`);
+        console.error('Error in hideAllForms:', error);
+    }
 }
 
 async function populateSettingsForm() {
@@ -32,58 +50,41 @@ async function populateSettingsForm() {
     const settingsForm = document.getElementById('settings-form');
     const settingsContainer = document.getElementById('settings-container');
     
+    console.log('Settings form element:', settingsForm);
+    console.log('Settings container element:', settingsContainer);
+    
+    if (!settingsForm || !settingsContainer) {
+        console.error('Required elements not found:', {
+            settingsForm: !!settingsForm,
+            settingsContainer: !!settingsContainer
+        });
+        return;
+    }
+    
     try {
+        console.log('Fetching settings from main process...');
         const settings = await ipcRenderer.invoke('get-settings');
         console.log('Retrieved settings:', settings);
         
         if (!settings || Object.keys(settings).length === 0) {
-            console.error('No settings received');
+            console.warn('No settings received');
             settingsContainer.innerHTML = '<div class="error">No settings available</div>';
             return;
         }
 
-        // Generate and set HTML
-        settingsForm.innerHTML = generateSettingsHTML(settings);
+        // Generate HTML
+        console.log('Generating settings HTML...');
+        const html = generateSettingsHTML(settings);
+        console.log('Generated HTML length:', html.length);
         
-        // Add event listeners after HTML is set
-        console.log('Adding settings form event listeners');
+        // Set HTML
+        settingsContainer.innerHTML = html;
+        console.log('Settings HTML set to container');
         
-        // Add close button listener
-        const closeBtn = document.getElementById('settings-close');
-        if (closeBtn) {
-            console.log('Adding close button listener');
-            closeBtn.addEventListener('click', () => {
-                console.log('Close button clicked');
-                hideSettingsForm();
-            });
-        }
-
-        const cancelBtn = document.getElementById('settings-cancel');
-        if (cancelBtn) {
-            console.log('Adding cancel button listener');
-            cancelBtn.addEventListener('click', () => {
-                console.log('Cancel button clicked');
-                hideSettingsForm();
-            });
-        }
-
-        const saveBtn = document.getElementById('settings-save');
-        if (saveBtn) {
-            console.log('Adding save button listener');
-            saveBtn.addEventListener('click', async () => {
-                console.log('Save button clicked');
-                try {
-                    const newSettings = collectSettingsFromForm();
-                    await ipcRenderer.invoke('save-settings', newSettings);
-                    hideSettingsForm();
-                    showSuccess('Settings saved successfully');
-                } catch (error) {
-                    console.error('Error saving settings:', error);
-                    showError('Failed to save settings: ' + error.message);
-                }
-            });
-        }
-
+        // Add event listeners
+        console.log('Adding event listeners...');
+        setupSettingsEventListeners();
+        
     } catch (error) {
         console.error('Error loading settings:', error);
         settingsContainer.innerHTML = `<div class="error">Error loading settings: ${error.message}</div>`;
@@ -94,22 +95,35 @@ async function populateSettingsForm() {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('=== DOM Content Loaded ===');
     
+    // Debug all important elements
+    const elements = {
+        settingsBtn: document.getElementById('settings-btn'),
+        settingsForm: document.getElementById('settings-form'),
+        settingsContainer: document.getElementById('settings-container'),
+        settingsClose: document.getElementById('settings-close'),
+        settingsCancel: document.getElementById('settings-cancel'),
+        settingsSave: document.getElementById('settings-save')
+    };
+    
+    console.log('Important elements:', {
+        settingsBtn: !!elements.settingsBtn,
+        settingsForm: !!elements.settingsForm,
+        settingsContainer: !!elements.settingsContainer,
+        settingsClose: !!elements.settingsClose,
+        settingsCancel: !!elements.settingsCancel,
+        settingsSave: !!elements.settingsSave
+    });
+    
     // Set up settings button
-    const settingsBtn = document.getElementById('settings-btn');
-    if (settingsBtn) {
-        console.log('Found settings button, adding click listener');
-        settingsBtn.addEventListener('click', () => {
+    if (elements.settingsBtn) {
+        console.log('Adding settings button click listener');
+        elements.settingsBtn.addEventListener('click', () => {
             console.log('Settings button clicked');
             showSettingsForm();
         });
     } else {
         console.error('Settings button not found');
     }
-
-    // Debug elements
-    debugElement('settings-btn');
-    debugElement('settings-form');
-    debugElement('settings-container');
 });
 
 // Keep the debug helper
@@ -126,103 +140,188 @@ function debugElement(id) {
 
 // Add this function to generate settings HTML
 function generateSettingsHTML(settings) {
-    console.log('Generating settings HTML for:', settings);
-    
+    console.log('Generating HTML for settings:', settings);
+
     if (!settings || typeof settings !== 'object') {
         console.error('Invalid settings object:', settings);
         return '<div class="error">No settings available</div>';
     }
 
-    // Process settings for copy functionality
-    const processedSettings = JSON.stringify(settings, null, 2);
+    const sections = [
+        {
+            title: 'Time Settings',
+            fields: [
+                {
+                    key: 'TIME_OF_DAY.morning',
+                    label: 'Morning Hours',
+                    type: 'timerange',
+                    value: settings.TIME_OF_DAY?.morning || { start: 9, end: 12 },
+                    description: 'Morning period (24h format)'
+                },
+                {
+                    key: 'TIME_OF_DAY.afternoon',
+                    label: 'Afternoon Hours',
+                    type: 'timerange',
+                    value: settings.TIME_OF_DAY?.afternoon || { start: 12, end: 17 },
+                    description: 'Afternoon period (24h format)'
+                },
+                {
+                    key: 'TIME_OF_DAY.evening',
+                    label: 'Evening Hours',
+                    type: 'timerange',
+                    value: settings.TIME_OF_DAY?.evening || { start: 17, end: 21 },
+                    description: 'Evening period (24h format)'
+                }
+            ]
+        },
+        {
+            title: 'Default Times',
+            fields: [
+                {
+                    key: 'defaultTimes.meeting',
+                    label: 'Default Meeting Time',
+                    type: 'number',
+                    value: settings.defaultTimes?.meeting || 9,
+                    description: 'Default hour for meetings'
+                },
+                {
+                    key: 'defaultTimes.call',
+                    label: 'Default Call Time',
+                    type: 'number',
+                    value: settings.defaultTimes?.call || 10,
+                    description: 'Default hour for calls'
+                },
+                {
+                    key: 'defaultTimes.review',
+                    label: 'Default Review Time',
+                    type: 'number',
+                    value: settings.defaultTimes?.review || 14,
+                    description: 'Default hour for reviews'
+                }
+            ]
+        },
+        {
+            title: 'Default Reminders',
+            fields: [
+                {
+                    key: 'defaultReminders.meeting',
+                    label: 'Meeting Reminder',
+                    type: 'number',
+                    value: settings.defaultReminders?.meeting || 15,
+                    description: 'Minutes before meeting'
+                },
+                {
+                    key: 'defaultReminders.call',
+                    label: 'Call Reminder',
+                    type: 'number',
+                    value: settings.defaultReminders?.call || 5,
+                    description: 'Minutes before call'
+                },
+                {
+                    key: 'defaultReminders.review',
+                    label: 'Review Reminder',
+                    type: 'number',
+                    value: settings.defaultReminders?.review || 30,
+                    description: 'Minutes before review'
+                }
+            ]
+        },
+        {
+            title: 'Status Settings',
+            fields: [
+                {
+                    key: 'status.default',
+                    label: 'Default Status',
+                    type: 'select',
+                    value: settings.status?.default || 'None',
+                    options: settings.status?.values || ['None', 'Blocked', 'Complete', 'Started', 'Closed', 'Abandoned'],
+                    description: 'Default status for new items'
+                }
+            ]
+        }
+    ];
 
     return `
-        <div class="form-content">
-            <div class="settings-header">
-                <h2>Settings</h2>
-                <button class="close-btn" id="settings-close">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <div id="settings-container">
-                ${formatSettingsGroups(settings)}
-            </div>
-            
-            <div class="settings-footer">
-                <button class="settings-cancel-btn" id="settings-cancel">Cancel</button>
-                <button class="settings-save-btn" id="settings-save">Save Changes</button>
-            </div>
+        <div class="settings-grid">
+            ${sections.map(section => `
+                <div class="settings-section">
+                    <h3>${section.title}</h3>
+                    ${section.fields.map(field => {
+                        if (field.type === 'timerange') {
+                            return `
+                                <div class="setting-item">
+                                    <label>${field.label}</label>
+                                    <div class="time-range">
+                                        <div class="time-input">
+                                            <label>Start</label>
+                                            <input type="number"
+                                                   name="${field.key}.start"
+                                                   class="setting-input"
+                                                   value="${field.value.start}"
+                                                   min="0"
+                                                   max="23"
+                                            />
+                                        </div>
+                                        <div class="time-input">
+                                            <label>End</label>
+                                            <input type="number"
+                                                   name="${field.key}.end"
+                                                   class="setting-input"
+                                                   value="${field.value.end}"
+                                                   min="0"
+                                                   max="23"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div class="setting-description">${field.description}</div>
+                                </div>
+                            `;
+                        } else if (field.type === 'select') {
+                            return `
+                                <div class="setting-item">
+                                    <label for="${field.key}">${field.label}</label>
+                                    <select id="${field.key}"
+                                            name="${field.key}"
+                                            class="setting-input">
+                                        ${field.options.map(option => `
+                                            <option value="${option}" ${option === field.value ? 'selected' : ''}>
+                                                ${option}
+                                            </option>
+                                        `).join('')}
+                                    </select>
+                                    <div class="setting-description">${field.description}</div>
+                                </div>
+                            `;
+                        }
+                        return `
+                            <div class="setting-item">
+                                <label for="${field.key}">${field.label}</label>
+                                <input type="${field.type}"
+                                       id="${field.key}"
+                                       name="${field.key}"
+                                       class="setting-input"
+                                       value="${escapeHtml(field.value)}"
+                                       ${field.type === 'number' ? 'min="0"' : ''}
+                                />
+                                <div class="setting-description">${field.description}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `).join('')}
         </div>
     `;
 }
 
-// Add helper function to format settings groups
-function formatSettingsGroups(settings) {
-    const groups = [];
-    
-    // Format patterns group
-    if (settings.patterns) {
-        groups.push(formatSettingsGroup('Patterns', settings.patterns));
-    }
-    
-    // Format categories group
-    if (settings.categories) {
-        groups.push(formatSettingsGroup('Categories', settings.categories));
-    }
-    
-    // Format other groups as needed
-    if (settings.defaultTimes) {
-        groups.push(formatSettingsGroup('Default Times', settings.defaultTimes));
-    }
-    
-    if (settings.defaultReminders) {
-        groups.push(formatSettingsGroup('Default Reminders', settings.defaultReminders));
-    }
-
-    return groups.join('');
-}
-
-// Add helper function to format a single settings group
-function formatSettingsGroup(title, settings) {
-    const items = Object.entries(settings).map(([key, value]) => {
-        const displayValue = value instanceof RegExp ? value.toString() : 
-                           Array.isArray(value) ? value.join(', ') :
-                           typeof value === 'object' ? JSON.stringify(value, null, 2) :
-                           value;
-        
-        return `
-            <div class="setting-item">
-                <label for="${key}">${formatLabel(key)}</label>
-                <input type="text" 
-                       id="${key}" 
-                       name="${key}" 
-                       class="setting-input ${value instanceof RegExp ? 'code-input' : ''}"
-                       value="${escapeHtml(displayValue)}"
-                />
-            </div>
-        `;
-    });
-
-    return `
-        <div class="settings-group">
-            <h3>${title}</h3>
-            <div class="settings-grid">
-                ${items.join('')}
-            </div>
-        </div>
-    `;
-}
-
-// Add helper function to format labels
+// Helper function to format labels
 function formatLabel(key) {
     return key
-        .replace(/([A-Z])/g, ' $1') // Add space before capital letters
-        .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, str => str.toUpperCase())
         .trim();
 }
 
-// Add helper function to escape HTML
+// Helper function to escape HTML
 function escapeHtml(str) {
     if (typeof str !== 'string') {
         str = String(str);
@@ -235,84 +334,52 @@ function escapeHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
-// Update the collectSettingsFromForm function
+// Update the collectSettingsFromForm function to match the actual config structure
 function collectSettingsFromForm() {
-    console.log('=== Collecting Settings From Form ===');
-    const settings = {};
-    const inputs = document.querySelectorAll('.setting-input');
-    console.log(`Found ${inputs.length} setting inputs`);
-
-    inputs.forEach(input => {
-        const keyPath = input.name.split('.');
-        let value = input.value.trim();
-        console.log(`Processing setting ${input.name}:`, {
-            keyPath,
-            rawValue: value,
-            inputType: input.type
-        });
-
-        try {
-            // Check if it's a RegExp
-            if (value.startsWith('/') && value.lastIndexOf('/') > 0) {
-                const lastSlash = value.lastIndexOf('/');
-                const pattern = value.slice(1, lastSlash);
-                const flags = value.slice(lastSlash + 1);
-                value = {
-                    type: 'regex',
-                    pattern: pattern,
-                    flags: flags
-                };
-                console.log(`Converted RegExp ${input.name}:`, value);
-            } else if (value.startsWith('[') || value.startsWith('{')) {
-                // Try to parse as JSON
-                try {
-                    value = JSON.parse(value);
-                    console.log(`Parsed JSON ${input.name}:`, value);
-                } catch (e) {
-                    console.warn(`Failed to parse JSON for ${input.name}:`, e);
-                }
-            } else if (value.includes('\n')) {
-                // Handle multiline input as array
-                value = value.split('\n')
-                    .map(item => item.trim())
-                    .filter(item => item)
-                    .map(item => {
-                        if (item.startsWith('/') && item.includes('/')) {
-                            const lastSlash = item.lastIndexOf('/');
-                            return {
-                                type: 'regex',
-                                pattern: item.slice(1, lastSlash),
-                                flags: item.slice(lastSlash + 1)
-                            };
-                        }
-                        try {
-                            return JSON.parse(item);
-                        } catch {
-                            return item;
-                        }
-                    });
-                console.log(`Processed list ${input.name}:`, value);
-            }
-        } catch (e) {
-            console.error(`Error processing setting ${input.name}:`, e);
+    const settings = {
+        TIME_OF_DAY: {
+            morning: { start: 9, end: 12 },
+            afternoon: { start: 12, end: 17 },
+            evening: { start: 17, end: 21 }
+        },
+        DEFAULT_MEETING_REMINDER: 15,
+        status: {
+            default: 'None',
+            values: ['None', 'Blocked', 'Complete', 'Started', 'Closed', 'Abandoned']
         }
+    };
 
-        // Build nested structure
+    document.querySelectorAll('.setting-input').forEach(input => {
+        const path = input.name.split('.');
         let current = settings;
-        for (let i = 0; i < keyPath.length; i++) {
-            const key = keyPath[i];
-            if (i === keyPath.length - 1) {
-                current[key] = value;
-                console.log(`Set value for ${key}:`, value);
-            } else {
-                current[key] = current[key] || {};
-                current = current[key];
-                console.log(`Created/accessed nested object for ${key}`);
+        
+        // Handle special case for non-nested settings
+        if (path.length === 1) {
+            let value = input.value;
+            if (input.type === 'number') {
+                value = Number(value);
             }
+            settings[path[0]] = value;
+            return;
         }
+
+        // Navigate through the object path
+        for (let i = 0; i < path.length - 1; i++) {
+            if (!current[path[i]]) {
+                current[path[i]] = {};
+            }
+            current = current[path[i]];
+        }
+
+        // Set the value with appropriate type conversion
+        let value = input.value;
+        if (input.type === 'number') {
+            value = Number(value);
+        }
+
+        current[path[path.length - 1]] = value;
     });
 
-    console.log('Final collected settings:', settings);
     return settings;
 }
 
@@ -327,7 +394,7 @@ function showSuccess(message) {
 }
 
 function showError(message) {
-    console.error('Error:', message);
+    console.error(message);
     const errorDiv = document.createElement('div');
     errorDiv.className = 'error-message';
     errorDiv.textContent = message;
@@ -897,3 +964,71 @@ copyResultsBtn.addEventListener('click', async () => {
         showNotification('Error copying to clipboard', 'error');
     }
 });
+
+// Add this new function to set up event listeners
+function setupSettingsEventListeners() {
+    console.log('=== Setting up Settings Event Listeners ===');
+    
+    // Close button
+    const closeBtn = document.getElementById('settings-close');
+    if (closeBtn) {
+        console.log('Adding close button listener');
+        closeBtn.addEventListener('click', () => {
+            console.log('Close button clicked');
+            hideSettingsForm();
+        });
+    } else {
+        console.error('Close button not found');
+    }
+
+    // Cancel button
+    const cancelBtn = document.getElementById('settings-cancel');
+    if (cancelBtn) {
+        console.log('Adding cancel button listener');
+        cancelBtn.addEventListener('click', () => {
+            console.log('Cancel button clicked');
+            hideSettingsForm();
+        });
+    } else {
+        console.error('Cancel button not found');
+    }
+
+    // Save button
+    const saveBtn = document.getElementById('settings-save');
+    if (saveBtn) {
+        console.log('Adding save button listener');
+        saveBtn.addEventListener('click', async () => {
+            console.log('Save button clicked');
+            try {
+                const newSettings = collectSettingsFromForm();
+                console.log('Collected settings:', newSettings);
+                await ipcRenderer.invoke('save-settings', newSettings);
+                hideSettingsForm();
+                showSuccess('Settings saved successfully');
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                showError('Failed to save settings: ' + error.message);
+            }
+        });
+    } else {
+        console.error('Save button not found');
+    }
+}
+
+// Add helper function to get setting descriptions
+function getSettingDescription(category, key) {
+    const descriptions = {
+        parser: {
+            maxDepth: 'Maximum depth for recursive operations',
+            ignoreFiles: 'Files and folders to ignore during parsing',
+            outputFormat: 'Output format for parser results',
+            tellTruth: 'Enable or disable certain validations'
+        },
+        reminders: {
+            defaultMinutes: 'Default reminder time in minutes',
+            allowMultiple: 'Allow multiple reminders per item'
+        }
+    };
+
+    return descriptions[category]?.[key] || '';
+}
