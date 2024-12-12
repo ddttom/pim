@@ -3,6 +3,7 @@
 ## Overview
 
 The project is a Personal Information Manager (PIM) with natural language parsing capabilities. The application is built using Electron for the desktop interface. The system aims to:
+
 - Provide intuitive task and information management through natural language input
 - Offer flexible organization through automatic parsing and categorization
 - Support extensibility through a plugin-based architecture
@@ -16,6 +17,7 @@ The project is a Personal Information Manager (PIM) with natural language parsin
 - SQLite for persistent local storage
 
 ### Core Dependencies
+
 - electron (^22.0.0)
 - sqlite3 (^5.0.0)
 - winston (^3.8.0) for logging
@@ -28,6 +30,7 @@ The project is a Personal Information Manager (PIM) with natural language parsin
 ### Core Components
 
 #### Parser System
+
 - Located in `src/services/parser/`
 - Uses a plugin-based architecture for extensibility
 - Plugin system features:
@@ -57,7 +60,9 @@ The project is a Personal Information Manager (PIM) with natural language parsin
   - Error information
 
 #### Settings System
+
 Currently implementing a settings management system with:
+
 - Modal-based settings UI
 - Configuration for:
   - Time periods (morning, afternoon, evening)
@@ -74,12 +79,15 @@ Currently implementing a settings management system with:
 ### Current Issues
 
 #### Settings Form
+
 1. Duplicate form content appearing in the settings modal
 2. Settings retrieval from main process not working correctly
 3. Form structure needs cleanup to prevent nesting issues
 
 #### Configuration Management
+
 Need to properly sync between:
+
 - Parser configuration
 - UI settings
 - Stored preferences
@@ -106,6 +114,7 @@ Need to properly sync between:
 ### Features to Implement
 
 #### Data Entry System
+
 - Natural language input processing, markdown text or plain text, using a rich text box input
 - File attachment support
 - Image import with metadata
@@ -117,6 +126,7 @@ Need to properly sync between:
 - **JSON Logging**: New entries are logged in JSON format for verification and debugging
 
 #### Data Organization
+
 - Priority system (None, Low, Medium, High, Urgent)
 - Multiple date types (due, start, end, scheduled, completed)
 - Categories and tags
@@ -124,6 +134,7 @@ Need to properly sync between:
 - Custom metadata fields
 
 #### View System
+
 - Tab-based interface
 - Customizable columns
 - Multiple layouts (table, card, timeline, calendar, network)
@@ -132,6 +143,7 @@ Need to properly sync between:
 - Print view functionality
 
 #### Filter System
+
 - Smart date filters ("without date", "due this week", etc.)
 - Priority filters
 - Category filters
@@ -140,6 +152,7 @@ Need to properly sync between:
 - Custom filter ranges
 
 #### Tab Management
+
 - Multiple simultaneous views
 - State persistence
 - Tab-specific filters
@@ -147,6 +160,7 @@ Need to properly sync between:
 - Quick switching
 
 #### Print System
+
 - Multiple formats (detailed, compact, list, summary)
 - Paper size options
 - Content inclusion toggles
@@ -154,6 +168,7 @@ Need to properly sync between:
 - Custom styling
 
 #### Menu System
+
 - File Menu: New Entry, Open, Save, Print, Quit
 - Edit Menu: Undo, Redo, Cut, Copy, Paste
 - View Menu: Toggle Full Screen, Reload
@@ -162,6 +177,7 @@ Need to properly sync between:
 ### Technical Implementation
 
 #### Natural Language Parser
+
 ```javascript
 interface ParsedEntry {
   rawContent: string;
@@ -240,6 +256,7 @@ class NaturalLanguageParser {
 ```
 
 #### Date Parser
+
 ```javascript
 interface TimeExpression {
   type: 'relative' | 'absolute';
@@ -339,6 +356,7 @@ class DateParser {
 ```
 
 ### Code Structure and Best Practices
+
 - Add proper class-based structure following Airbnb style guide
 - Group related configuration options into config objects
 - Use Set for activeFilters to prevent duplicates
@@ -347,6 +365,7 @@ class DateParser {
 - Add proper event handling
 
 ### Architecture Guidelines
+
 - Follow modern javascript best practices, never use react
 - Implement proper error handling
 - Follow the repository pattern for data access
@@ -356,6 +375,7 @@ class DateParser {
 - Implement proper logging and monitoring, using WINSTON
 
 ### Settings Management Implementation
+
 - Implement modal-based settings UI
 - Handle settings synchronization between components
 - Prevent duplicate form content issues
@@ -365,6 +385,7 @@ class DateParser {
 - Provide user feedback for settings changes
 
 ### Application Behavior
+
 - Application lifecycle management:
   - Proper window management
   - App quits when all windows are closed (all platforms)
@@ -407,6 +428,7 @@ src/
 ## Requirements
 
 ### Performance Requirements
+
 - Application startup < 3 seconds
 - Search response time < 500ms
 - Smooth scrolling at 60fps
@@ -415,6 +437,7 @@ src/
 - Batch operations for bulk changes
 
 ### Error Handling
+
 - Implement comprehensive error catching
 - User-friendly error messages
 - Error logging system
@@ -422,6 +445,7 @@ src/
 - Crash reporting System
 
 ### Plugin System Requirements
+
 - Dynamic plugin loading/unloading
 - Plugin isolation
 - Resource cleanup
@@ -430,11 +454,13 @@ src/
 - Configuration management
 
 ## Current Focus
+
 Working on the settings management system to provide a user-friendly interface for configuring the application's behavior, particularly focusing on the natural language parser's patterns and default values.
 
 ## Development Guidelines
 
 ### Code Quality
+
 - Follow Airbnb style guide
 - Maintain comprehensive documentation
 - Write unit tests for all components
@@ -444,6 +470,7 @@ Working on the settings management system to provide a user-friendly interface f
 - Follow SOLID principles
 
 ### Performance Optimization
+
 - Implement lazy loading where appropriate
 - Use efficient data structures
 - Optimize database queries
@@ -452,6 +479,7 @@ Working on the settings management system to provide a user-friendly interface f
 - Profile performance regularly
 
 ### Security Considerations
+
 - Validate all user input
 - Sanitize data before storage
 - Implement proper access controls
