@@ -31,42 +31,51 @@ async function migrate(dbPath) {
             db.serialize(() => {
                 db.run('BEGIN TRANSACTION');
 
-                // First create a new table with the desired schema
-                db.run(`
-                    CREATE TABLE IF NOT EXISTS entries_new (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        raw_content TEXT,
-                        action TEXT,
-                        contact TEXT,
-                        priority TEXT,
-                        complexity TEXT,
-                        location TEXT,
-                        duration INTEGER,
-                        project TEXT,
-                        recurring_pattern TEXT,
-                        final_deadline TEXT,
-                        status TEXT,
-                        created_at TEXT,
-                        updated_at TEXT
-                    )
-                `, (err) => {
+                // First check if the entries table exists
+                db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='entries'", (err, table) => {
                     if (err) {
-                        console.error('Error creating new table:', err);
+                        console.error('Error checking table existence:', err);
                         db.run('ROLLBACK');
                         reject(err);
                         return;
                     }
 
-                    // Get the columns from the existing table
-                    db.get(`PRAGMA table_info(entries)`, (err, columns) => {
+                    // If the table doesn't exist, create it and resolve (fresh installation)
+                    if (!table) {
+                        console.log('No existing entries table found - fresh installation');
+                        db.run('COMMIT');
+                        db.close();
+                        resolve();
+                        return;
+                    }
+
+                    // If table exists, proceed with migration
+                    db.run(`
+                        CREATE TABLE IF NOT EXISTS entries_new (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            raw_content TEXT,
+                            action TEXT,
+                            contact TEXT,
+                            priority TEXT,
+                            complexity TEXT,
+                            location TEXT,
+                            duration INTEGER,
+                            project TEXT,
+                            recurring_pattern TEXT,
+                            final_deadline TEXT,
+                            status TEXT,
+                            created_at TEXT,
+                            updated_at TEXT
+                        )
+                    `, (err) => {
                         if (err) {
-                            console.error('Error getting table info:', err);
+                            console.error('Error creating new table:', err);
                             db.run('ROLLBACK');
                             reject(err);
                             return;
                         }
 
-                        // Build the copy statement dynamically based on existing columns
+                        // Copy data from existing table
                         const now = new Date().toISOString();
                         db.run(`
                             INSERT INTO entries_new (
@@ -154,4 +163,4 @@ if (require.main === module) {
             console.error('Migration failed:', err);
             process.exit(1);
         });
-} 
+}

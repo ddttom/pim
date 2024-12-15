@@ -17,23 +17,48 @@ class DatabaseService {
         if (this.initialized) return;
 
         try {
+            // Ensure the database directory exists
+            const dbDir = path.dirname(this.dbPath);
+            if (!fs.existsSync(dbDir)) {
+                fs.mkdirSync(dbDir, { recursive: true });
+            }
+
+            // Close any existing connection
+            if (this.db) {
+                await this.db.close();
+                this.db = null;
+            }
+
+            // Open new connection with proper configuration
             this.db = await open({
                 filename: this.dbPath,
-                driver: sqlite3.Database
+                driver: sqlite3.Database,
+                mode: sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE
             });
 
-            // Run migrations
+            // Enable foreign keys
+            await this.db.run('PRAGMA foreign_keys = ON');
+
+            // Run migrations first
             try {
-                await migrate();
+                await migrate(this.dbPath);
             } catch (error) {
-                console.error('Migration failed:', error);
-                throw error;
+                if (!error.message.includes('no such table')) {
+                    console.error('Migration failed:', error);
+                    throw error;
+                }
+                // If error is about missing table, continue with setup
+                console.log('No existing tables found, proceeding with fresh setup');
             }
 
             await this.setupDatabase();            
             this.initialized = true;
         } catch (error) {
             console.error('Database initialization error:', error);
+            if (this.db) {
+                await this.db.close().catch(e => console.error('Error closing database:', e));
+                this.db = null;
+            }
             throw error;
         }
     }
@@ -476,7 +501,7 @@ class DatabaseService {
                     complexity, location, duration, project,
                     recurring_pattern, final_deadline,
                     created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
                 entry.raw_content || null,
                 entry.action || null,
@@ -689,7 +714,6 @@ class DatabaseService {
     }
 }
 
-// Add this helper method to unflatten settings
 function unflattenSettings(settings) {
     const result = {};
     
@@ -711,7 +735,6 @@ function unflattenSettings(settings) {
     return result;
 }
 
-// Add this helper method to flatten settings
 function flattenSettings(obj, prefix = '') {
     const flattened = {};
     
