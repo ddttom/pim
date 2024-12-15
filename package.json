@@ -5,6 +5,7 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
+    "dev": "NODE_ENV=development electron .",
     "test": "jest",
     "test:parser": "jest tests/parser.test.js",
     "migrate": "node src/scripts/migration.js"
