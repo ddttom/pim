@@ -4,135 +4,13 @@
 
 PIM is an Electron-based desktop application designed for personal information management. It provides a robust system for parsing, storing, and managing personal tasks, meetings, and other information using natural language processing.
 
-This project does not use typescript, does not want to use typescript
+This project does not use typescript and does not want to use typescript.
 
-whenever this file, 'projectstate.md', is updated also update 'readme.md' and 'usermanual.md'
-
-## Current Status
-
-### Latest Test Results (2024-12-16)
-
-Parser Tests: 31/33 passing (93.9%)
-Failing Tests:
-1. Project Parsing - Multi-word Names
-   ```
-   Expected: "Big Launch"
-   Received: "Big"
-   Location: tests/parser.test.js:256
-   ```
-
-2. Contact Parsing - Common Words
-   ```
-   Expected: undefined
-   Received: null
-   Location: tests/parser.test.js:273
-   ```
-
-Test Categories:
-- ✅ Status Parsing (6/6)
-- ✅ Date Parsing (3/3)
-- ✅ Action Parsing (4/4)
-- ⚠️ Project Parsing (2/3)
-- ⚠️ Contact Parsing (2/3)
-- ✅ Full Text Parsing (3/3)
-- ✅ Config Tests (11/11)
-
-### Priority Fixes
-
-1. Project Parsing
-   - Fix regex pattern to capture full multi-word project names
-   - Current pattern: `/project\s+([A-Z][a-zA-Z\s]+?)(?=\s|$)/i`
-   - Issue: Not properly capturing space-separated words
-   - Test case: "about project Big Launch"
-
-2. Contact Parsing
-   - Standardize return value for no contact (null vs undefined)
-   - Update common word filtering
-   - Test case: "Call me later"
-
-### Recently Fixed Issues
-
-1. Parser System
-   - Fixed null/undefined input handling
-   - Added proper status parsing (None, Blocked, Complete, etc.)
-   - Fixed date parsing for "next week" and 9 AM default
-   - Added 'text' to supported actions
-   - Improved contact detection with "with" keyword
-
-### Known Issues
-
-1. Parser Edge Cases
-   - Multi-word project names not fully captured
-   - Contact parsing returning null instead of undefined
-   - Project names with special characters need handling
-
-2. UI/UX Issues
-   - Parse button visibility needs improvement
-   - Toggle entry detail JSON not working correctly
-   - Mac OS red close button behavior needs refinement
-
-### Technical Debt
-
-1. Parser System
-   - Add more comprehensive test coverage
-   - Improve error messages
-   - Add validation for parsed results
-   - Consider adding custom date formats
-   - Need better handling of ambiguous inputs
-
-2. Database Operations
-   - Add transaction rollback tests
-   - Improve error handling
-   - Add data validation
-   - Consider adding migrations
-   - Add backup/restore functionality
-
-3. Configuration Management
-   - Add validation for settings
-   - Improve default values
-   - Add import/export functionality
-   - Add user preferences
-
-### Test Results
-
-1. Parser Tests Status
-   - ✅ Status parsing (all cases pass)
-   - ✅ Basic action parsing
-   - ✅ Empty/null input handling
-   - ❌ Multi-word project names need fixing
-   - ❌ Contact parsing after "with" needs improvement
-   - ❌ Common word filtering needs refinement
-
-2. Database Tests
-   - ✅ Basic CRUD operations
-   - ✅ Transaction handling
-   - ✅ Error handling
-   - Need more coverage for:
-     - Edge cases
-     - Concurrent operations
-     - Data validation
-
-### Next Steps
-
-1. Priority Fixes
-   - Improve contact parsing accuracy
-   - Fix multi-word project handling
-   - Add better common word filtering
-   - Implement proper date/time handling
-
-2. Feature Additions
-   - Add recurring task support
-   - Implement categories
-   - Add priority levels
-   - Add reminders
-
-3. Testing
-   - Add integration tests
-   - Increase unit test coverage
-   - Add end-to-end tests
-   - Add performance tests
+Note: Whenever 'projectstate.md' is updated, also update 'readme.md' and 'usermanual.md'.
 
 ## Dependencies
+
+### Core Dependencies
 
 - electron: ^24.3.0
 - chrono-node: ^2.6.3
@@ -141,52 +19,38 @@ Test Categories:
 - sqlite3: ^5.1.6
 - winston: ^3.10.0
 
-## Development Dependencies
+### Development Dependencies
 
 - jest: ^29.7.0
 
-## Architecture
+## System Architecture
 
-### Core Components
+### 1. Main Process (`src/main.js`)
 
-1. **Main Process** (`src/main.js`)
-   - Handles application lifecycle
-   - Manages window creation
-   - Coordinates IPC communication
-   - Implements menu functionality
-   - Manages settings and configuration
-   - Handles data persistence
+- Handles application lifecycle
+- Manages window creation
+- Coordinates IPC communication
+- Implements menu functionality
+- Manages settings and configuration
+- Handles data persistence
 
-2. **Database Service** (`src/services/database.js`)
-   - SQLite-based storage
-   - Handles data persistence
-   - Manages settings storage
-   - Implements backup/restore functionality
-   - Supports migrations
-   - Handles transaction safety
-   - Manages data validation
+### 2. Database System
 
-3. **Parser System** (`src/services/parser/`)
-   - Natural language processing
-   - Modular plugin architecture
-   - Supports multiple parsing strategies
-   - Pattern-based text analysis
-   - Extensible parsing rules
-   - Real-time parsing feedback
+#### Service Implementation (`src/services/database.js`)
 
-4. **Renderer Process** (`src/renderer/`)
-   - Modern responsive UI
-   - Dynamic component rendering
-   - Real-time updates
-   - Modal system for forms
-   - Settings management interface
-   - Entry management interface
+- SQLite-based storage implementation
+- Handles data persistence
+- Manages settings storage
+- Implements backup/restore functionality
+- Supports migrations
+- Handles transaction safety
+- Manages data validation
 
-### Database Schema
+#### Schema
 
-#### Tables
+**Tables:**
 
-1. **entries**
+1. entries
    - id (PRIMARY KEY)
    - raw_content
    - action
@@ -202,21 +66,39 @@ Test Categories:
    - created_at
    - updated_at
 
-2. **categories**
+2. categories
    - id (PRIMARY KEY)
    - name (UNIQUE)
 
-3. **entry_categories**
+3. entry_categories
    - entry_id (FOREIGN KEY)
    - category_id (FOREIGN KEY)
 
-4. **settings**
+4. settings
    - key (PRIMARY KEY)
    - value
    - created_at
    - updated_at
 
-### Parser Capabilities
+#### Data Management Features
+
+- CSV Import/Export
+- Settings Backup/Restore
+- Data Migration Support
+- Transaction Safety
+- Data Validation
+- Error Recovery
+
+### 3. Parser System (`src/services/parser/`)
+
+#### Core Functionality
+
+- Natural language processing
+- Modular plugin architecture
+- Multiple parsing strategies support
+- Pattern-based text analysis
+- Extensible parsing rules
+- Real-time parsing feedback
 
 #### Supported Patterns
 
@@ -238,31 +120,26 @@ Test Categories:
 - Status Updates
 - Zoom Links
 
-## Features
+#### Configuration
 
-### Core Features
+- Pattern definitions
+- Plugin system
+- Validation rules
+- Output formatting
+- Custom patterns support
 
-1. Natural Language Input Processing
-2. Task Management
-3. Contact Management
-4. Project Organization
-5. Category/Tag System
-6. Priority Management
-7. Location Tracking
-8. Time Management
-9. Status Tracking
+### 4. User Interface System (`src/renderer/`)
 
-### Data Management
+#### Core Components
 
-1. SQLite Database Storage
-2. CSV Import/Export
-3. Settings Backup/Restore
-4. Data Migration Support
-5. Transaction Safety
-6. Data Validation
-7. Error Recovery
+- Modern responsive UI
+- Dynamic component rendering
+- Real-time updates
+- Modal system for forms
+- Settings management interface
+- Entry management interface
 
-### User Interface
+#### Interface Features
 
 1. Main Application Window
 2. Settings Management
@@ -286,15 +163,7 @@ Test Categories:
    - Error Feedback
    - Operation Status
 
-## Configuration
-
-### Parser Configuration
-
-- Pattern definitions
-- Plugin system
-- Validation rules
-- Output formatting
-- Custom patterns support
+## Configuration System
 
 ### Application Settings
 
@@ -305,20 +174,17 @@ Test Categories:
 - Time preferences
 - Default values
 
-## Dependencies
+## Core Features
 
-### Production Dependencies
-
-- electron: ^24.3.0
-- chrono-node: ^2.6.3
-- marked: ^5.1.1
-- sqlite: ^4.1.2
-- sqlite3: ^5.1.6
-- winston: ^3.10.0
-
-### Development Dependencies
-
-- jest: ^29.7.0
+1. Natural Language Input Processing
+2. Task Management
+3. Contact Management
+4. Project Organization
+5. Category/Tag System
+6. Priority Management
+7. Location Tracking
+8. Time Management
+9. Status Tracking
 
 ## Project Structure
 
