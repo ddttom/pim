@@ -2,23 +2,24 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const DatabaseService = require('./services/database');
 const { ConfigManager, DatabaseConfigStorage } = require('./services/config');
-const Parser = require('./services/parser');
 const logger = require('./services/logger');
+const EntryService = require('./services/entry-service');
 
 class MainProcess {
   #db;
   #config;
   #parser;
   #mainWindow;
+  #entryService;
 
   constructor() {
     this.#initializeApp();
-    this.#setupIpcHandlers();
   }
 
   #initializeApp() {
     app.whenReady().then(async () => {
       await this.#initializeServices();
+      this.#setupIpcHandlers();
       this.#createWindow();
       
       app.on('activate', () => {
@@ -33,10 +34,31 @@ class MainProcess {
         app.quit();
       }
     });
+
+    app.on('before-quit', async (event) => {
+      event.preventDefault();
+      await this.#cleanup();
+      app.exit(0);
+    });
   }
 
   #setupIpcHandlers() {
+    // Use the already initialized entry service
+    const entryService = this.#entryService;
+
     // Entry-related handlers
+    ipcMain.handle('add-entry', async (event, content) => {
+      try {
+        console.log('Received add-entry request with content:', content);
+        const entryId = await entryService.addEntry(content);
+        console.log('Entry added successfully with ID:', entryId);
+        return entryId;
+      } catch (error) {
+        logger.error('Failed to add entry', error);
+        throw error;
+      }
+    });
+
     ipcMain.handle('get-entries', async (event, filters = {}) => {
       try {
         return await this.#db.getEntries(filters);
@@ -46,17 +68,8 @@ class MainProcess {
       }
     });
 
-    ipcMain.handle('add-entry', async (event, entry) => {
-      try {
-        return await this.#db.addEntry(entry);
-      } catch (error) {
-        logger.error('Failed to add entry', error);
-        throw error;
-      }
-    });
-
     // Parser-related handlers
-    ipcMain.handle('parse-text', async (event, text) => {
+    ipcMain.handle('parse-text', (event, text) => {
       try {
         return this.#parser.parse(text);
       } catch (error) {
@@ -84,6 +97,19 @@ class MainProcess {
         throw error;
       }
     });
+
+    ipcMain.handle('delete-entry', async (event, id) => {
+      try {
+        const result = await this.#db.deleteEntry(id);
+        if (!result) {
+          throw new Error(`Entry with id ${id} not found`);
+        }
+        return result;
+      } catch (error) {
+        logger.error('Failed to delete entry', error);
+        throw error;
+      }
+    });
   }
 
   async #initializeServices() {
@@ -102,8 +128,13 @@ class MainProcess {
       await this.#config.initialize();
 
       // Initialize parser
+      const Parser = require('./services/parser');
       this.#parser = new Parser(logger);
 
+      // Initialize entry service
+      this.#entryService = new EntryService(this.#db, this.#parser);
+      
+      logger.info('All services initialized successfully');
     } catch (error) {
       logger.error('Failed to initialize services', error);
       throw error;
@@ -120,11 +151,45 @@ class MainProcess {
       }
     });
 
+    this.#mainWindow.on('close', async (event) => {
+      if (process.platform === 'darwin') {
+        event.preventDefault();
+        this.#mainWindow.hide();
+        return;
+      }
+      
+      event.preventDefault();
+      await this.#cleanup();
+      app.quit();
+    });
+
     this.#mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
     // Open DevTools in development
     if (process.env.NODE_ENV === 'development') {
       this.#mainWindow.webContents.openDevTools();
+    }
+  }
+
+  async #cleanup() {
+    try {
+      if (this.#db?.isInitialized()) {
+        await this.#db.close();
+      }
+      
+      if (this.#config) {
+        await this.#config.save();
+      }
+      
+      logger.info('Application cleanup completed successfully');
+    } catch (error) {
+      logger.error('Error during cleanup:', error);
+    }
+  }
+
+  async close() {
+    if (this.#db) {
+      await this.#db.close();
     }
   }
 

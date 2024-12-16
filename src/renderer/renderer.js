@@ -480,16 +480,16 @@ async function handleSaveEntry(editData) {
     }
 
     try {
+        console.log('Saving entry with content:', content);
         let result;
+        
         if (editData) {
-            // Handle edit
             result = await ipcRenderer.invoke('reparse-entry', {
                 id: editData.id,
                 content: content,
                 created_at: editData.created_at
             });
         } else {
-            // Handle new entry
             result = await ipcRenderer.invoke('add-entry', content);
         }
 
@@ -677,11 +677,16 @@ function setupFormEventListeners(editData) {
 
     if (parseBtn) {
         parseBtn.addEventListener('click', async () => {
-            const content = input.value;
+            const content = input?.value || '';
             try {
                 const results = await ipcRenderer.invoke('parse-text', content);
-                parserResults.textContent = JSON.stringify(results, null, 2);
-                parserDialog.classList.remove('hidden');
+                const parserResults = document.getElementById('parser-results');
+                const parserDialog = document.getElementById('parser-dialog');
+                
+                if (parserResults && parserDialog) {
+                    parserResults.textContent = JSON.stringify(results, null, 2);
+                    parserDialog.classList.remove('hidden');
+                }
             } catch (error) {
                 console.error('Parser error:', error);
                 showError('Error parsing text: ' + error.message);
@@ -701,6 +706,9 @@ function setupFormEventListeners(editData) {
             }
         });
     }
+
+    // Initialize parser dialog after form elements are created
+    initializeParserDialog();
 }
 
 // Add the handleReparse function
@@ -829,14 +837,30 @@ function handleExpand(event) {
         return;
     }
     
-    // Toggle icon
-    if (icon.classList.contains('fa-chevron-down')) {
-        icon.classList.remove('fa-chevron-down');
-        icon.classList.add('fa-chevron-up');
-    } else {
-        icon.classList.remove('fa-chevron-up');
-        icon.classList.add('fa-chevron-down');
+    // Find existing details row
+    const nextRow = row.nextElementSibling;
+    const isDetailsRow = nextRow?.classList.contains('details-row');
+    
+    // If details row exists, toggle visibility
+    if (isDetailsRow && nextRow) {
+        const isHidden = nextRow.classList.contains('hidden');
+        
+        // Toggle visibility
+        if (isHidden) {
+            nextRow.classList.remove('hidden');
+            icon.classList.remove('fa-chevron-down');
+            icon.classList.add('fa-chevron-up');
+        } else {
+            nextRow.classList.add('hidden');
+            icon.classList.remove('fa-chevron-up');
+            icon.classList.add('fa-chevron-down');
+        }
+        return;
     }
+    
+    // If no details row exists, create one
+    icon.classList.remove('fa-chevron-down');
+    icon.classList.add('fa-chevron-up');
     
     // Get all the data from the row and include all datetime fields
     const entry = {
@@ -852,37 +876,32 @@ function handleExpand(event) {
         updated_at: row.dataset.updatedAt || ''
     };
     
-    // Toggle details row
-    const detailsRow = row.nextElementSibling;
-    if (detailsRow && detailsRow.classList.contains('details-row')) {
-        detailsRow.classList.toggle('hidden');
-    } else {
-        const details = document.createElement('tr');
-        details.className = 'details-row';
-        details.innerHTML = `
-            <td colspan="8">
-                <div class="details-content">
-                    <div class="details-section">
-                        <div class="details-header">
-                            <h4>Entry Details</h4>
-                            <div class="details-timestamps">
-                                <span class="timestamp">Created: ${formatDate(entry.created_at)}</span>
-                                <span class="timestamp">Updated: ${formatDate(entry.updated_at)}</span>
-                            </div>
-                            <button class="copy-json-btn" onclick="copyToClipboard('${entryId}')">
-                                <i class="fas fa-copy"></i> Copy JSON
-                            </button>
+    // Create new details row
+    const details = document.createElement('tr');
+    details.className = 'details-row';
+    details.innerHTML = `
+        <td colspan="8">
+            <div class="details-content">
+                <div class="details-section">
+                    <div class="details-header">
+                        <h4>Entry Details</h4>
+                        <div class="details-timestamps">
+                            <span class="timestamp">Created: ${formatDate(entry.created_at)}</span>
+                            <span class="timestamp">Updated: ${formatDate(entry.updated_at)}</span>
                         </div>
-                        <div class="details-dates">
-                            <span class="date-field">Deadline: ${entry.final_deadline}</span>
-                        </div>
-                        <pre id="json-${entryId}" class="json-view">${JSON.stringify(entry, null, 2)}</pre>
+                        <button class="copy-json-btn" onclick="copyToClipboard('${entryId}')">
+                            <i class="fas fa-copy"></i> Copy JSON
+                        </button>
                     </div>
+                    <div class="details-dates">
+                        <span class="date-field">Deadline: ${entry.final_deadline}</span>
+                    </div>
+                    <pre id="json-${entryId}" class="json-view">${JSON.stringify(entry, null, 2)}</pre>
                 </div>
-            </td>
-        `;
-        row.parentNode.insertBefore(details, row.nextSibling);
-    }
+            </div>
+        </td>
+    `;
+    row.parentNode.insertBefore(details, row.nextSibling);
 }
 
 // Add the copyToClipboard function
@@ -917,53 +936,63 @@ function renderEmptyState() {
     }
 }
 
-// Add near the top with other DOM element references
-const parserDialog = document.getElementById('parser-dialog');
-const parserResults = document.getElementById('parser-results');
-const parseBtn = document.getElementById('parse-btn');
-const copyResultsBtn = document.getElementById('copy-results');
-const closeDialogBtn = document.querySelector('.close-btn');
+// Function to initialize parser dialog
+function initializeParserDialog() {
+    const parserDialog = document.getElementById('parser-dialog');
+    const parserResults = document.getElementById('parser-results');
+    const parseBtn = document.getElementById('parse-btn');
+    const copyResultsBtn = document.getElementById('copy-results');
+    const closeDialogBtn = parserDialog?.querySelector('.close-btn');
 
-// Add the event listeners
-parseBtn.addEventListener('click', async () => {
-    const contentInput = document.querySelector('#entry-form textarea[name="content"]');
-    const content = contentInput.value;
-    
-    try {
-        // Call the parser through IPC
-        const results = await window.electronAPI.parseText(content);
-        
-        // Display results
-        parserResults.textContent = JSON.stringify(results, null, 2);
-        parserDialog.classList.remove('hidden');
-    } catch (error) {
-        console.error('Parser error:', error);
-        // Show error notification
-        showNotification('Error parsing text', 'error');
+    if (!parserDialog || !parserResults || !copyResultsBtn || !closeDialogBtn) {
+        console.warn('Parser dialog elements not found - they may be created dynamically');
+        return;
     }
-});
 
-// Close dialog when clicking close button or outside
-closeDialogBtn.addEventListener('click', () => {
-    parserDialog.classList.add('hidden');
-});
+    // Add the event listeners
+    if (parseBtn) {
+        parseBtn.addEventListener('click', async () => {
+            const contentInput = document.querySelector('#entry-form textarea[name="content"]');
+            if (!contentInput) {
+                console.error('Content input not found');
+                return;
+            }
 
-parserDialog.addEventListener('click', (e) => {
-    if (e.target === parserDialog) {
+            const content = contentInput.value;
+            
+            try {
+                const results = await ipcRenderer.invoke('parse-text', content);
+                parserResults.textContent = JSON.stringify(results, null, 2);
+                parserDialog.classList.remove('hidden');
+            } catch (error) {
+                console.error('Parser error:', error);
+                showError('Error parsing text: ' + error.message);
+            }
+        });
+    }
+
+    // Close dialog when clicking close button or outside
+    closeDialogBtn.addEventListener('click', () => {
         parserDialog.classList.add('hidden');
-    }
-});
+    });
 
-// Copy results to clipboard
-copyResultsBtn.addEventListener('click', async () => {
-    try {
-        await navigator.clipboard.writeText(parserResults.textContent);
-        showNotification('Results copied to clipboard', 'success');
-    } catch (error) {
-        console.error('Copy error:', error);
-        showNotification('Error copying to clipboard', 'error');
-    }
-});
+    parserDialog.addEventListener('click', (e) => {
+        if (e.target === parserDialog) {
+            parserDialog.classList.add('hidden');
+        }
+    });
+
+    // Copy results to clipboard
+    copyResultsBtn.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(parserResults.textContent);
+            showSuccess('Results copied to clipboard');
+        } catch (error) {
+            console.error('Copy error:', error);
+            showError('Error copying to clipboard');
+        }
+    });
+}
 
 // Add this new function to set up event listeners
 function setupSettingsEventListeners() {
@@ -1032,3 +1061,16 @@ function getSettingDescription(category, key) {
 
     return descriptions[category]?.[key] || '';
 }
+
+// Add this code where the input/textarea is initialized
+const contentInput = document.getElementById('contentInput'); // or whatever your input element ID is
+const parseButton = document.getElementById('parseButton');
+
+// Hide parse button initially
+parseButton.classList.add('parse-button');
+
+// Show parse button only when there's content
+contentInput.addEventListener('input', (event) => {
+  const hasContent = event.target.value.trim().length > 0;
+  document.body.classList.toggle('has-content', hasContent);
+});

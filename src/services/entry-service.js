@@ -3,40 +3,47 @@ class EntryService {
   #parser;
   
   constructor(db, parser) {
+    if (!db) throw new Error('Database service is required');
+    if (!parser) throw new Error('Parser service is required');
+    
     this.#db = db;
     this.#parser = parser;
   }
   
   async addEntry(content) {
-    const parseResults = await this.#parser.parse(content);
-    
-    const entry = {
-      raw_content: content,
-      ...this.#transformParseResults(parseResults)
-    };
-    
-    const entryId = await this.#db.addEntry(entry);
-    
-    if (parseResults.categories?.length) {
-      await this.#handleCategories(entryId, parseResults.categories);
+    try {
+      console.log('Parsing content:', content);
+      const parseResults = this.#parser.parse(content);
+      console.log('Parse results:', parseResults);
+      
+      const entry = {
+        raw_content: parseResults.raw_content,
+        action: parseResults.parsed.action,
+        contact: parseResults.parsed.contact,
+        priority: parseResults.parsed.priority || null,
+        complexity: parseResults.parsed.complexity || null,
+        location: parseResults.parsed.location || null,
+        duration: parseResults.parsed.duration || null,
+        project: parseResults.parsed.project?.project || null,
+        recurring_pattern: parseResults.parsed.recurring_pattern || null,
+        final_deadline: parseResults.parsed.final_deadline || null,
+        status: parseResults.parsed.status || 'None'
+      };
+      
+      console.log('Transformed entry:', entry);
+      
+      const entryId = await this.#db.addEntry(entry);
+      console.log('Entry saved with ID:', entryId);
+      
+      if (parseResults.parsed.categories?.length) {
+        await this.#handleCategories(entryId, parseResults.parsed.categories);
+      }
+      
+      return entryId;
+    } catch (error) {
+      console.error('Error adding entry:', error);
+      throw error;
     }
-    
-    return entryId;
-  }
-  
-  #transformParseResults(parseResults) {
-    return {
-      action: parseResults.action,
-      contact: parseResults.contact,
-      priority: parseResults.priority,
-      complexity: parseResults.complexity,
-      location: parseResults.location,
-      duration: parseResults.duration,
-      project: parseResults.project,
-      recurring_pattern: parseResults.recurringPattern,
-      final_deadline: parseResults.finalDeadline,
-      status: parseResults.status
-    };
   }
   
   async #handleCategories(entryId, categories) {

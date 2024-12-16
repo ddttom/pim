@@ -126,27 +126,35 @@ class DatabaseService {
   // Entry operations
   async addEntry(entry) {
     return this.#executeQuery(async () => {
+      console.log('Adding entry to database:', entry);
+      
       const { raw_content, action, contact, priority, complexity, 
               location, duration, project, recurring_pattern, 
               final_deadline, status } = entry;
       
       const now = new Date().toISOString();
 
-      const result = await this.#db.run(`
-        INSERT INTO entries (
+      try {
+        const result = await this.#db.run(`
+          INSERT INTO entries (
+            raw_content, action, contact, priority,
+            complexity, location, duration, project,
+            recurring_pattern, final_deadline, status,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
           raw_content, action, contact, priority,
           complexity, location, duration, project,
           recurring_pattern, final_deadline, status,
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        raw_content, action, contact, priority,
-        complexity, location, duration, project,
-        recurring_pattern, final_deadline, status,
-        now, now
-      ]);
+          now, now
+        ]);
 
-      return result.lastID;
+        console.log('Entry added successfully:', result);
+        return result.lastID;
+      } catch (error) {
+        console.error('Error adding entry to database:', error);
+        throw error;
+      }
     });
   }
 
@@ -248,6 +256,42 @@ class DatabaseService {
     }
 
     return column;
+  }
+
+  async deleteEntry(id) {
+    return this.#executeQuery(async () => {
+      await this.#db.exec('BEGIN TRANSACTION');
+      
+      try {
+        // Delete from entry_categories first due to foreign key constraint
+        await this.#db.run(
+          'DELETE FROM entry_categories WHERE entry_id = ?',
+          [id]
+        );
+        
+        // Then delete the entry
+        const result = await this.#db.run(
+          'DELETE FROM entries WHERE id = ?',
+          [id]
+        );
+        
+        await this.#db.exec('COMMIT');
+        
+        return result.changes > 0;
+      } catch (error) {
+        await this.#db.exec('ROLLBACK');
+        throw error;
+      }
+    });
+  }
+
+  async close() {
+    return this.#executeQuery(async () => {
+      if (this.#db) {
+        await this.#db.close();
+        this.#db = null;
+      }
+    });
   }
 }
 
