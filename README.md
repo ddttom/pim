@@ -13,6 +13,7 @@ A modern desktop application for managing personal information, tasks, and notes
 - Category tagging
 - Advanced filtering capabilities
 - Settings management system with UI configuration
+- JSON-based storage with direct parser output preservation
 
 ### Natural Language Examples
 
@@ -52,11 +53,14 @@ about project Big Launch
 for Project X next week
 ```
 
-### Parser Output Example
+### Storage Format
 
 ```javascript
-// Input: "Call John about project Cheesecake next week - started"
+// Example stored entry
 {
+  "id": "uuid",
+  "created_at": "2024-12-16T18:45:43.824Z",
+  "updated_at": "2024-12-16T18:45:43.824Z",
   "raw_content": "Call John about project Cheesecake next week - started",
   "parsed": {
     "action": "call",
@@ -64,9 +68,11 @@ for Project X next week
     "project": {
       "project": "Cheesecake"
     },
-    "final_deadline": "2024-02-02T09:00:00.000Z",
-    "status": "Started"
-  }
+    "final_deadline": "2024-12-23T09:00:00.000Z",
+    "status": "Started",
+    "categories": []
+  },
+  "plugins": {}
 }
 ```
 
@@ -156,6 +162,16 @@ Projects can be specified in multiple formats:
 ```bash
 npm test
 ```
+
+### Storage System
+
+The application uses a simple JSON-based storage system that:
+
+- Preserves exact parser output structure
+- Supports plugin extensibility
+- Uses UUIDs for entry identification
+- Includes automatic backup/restore functionality
+- Implements transaction-like operations for data safety
 
 ### Configuration
 

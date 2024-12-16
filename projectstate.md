@@ -15,8 +15,7 @@ Note: Whenever 'projectstate.md' is updated, also update 'readme.md' and 'userma
 - electron: ^24.3.0
 - chrono-node: ^2.6.3
 - marked: ^5.1.1
-- sqlite: ^4.1.2
-- sqlite3: ^5.1.6
+- uuid: ^9.0.1
 - winston: ^3.10.0
 
 ### Development Dependencies
@@ -34,60 +33,59 @@ Note: Whenever 'projectstate.md' is updated, also update 'readme.md' and 'userma
 - Manages settings and configuration
 - Handles data persistence
 
-### 2. Database System
+### 2. Storage System
 
-#### Service Implementation (`src/services/database.js`)
+#### Service Implementation (`src/services/json-database.js`)
 
-- SQLite-based storage implementation
+- JSON-based storage implementation
+- Direct parser output storage
 - Handles data persistence
 - Manages settings storage
 - Implements backup/restore functionality
-- Supports migrations
-- Handles transaction safety
+- Handles transaction-like operations
 - Manages data validation
 
-#### Schema
+#### Data Structure
 
-**Tables:**
-
-1. entries
-   - id (PRIMARY KEY)
-   - raw_content
-   - action
-   - contact
-   - priority
-   - complexity
-   - location
-   - duration
-   - project
-   - recurring_pattern
-   - final_deadline
-   - status
-   - created_at
-   - updated_at
-
-2. categories
-   - id (PRIMARY KEY)
-   - name (UNIQUE)
-
-3. entry_categories
-   - entry_id (FOREIGN KEY)
-   - category_id (FOREIGN KEY)
-
-4. settings
-   - key (PRIMARY KEY)
-   - value
-   - created_at
-   - updated_at
+```javascript
+{
+  "entries": [
+    {
+      "id": "uuid",
+      "created_at": "ISO string",
+      "updated_at": "ISO string",
+      "raw_content": "string",
+      "parsed": {
+        "action": "string",
+        "contact": "string",
+        "project": {
+          "project": "string"
+        },
+        "final_deadline": "ISO string",
+        "status": "string",
+        "categories": []
+      },
+      "plugins": {}
+    }
+  ],
+  "settings": {
+    "key": "value"
+  },
+  "meta": {
+    "version": "string",
+    "last_backup": "ISO string"
+  }
+}
+```
 
 #### Data Management Features
 
-- CSV Import/Export
+- JSON Import/Export
 - Settings Backup/Restore
-- Data Migration Support
-- Transaction Safety
+- Transaction-like Operations
 - Data Validation
 - Error Recovery
+- Plugin Data Support
 
 ### 3. Parser System (`src/services/parser/`)
 
@@ -189,18 +187,56 @@ Note: Whenever 'projectstate.md' is updated, also update 'readme.md' and 'userma
 ## Project Structure
 
 ```bash
-src/
-├── main.js                 # Main process entry point
-├── config/                 # Configuration management
-├── plugins/               # Plugin system
-├── renderer/              # UI components
-│   ├── index.html        # Main HTML template
-│   ├── renderer.js       # Renderer process logic
-│   └── styles.css        # Application styles
-├── scripts/               # Utility scripts
-├── services/              # Core services
-│   ├── database.js       # Database management
-│   ├── logger.js         # Logging service
-│   └── parser/           # Text parsing system
-└── utils/                # Utility functions
-```
+/Users/tomcranstoun/Documents/GitHub/pim/src
+├── .DS_Store
+├── config
+│   ├── ConfigManager.js
+│   └── parser.config.js
+├── main.js
+├── plugins
+│   ├── customPlugin.js
+│   ├── locationPlugin.js
+│   └── pluginManager.js
+├── renderer
+│   ├── index.html
+│   ├── renderer.js
+│   └── styles.css
+├── services
+│   ├── config.js
+│   ├── json-database.js
+│   ├── entry-service.js
+│   ├── logger.js
+│   ├── parser
+│   │   ├── core.js
+│   │   ├── formatters
+│   │   │   └── emoji.js
+│   │   ├── index.js
+│   │   ├── parsers
+│   │   │   ├── action.js
+│   │   │   ├── attendees.js
+│   │   │   ├── categories.js
+│   │   │   ├── complexity.js
+│   │   │   ├── contact.js
+│   │   │   ├── date.js
+│   │   │   ├── dependencies.js
+│   │   │   ├── duration.js
+│   │   │   ├── links.js
+│   │   │   ├── location.js
+│   │   │   ├── priority.js
+│   │   │   ├── project.js
+│   │   │   ├── recurring.js
+│   │   │   ├── reminders.js
+│   │   │   ├── status.js
+│   │   │   ├── subject.js
+│   │   │   ├── time.js
+│   │   │   ├── timeOfDay.js
+│   │   │   └── urgency.js
+│   │   └── utils
+│   │       ├── dateUtils.js
+│   │       ├── patterns.js
+│   │       ├── timeUtils.js
+│   │       └── validation.js
+│   └── parser.js
+└── utils
+    ├── dateUtils.js
+    └── logger.js

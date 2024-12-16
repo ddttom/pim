@@ -1,61 +1,122 @@
+const logger = require('./logger');
+
 class EntryService {
   #db;
   #parser;
-  
-  constructor(db, parser) {
-    if (!db) throw new Error('Database service is required');
-    if (!parser) throw new Error('Parser service is required');
-    
-    this.#db = db;
+
+  constructor(database, parser) {
+    this.#db = database;
     this.#parser = parser;
   }
-  
+
   async addEntry(content) {
     try {
-      console.log('Parsing content:', content);
-      const parseResults = this.#parser.parse(content);
-      console.log('Parse results:', parseResults);
+      logger.info('Parsing entry content:', content);
       
-      const entry = {
-        raw_content: parseResults.raw_content,
-        action: parseResults.parsed.action,
-        contact: parseResults.parsed.contact,
-        priority: parseResults.parsed.priority || null,
-        complexity: parseResults.parsed.complexity || null,
-        location: parseResults.parsed.location || null,
-        duration: parseResults.parsed.duration || null,
-        project: parseResults.parsed.project?.project || null,
-        recurring_pattern: parseResults.parsed.recurring_pattern || null,
-        final_deadline: parseResults.parsed.final_deadline || null,
-        status: parseResults.parsed.status || 'None'
-      };
-      
-      console.log('Transformed entry:', entry);
-      
-      const entryId = await this.#db.addEntry(entry);
-      console.log('Entry saved with ID:', entryId);
-      
-      if (parseResults.parsed.categories?.length) {
-        await this.#handleCategories(entryId, parseResults.parsed.categories);
+      // Get the raw parser output
+      const parserOutput = this.#parser.parse(content);
+      if (!parserOutput) {
+        throw new Error('Failed to parse entry content');
       }
+
+      logger.debug('Parser output:', parserOutput);
+
+      // Add entry to database with exact parser output structure
+      const entryId = await this.#db.addEntry(parserOutput);
+      logger.info('Entry added successfully:', entryId);
       
       return entryId;
     } catch (error) {
-      console.error('Error adding entry:', error);
+      logger.error('Failed to add entry:', error);
       throw error;
     }
   }
-  
-  async #handleCategories(entryId, categories) {
-    for (const category of categories) {
-      const categoryId = await this.#db.addCategory(category);
-      await this.#db.linkEntryToCategory(entryId, categoryId);
+
+  async updateEntry(id, updates) {
+    try {
+      logger.info('Updating entry:', id, updates);
+
+      // If there's new content, get fresh parser output
+      if (updates.raw_content) {
+        const parserOutput = this.#parser.parse(updates.raw_content);
+        if (!parserOutput) {
+          throw new Error('Failed to parse updated content');
+        }
+        updates = parserOutput;
+      }
+
+      const updated = await this.#db.updateEntry(id, updates);
+      logger.info('Entry updated successfully:', id);
+      
+      return updated;
+    } catch (error) {
+      logger.error('Failed to update entry:', error);
+      throw error;
     }
   }
-  
-  async getEntries(filters) {
-    return this.#db.getEntries(filters);
+
+  async getEntry(id) {
+    try {
+      return await this.#db.getEntry(id);
+    } catch (error) {
+      logger.error('Failed to get entry:', error);
+      throw error;
+    }
+  }
+
+  async deleteEntry(id) {
+    try {
+      return await this.#db.deleteEntry(id);
+    } catch (error) {
+      logger.error('Failed to delete entry:', error);
+      throw error;
+    }
+  }
+
+  async getEntries(filters = {}) {
+    try {
+      return await this.#db.getEntries(filters);
+    } catch (error) {
+      logger.error('Failed to get entries:', error);
+      throw error;
+    }
+  }
+
+  // Plugin data operations
+  async updatePluginData(entryId, pluginName, data) {
+    try {
+      const entry = await this.#db.getEntry(entryId);
+      if (!entry) {
+        throw new Error(`Entry with id ${entryId} not found`);
+      }
+
+      const updates = {
+        plugins: {
+          ...entry.plugins,
+          [pluginName]: data
+        }
+      };
+
+      return await this.#db.updateEntry(entryId, updates);
+    } catch (error) {
+      logger.error('Failed to update plugin data:', error);
+      throw error;
+    }
+  }
+
+  async getPluginData(entryId, pluginName) {
+    try {
+      const entry = await this.#db.getEntry(entryId);
+      if (!entry) {
+        throw new Error(`Entry with id ${entryId} not found`);
+      }
+
+      return entry.plugins[pluginName] || null;
+    } catch (error) {
+      logger.error('Failed to get plugin data:', error);
+      throw error;
+    }
   }
 }
 
-module.exports = EntryService; 
+module.exports = EntryService;

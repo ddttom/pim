@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const DatabaseService = require('./services/database');
-const { ConfigManager, DatabaseConfigStorage } = require('./services/config');
+const JsonDatabaseService = require('./services/json-database');
+const { ConfigManager } = require('./services/config');
 const logger = require('./services/logger');
 const EntryService = require('./services/entry-service');
 
@@ -43,15 +43,12 @@ class MainProcess {
   }
 
   #setupIpcHandlers() {
-    // Use the already initialized entry service
-    const entryService = this.#entryService;
-
     // Entry-related handlers
     ipcMain.handle('add-entry', async (event, content) => {
       try {
-        console.log('Received add-entry request with content:', content);
-        const entryId = await entryService.addEntry(content);
-        console.log('Entry added successfully with ID:', entryId);
+        logger.info('Received add-entry request with content:', content);
+        const entryId = await this.#entryService.addEntry(content);
+        logger.info('Entry added successfully with ID:', entryId);
         return entryId;
       } catch (error) {
         logger.error('Failed to add entry', error);
@@ -116,15 +113,14 @@ class MainProcess {
     try {
       // Set up database path in user data directory
       const userDataPath = app.getPath('userData');
-      const dbPath = path.join(userDataPath, 'pim.db');
+      const dbPath = path.join(userDataPath, 'pim.json');
 
       // Initialize database
-      this.#db = new DatabaseService();
+      this.#db = new JsonDatabaseService();
       await this.#db.initialize(dbPath);
 
       // Initialize config
-      const configStorage = new DatabaseConfigStorage(this.#db);
-      this.#config = new ConfigManager(configStorage);
+      this.#config = new ConfigManager(this.#db);
       await this.#config.initialize();
 
       // Initialize parser

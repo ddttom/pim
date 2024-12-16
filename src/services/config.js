@@ -1,94 +1,75 @@
-class ConfigManager {
-  #storage;
-  #config;
-  #defaults;
+const logger = require('./logger');
 
-  constructor(storage) {
-    this.#storage = storage;
-    this.#defaults = {
+class ConfigManager {
+  #db;
+  #config;
+
+  constructor(database) {
+    this.#db = database;
+    this.#config = {
       parser: {
-        maxDepth: 3,
-        ignoreFiles: [],
-        outputFormat: 'json',
-        tellTruth: true
-      },
-      reminders: {
-        defaultMinutes: 15,
-        allowMultiple: true
+        timeDefaults: {
+          morning: '09:00',
+          afternoon: '14:00',
+          evening: '18:00'
+        },
+        defaultStatus: 'None',
+        defaultPriority: 'medium'
       },
       ui: {
         theme: 'light',
-        fontSize: 14,
-        showToolbar: true
+        density: 'comfortable',
+        columns: ['action', 'project', 'final_deadline', 'status']
       }
     };
   }
 
   async initialize() {
     try {
-      const stored = await this.#storage.load();
-      this.#config = this.#mergeWithDefaults(stored);
-    } catch (error) {
-      console.error('Failed to load config:', error);
-      this.#config = { ...this.#defaults };
-    }
-  }
-
-  #mergeWithDefaults(stored) {
-    const merged = { ...this.#defaults };
-    
-    for (const [key, value] of Object.entries(stored)) {
-      if (typeof value === 'object' && value !== null) {
-        merged[key] = { ...merged[key], ...value };
+      const savedConfig = await this.#db.getSetting('config');
+      if (savedConfig) {
+        this.#config = JSON.parse(savedConfig);
       } else {
-        merged[key] = value;
+        await this.save();
       }
+      logger.info('Config initialized successfully');
+    } catch (error) {
+      logger.error('Failed to initialize config:', error);
+      throw error;
     }
-    
-    return merged;
   }
 
   async save() {
-    await this.#storage.save(this.#config);
+    try {
+      await this.#db.setSetting('config', JSON.stringify(this.#config));
+      logger.info('Config saved successfully');
+    } catch (error) {
+      logger.error('Failed to save config:', error);
+      throw error;
+    }
   }
 
-  get(path) {
-    return path.split('.').reduce((obj, key) => obj?.[key], this.#config);
-  }
-
-  set(path, value) {
-    const keys = path.split('.');
-    const lastKey = keys.pop();
-    const target = keys.reduce((obj, key) => obj[key], this.#config);
-    target[lastKey] = value;
+  async update(updates) {
+    try {
+      this.#config = {
+        ...this.#config,
+        ...updates
+      };
+      await this.save();
+      logger.info('Config updated successfully');
+    } catch (error) {
+      logger.error('Failed to update config:', error);
+      throw error;
+    }
   }
 
   async getAll() {
-    return this.#config;
+    return { ...this.#config };
   }
 
-  async update(newSettings) {
-    this.#config = this.#mergeWithDefaults(newSettings);
-    await this.save();
-    return this.#config;
+  async get(key) {
+    return this.#config[key];
   }
 }
 
-class DatabaseConfigStorage {
-  #db;
-  
-  constructor(db) {
-    this.#db = db;
-  }
-  
-  async load() {
-    const settings = await this.#db.getSetting('config');
-    return settings ? JSON.parse(settings.value) : {};
-  }
-  
-  async save(config) {
-    await this.#db.setSetting('config', JSON.stringify(config));
-  }
-}
-
-module.exports = { ConfigManager, DatabaseConfigStorage }; 
+module.exports = { ConfigManager };

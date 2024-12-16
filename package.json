@@ -7,8 +7,7 @@
     "start": "electron .",
     "dev": "NODE_ENV=development electron .",
     "test": "jest",
-    "test:parser": "jest tests/parser.test.js",
-    "migrate": "node src/scripts/migration.js"
+    "test:parser": "jest tests/parser.test.js"
   },
   "author": "",
   "license": "ISC",
@@ -16,8 +15,7 @@
     "chrono-node": "^2.6.3",
     "electron": "^24.3.0",
     "marked": "^5.1.1",
-    "sqlite": "^4.1.2",
-    "sqlite3": "^5.1.6",
+    "uuid": "^9.0.1",
     "winston": "^3.10.0"
   },
   "devDependencies": {
