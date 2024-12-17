@@ -31,27 +31,63 @@ npm start
 
 ### 1. Natural Language Input
 
-PIM understands natural language, allowing you to enter tasks and information as you would speak or write them naturally.
+PIM understands natural language input with the following features:
 
-#### Supported Input Patterns
+#### Action Recognition
+- Basic actions: call, meet, email, review, write
+- Variations: phone, sync, mail, check, draft
+- Context-aware detection
 
-- **Actions**: call, email, meet, review, etc.
-- **Contacts**: Use @ to mention contacts (e.g., @John)
-- **Dates and Times**: "tomorrow", "next week", "at 2pm"
-- **Priorities**: urgent, high, medium, low
-- **Categories**: Use # for tags (e.g., #work)
-- **Duration**: "for 1 hour", "30 minutes"
-- **Location**: "at office", "in conference room"
-- **Project References**: "for Project X", "about Project Y"
-- **Status Updates**: "- complete", "- blocked"
+#### Time Understanding
+- Dates with common misspellings
+- Time of day references
+- Specific times (2pm, 15:30)
+- Default times for different periods
+- Relative dates (tomorrow, next week)
+
+#### Location Detection
+- "at [location]" format
+- "in [location]" format
+- "location: [place]" format
+- Multi-word location support
+
+#### Duration Parsing
+- Hour-based durations
+- Minute-based durations
+- Formatted output (1h30m)
+- Unit variations (hour, hr, minute, min)
+
+#### Recurrence Patterns
+- Daily ("every day")
+- Weekly ("every week")
+- Monthly ("every month")
+- Weekday-specific ("every Monday")
+- Interval support
+
+#### Context Detection
+Automatically categorizes into contexts:
+- Work: meeting, project, deadline, client, report
+- Personal: family, home, shopping, birthday, holiday
+- Health: doctor, dentist, gym, workout, medicine
+- Finance: bank, payment, invoice, budget, tax
 
 #### Examples
 
 ```bash
-Call @John about Project Alpha tomorrow at 2pm #work
-Meet with team next week in conference room - high priority
-Review documentation for 30 minutes - complete
-Email @Sarah about project status - blocked by pending approval
+# Basic Task with Time
+Call John tomorrow at 2pm
+
+# Location and Duration
+Meet team in conference room for 2 hours
+
+# Recurring Meeting
+Team sync every Monday morning
+
+# Context and Priority
+Doctor appointment next week #health #urgent
+
+# Project with Location
+Project Alpha review at client office tomorrow
 ```
 
 ### 2. Entry Management

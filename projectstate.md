@@ -92,39 +92,95 @@ Note: Whenever 'projectstate.md' is updated, also update 'readme.md' and 'userma
 #### Core Functionality
 
 - Natural language processing
-- Modular plugin architecture
-- Multiple parsing strategies support
 - Pattern-based text analysis
+- Multiple parsing strategies
 - Extensible parsing rules
 - Real-time parsing feedback
 
 #### Supported Patterns
 
-- Actions (call, email, meet, review, etc.)
-- Contacts (@mentions)
-- Dates and Times
-- Priorities (urgent, high, medium, low)
-- Categories (#tags)
-- Duration
-- Location
-- Complexity
-- Recurring Patterns
-- Time of Day
-- Reminders
-- Urgency
-- Subject
-- Attendees
-- Project References
-- Status Updates
-- Zoom Links
+1. Actions
+   - Basic actions: call, meet, email, review, write
+   - Action variations and synonyms
+   - Context-aware action detection
 
-#### Configuration
+2. Date and Time
+   - Multiple date formats
+   - Time of day references
+   - Relative dates ("next Wednesday")
+   - Time specifications
+   - Default time assignments
+   - Common misspellings support
 
-- Pattern definitions
-- Plugin system
-- Validation rules
-- Output formatting
-- Custom patterns support
+3. Location
+   - Location prefixes (at, in)
+   - Location markers
+   - Multi-word locations
+   - Location type detection
+
+4. Duration
+   - Hour-based durations
+   - Minute-based durations
+   - Formatted output
+   - Unit variations
+
+5. Recurrence
+   - Daily patterns
+   - Weekly patterns
+   - Monthly patterns
+   - Weekday-specific patterns
+   - Interval support
+
+6. Context Detection
+   - Work context
+   - Personal context
+   - Health context
+   - Finance context
+   - Multi-context support
+
+7. Additional Features
+   - Priority detection
+   - Status tracking
+   - Participant mentions
+   - Project references
+   - Tag support
+   - Custom patterns
+
+#### Parser Output Structure
+
+```javascript
+{
+  "parsed": {
+    "action": "string",
+    "contact": "string",
+    "project": {
+      "project": "string"
+    },
+    "final_deadline": "ISO string",
+    "participants": ["string"],
+    "tags": ["string"],
+    "priority": "string",
+    "status": "string",
+    "location": {
+      "type": "string",
+      "value": "string"
+    },
+    "duration": {
+      "minutes": number,
+      "formatted": "string"
+    },
+    "recurrence": {
+      "type": "string",
+      "day": "string",
+      "interval": number
+    },
+    "contexts": ["string"],
+    "categories": []
+  },
+  "raw_content": "string",
+  "plugins": {}
+}
+```
 
 ### 4. User Interface System (`src/renderer/`)
 

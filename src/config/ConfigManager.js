@@ -1,10 +1,19 @@
 const fs = require('fs').promises;
 const path = require('path');
 
+class ConfigError extends Error {
+  constructor(message, category, details = {}) {
+    super(message);
+    this.name = 'ConfigError';
+    this.category = category;
+    this.details = details;
+  }
+}
+
 // Manages all configuration/settings with validation and defaults
 class ConfigManager {
-  constructor(database, configPath = null) {
-    this.db = database;
+  constructor(settingsService, configPath = null) {
+    this.settings = settingsService;
     this.currentConfig = null;
     this.configPath = configPath; // Allow injection of config path for testing
     this.logger = {
@@ -60,6 +69,27 @@ class ConfigManager {
         allowMultiple: (value) => typeof value === 'boolean'
       }
     };
+
+    this.listeners = new Map();
+  }
+
+  on(event, callback) {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, new Set());
+    }
+    this.listeners.get(event).add(callback);
+    
+    return () => {
+      this.listeners.get(event).delete(callback);
+    };
+  }
+
+  emit(event, data) {
+    if (this.listeners.has(event)) {
+      this.listeners.get(event).forEach(callback => {
+        callback(data);
+      });
+    }
   }
 
   async initialize() {
@@ -68,7 +98,7 @@ class ConfigManager {
       const fileConfig = await this.loadConfigFile();
       
       // 2. Load saved settings from database
-      const savedSettings = await this.db.getAllSettings();
+      const savedSettings = await this.settings.getAllSettings();
       
       // 3. Merge with defaults (file config takes precedence over defaults)
       const mergedDefaults = this.mergeWithDefaults(fileConfig);
@@ -95,18 +125,9 @@ class ConfigManager {
 
   async loadConfigFile() {
     try {
-      // Use injected path for testing, or try to get from electron
-      let configPath = this.configPath;
-      
-      if (!configPath) {
-        try {
-          const { app } = require('electron');
-          configPath = path.join(app.getPath('userData'), 'config.json');
-        } catch (error) {
-          // Not running in Electron, return empty config
-          return {};
-        }
-      }
+      // Gets user data path from Electron
+      const { app } = require('electron');
+      configPath = path.join(app.getPath('userData'), 'config.json');
       
       this.logger.info('Looking for config at:', configPath);
       
@@ -139,40 +160,37 @@ class ConfigManager {
 
   validateConfig(config) {
     for (const [category, schema] of Object.entries(this.schema)) {
+      if (!config[category]) {
+        throw new ConfigError(
+          `Missing required category: ${category}`,
+          category
+        );
+      }
+
       for (const [key, validator] of Object.entries(schema)) {
-        if (config[category] && !validator(config[category][key])) {
-          throw new Error(`Invalid config value for ${category}.${key}`);
+        if (!validator(config[category][key])) {
+          throw new ConfigError(
+            `Invalid config value for ${category}.${key}`,
+            category,
+            { key, value: config[category][key] }
+          );
         }
       }
     }
   }
 
   async updateSettings(category, settings) {
-    try {
-      // Validate new settings
-      for (const [key, value] of Object.entries(settings)) {
-        if (this.schema[category]?.[key] && !this.schema[category][key](value)) {
-          const error = new Error(`Invalid value for ${category}.${key}`);
-          this.logger.warn(`Validation failed: ${error.message}`);
-          throw error;
-        }
-      }
-
-      // Update database
-      await this.db.saveSetting(category, settings);
-      
-      // Update current config
-      this.currentConfig[category] = {
-        ...this.currentConfig[category],
-        ...settings
-      };
-
-      this.logger.debug(`Settings updated for ${category}`);
-      return this.currentConfig;
-    } catch (error) {
-      this.logger.error('Failed to update settings:', error);
-      throw error;
-    }
+    // 1. Validate settings first
+    await this.validateConfig({ [category]: settings });
+    
+    // 2. Save to settings.json
+    await this.settings.saveSetting(category, settings);
+    
+    // 3. Update in-memory config
+    this.currentConfig[category] = {
+      ...this.currentConfig[category],
+      ...settings
+    };
   }
 
   get(category, key) {
@@ -239,6 +257,51 @@ class ConfigManager {
       } catch (error) {
         this.logger.debug(`Failed to apply environment variable ${key}:`, error);
       }
+    }
+  }
+
+  async backup() {
+    try {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupPath = path.join(
+        path.dirname(this.configPath),
+        `backups/config-${timestamp}.json`
+      );
+      
+      await fs.mkdir(path.dirname(backupPath), { recursive: true });
+      await fs.writeFile(
+        backupPath,
+        JSON.stringify(this.currentConfig, null, 2)
+      );
+      
+      this.emit('backupCreated', backupPath);
+      return backupPath;
+    } catch (error) {
+      this.emit('error', error);
+      throw error;
+    }
+  }
+
+  async restore(backupPath) {
+    try {
+      const backupConfig = JSON.parse(
+        await fs.readFile(backupPath, 'utf8')
+      );
+      
+      // Validate backup config
+      this.validateConfig(backupConfig);
+      
+      // Save to database
+      await this.settings.saveAllSettings(backupConfig);
+      
+      // Update current config
+      this.currentConfig = backupConfig;
+      
+      this.emit('configRestored', this.currentConfig);
+      return this.currentConfig;
+    } catch (error) {
+      this.emit('error', error);
+      throw error;
     }
   }
 }

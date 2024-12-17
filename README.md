@@ -21,9 +21,25 @@ A modern desktop application for managing personal information, tasks, and notes
 
 ```bash
 Call John tomorrow at 2pm
-Text Sarah about Project Alpha - blocked
-Meet with team next week
-Review code pull request #123 - complete
+Meet with team in conference room for 1 hour
+Email Sarah about Project Alpha #urgent
+Review code pull request #123 in the morning
+```
+
+#### Advanced Features
+
+```bash
+# Time and Location
+Meet John at Starbucks tomorrow morning
+Call team at 3pm in the conference room
+
+# Duration and Recurrence
+Review code for 2 hours
+Team sync every Monday at 10am
+
+# Context and Priority
+Email finance report #urgent #finance
+Schedule doctor appointment #health
 ```
 
 #### Status Updates
@@ -53,23 +69,42 @@ about project Big Launch
 for Project X next week
 ```
 
+### Parser Features
+
+- Action detection with variations (call, phone, meet, sync, etc.)
+- Smart date/time parsing with common misspellings
+- Location detection ("at" or "in" locations)
+- Duration parsing (hours and minutes)
+- Recurrence patterns (daily, weekly, monthly)
+- Context detection (work, personal, health, finance)
+- Priority and status tracking
+- Project references
+- Participant mentions (@person)
+- Category tags (#tag)
+
 ### Storage Format
 
 ```javascript
-// Example stored entry
 {
   "id": "uuid",
   "created_at": "2024-12-16T18:45:43.824Z",
   "updated_at": "2024-12-16T18:45:43.824Z",
-  "raw_content": "Call John about project Cheesecake next week - started",
+  "raw_content": "Call John about project Cheesecake tomorrow morning",
   "parsed": {
     "action": "call",
     "contact": "John",
     "project": {
       "project": "Cheesecake"
     },
-    "final_deadline": "2024-12-23T09:00:00.000Z",
-    "status": "Started",
+    "final_deadline": "2024-12-17T09:00:00.000Z",
+    "participants": [],
+    "tags": [],
+    "priority": "normal",
+    "status": "pending",
+    "location": null,
+    "duration": null,
+    "recurrence": null,
+    "contexts": [],
     "categories": []
   },
   "plugins": {}

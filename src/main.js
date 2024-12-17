@@ -4,6 +4,7 @@ const JsonDatabaseService = require('./services/json-database');
 const { ConfigManager } = require('./services/config');
 const logger = require('./services/logger');
 const EntryService = require('./services/entry-service');
+const SettingsService = require('./services/settings-service');
 
 class MainProcess {
   #db;
@@ -11,6 +12,7 @@ class MainProcess {
   #parser;
   #mainWindow;
   #entryService;
+  #settings;
 
   constructor() {
     this.#initializeApp();
@@ -111,16 +113,19 @@ class MainProcess {
 
   async #initializeServices() {
     try {
-      // Set up database path in user data directory
       const userDataPath = app.getPath('userData');
+      
+      // Initialize database for entries only
       const dbPath = path.join(userDataPath, 'pim.json');
-
-      // Initialize database
       this.#db = new JsonDatabaseService();
       await this.#db.initialize(dbPath);
 
-      // Initialize config
-      this.#config = new ConfigManager(this.#db);
+      // Initialize settings service
+      this.#settings = new SettingsService(userDataPath);
+      await this.#settings.initialize();
+
+      // Initialize config with settings service
+      this.#config = new ConfigManager(this.#settings);
       await this.#config.initialize();
 
       // Initialize parser

@@ -11,7 +11,6 @@ class JsonDatabaseService {
   constructor() {
     this.#data = {
       entries: [],
-      settings: {},
       meta: {
         version: '1.0.0',
         last_backup: new Date().toISOString()
@@ -57,12 +56,13 @@ class JsonDatabaseService {
   async addEntry(parserOutput) {
     const now = new Date().toISOString();
     
-    // Create entry by adding only database-specific fields to parser output
+    // Create entry by adding database-specific fields to parser output
     const newEntry = {
       id: uuidv4(),
+      content: parserOutput.raw_content,
       created_at: now,
       updated_at: now,
-      ...parserOutput // Keep exact parser output structure
+      parsed: parserOutput.parsed
     };
 
     this.#data.entries.push(newEntry);
@@ -77,40 +77,37 @@ class JsonDatabaseService {
       entries = entries.filter(e => filters.status.has(e.parsed?.status));
     }
 
-    if (filters.date?.size) {
-      entries = entries.filter(e => {
-        const date = new Date(e.parsed?.final_deadline).toISOString().split('T')[0];
-        return filters.date.has(date);
-      });
-    }
-
     if (filters.categories?.size) {
       entries = entries.filter(e => 
-        e.parsed?.categories?.some(c => filters.categories.has(c))
+        e.parsed?.category && filters.categories.has(e.parsed.category)
+      );
+    }
+
+    if (filters.participants?.size) {
+      entries = entries.filter(e => 
+        e.parsed?.participants?.some(p => filters.participants.has(p))
       );
     }
 
     if (filters.sort) {
       const { column, direction } = filters.sort;
       entries.sort((a, b) => {
-        let aVal, bVal;
-
-        // Handle nested paths in parsed data
-        if (column.includes('.')) {
-          const [parent, child] = column.split('.');
-          aVal = parent === 'parsed' ? a.parsed?.[child] : a[parent]?.[child];
-          bVal = parent === 'parsed' ? b.parsed?.[child] : b[parent]?.[child];
-        } else {
-          aVal = a[column];
-          bVal = b[column];
-        }
+        let aVal = column.split('.').reduce((obj, key) => obj?.[key], a);
+        let bVal = column.split('.').reduce((obj, key) => obj?.[key], b);
         
         if (aVal === null || aVal === undefined) return 1;
         if (bVal === null || bVal === undefined) return -1;
         
-        return direction === 'DESC' ? 
-          String(bVal).localeCompare(String(aVal)) : 
-          String(aVal).localeCompare(String(bVal));
+        // For priority, use custom ordering
+        if (column === 'parsed.priority') {
+          const priorityOrder = { high: 2, medium: 1, low: 0 };
+          return direction === 'DESC' 
+            ? priorityOrder[bVal] - priorityOrder[aVal]
+            : priorityOrder[aVal] - priorityOrder[bVal];
+        }
+        
+        const comparison = String(aVal).localeCompare(String(bVal));
+        return direction === 'DESC' ? -comparison : comparison;
       });
     }
 
@@ -127,13 +124,16 @@ class JsonDatabaseService {
       throw new Error(`Entry with id ${id} not found`);
     }
 
+    // Add small delay to ensure different timestamps
+    await new Promise(resolve => setTimeout(resolve, 1));
+
     const entry = this.#data.entries[index];
     const updated = {
       ...entry,
-      ...updates, // Keep parser output structure
-      id: entry.id, // Ensure id doesn't get overwritten
+      ...updates,
+      id: entry.id,
       updated_at: new Date().toISOString(),
-      created_at: entry.created_at // Preserve original creation time
+      created_at: entry.created_at
     };
 
     this.#data.entries[index] = updated;
@@ -146,20 +146,6 @@ class JsonDatabaseService {
     this.#data.entries = this.#data.entries.filter(e => e.id !== id);
     if (this.#autoSave) await this.save();
     return initialLength > this.#data.entries.length;
-  }
-
-  // Settings operations
-  async getSetting(key) {
-    return this.#data.settings[key];
-  }
-
-  async setSetting(key, value) {
-    this.#data.settings[key] = value;
-    if (this.#autoSave) await this.save();
-  }
-
-  async getSettings() {
-    return { ...this.#data.settings };
   }
 
   // Backup/Restore
@@ -177,7 +163,13 @@ class JsonDatabaseService {
 
   // Transaction-like operations
   async batch(operations) {
+    if (typeof operations === 'function') {
+      operations = [operations];
+    }
+
+    const snapshot = JSON.stringify(this.#data);
     this.#autoSave = false;
+
     try {
       for (const op of operations) {
         await op();
@@ -185,7 +177,9 @@ class JsonDatabaseService {
       this.#autoSave = true;
       await this.save();
     } catch (error) {
+      this.#data = JSON.parse(snapshot);
       this.#autoSave = true;
+      await this.save();
       throw error;
     }
   }

@@ -1,4 +1,5 @@
 const chrono = require('chrono-node');
+const logger = require('./logger');
 
 class Parser {
   constructor(logger) {
@@ -6,131 +7,184 @@ class Parser {
   }
 
   parse(text) {
-    try {
-      // Handle null/undefined/empty input
-      if (!text) {
-        this.logger.warn('Empty text provided to parser');
-        return {
-          raw_content: '',
-          parsed: {
-            action: null,
-            contact: undefined,
-            project: null,
-            final_deadline: null,
-            status: 'None',
-            categories: []
-          },
-          plugins: {}
-        };
-      }
+    this.logger.info('Parsing text:', { text });
 
-      this.logger.info('Parsing text:', text);
+    const parsed = {
+      action: this.#extractAction(text),
+      contact: this.#extractContact(text),
+      project: this.#extractProject(text),
+      final_deadline: this.#extractDateTime(text),
+      participants: this.#extractParticipants(text),
+      tags: this.#extractTags(text),
+      priority: this.#extractPriority(text),
+      status: this.#determineStatus(text),
+      location: this.#extractLocation(text),
+      duration: this.#extractDuration(text),
+      recurrence: this.#extractRecurrence(text),
+      contexts: this.#extractContext(text),
+      categories: []
+    };
 
-      // First find the action to help with contact parsing
-      const action = this.#parseAction(text);
-      
-      const parsed = {
-        raw_content: text,
-        parsed: {
-          action: action,
-          contact: this.#parseContact(text, action),
-          project: this.#parseProject(text),
-          final_deadline: this.#parseDate(text),
-          status: this.#parseStatus(text),
-          categories: []
-        },
-        plugins: {}
-      };
-
-      this.logger.info('Parse results:', parsed);
-      return parsed;
-    } catch (error) {
-      this.logger.error('Parser error:', error);
-      throw error;
-    }
+    return {
+      parsed,
+      raw_content: text,
+      plugins: {}
+    };
   }
 
-  #parseAction(text) {
-    if (!text) return null;
-    
-    const actionWords = ['call', 'email', 'meet', 'review', 'write', 'send', 'text'];
+  #extractAction(text) {
+    const actionMap = {
+      'call': ['call', 'phone', 'ring', 'dial'],
+      'meet': ['meet', 'meeting', 'catch up', 'sync', 'catchup'],
+      'email': ['email', 'mail', 'send', 'write to'],
+      'review': ['review', 'check', 'look at', 'examine'],
+      'write': ['write', 'draft', 'compose', 'create']
+    };
+
     const words = text.toLowerCase().split(' ');
-    return actionWords.find(action => words.includes(action)) || null;
-  }
-
-  #parseContact(text, action) {
-    if (!text) return undefined;
-    
-    const words = text.split(' ');
-    
-    // Common words that should never be contacts
-    const commonWords = new Set([
-      'me', 'Me', 'I', 'you', 'You', 'we', 'We', 
-      'they', 'They', 'it', 'It', 'Project', 'project',
-      'Call', 'call', 'Meet', 'meet', 'with', 'With',
-      'about', 'About', 'later', 'Later', 'tomorrow',
-      'next', 'week', 'month', 'year'
-    ]);
-
-    // Look for contact after "with"
-    const withIndex = words.findIndex(word => word.toLowerCase() === 'with');
-    if (withIndex >= 0 && withIndex < words.length - 1) {
-      const nextWord = words[withIndex + 1];
-      if (nextWord.match(/^[A-Z]/) && !commonWords.has(nextWord)) {
-        return nextWord;
+    for (const [action, variations] of Object.entries(actionMap)) {
+      if (variations.some(v => text.toLowerCase().includes(v))) {
+        return action;
       }
     }
-
-    // Look for contact after action
-    if (action) {
-      const actionIndex = words.findIndex(word => 
-        word.toLowerCase() === action.toLowerCase()
-      );
-      if (actionIndex >= 0 && actionIndex < words.length - 1) {
-        const nextWord = words[actionIndex + 1];
-        if (nextWord.match(/^[A-Z]/) && !commonWords.has(nextWord)) {
-          return nextWord;
-        }
-      }
-    }
-
-    // Fallback: look for any capitalized word that's not a common word
-    for (const word of words) {
-      if (word.match(/^[A-Z][a-z]+$/) && !commonWords.has(word)) {
-        return word;
-      }
-    }
-    
-    return undefined;
-  }
-
-  #parseProject(text) {
-    if (!text) return null;
-    
-    // Handle multi-word project names first
-    const multiWordMatch = text.match(/project\s+([A-Z][a-zA-Z]+(?:\s+[A-Z]?[a-zA-Z]+)*?)(?=\s*$|\s*[-,.]|\s+(?:next|tomorrow|today|yesterday|on|at|by))/i);
-    if (multiWordMatch) {
-      return { project: multiWordMatch[1] };
-    }
-    
-    // Try matching "Project X" format at start of text
-    const projectStartMatch = text.match(/^Project\s+([A-Z][a-zA-Z]+(?:\s+[A-Z]?[a-zA-Z]+)*?)(?=\s|$)/);
-    if (projectStartMatch) {
-      return { project: projectStartMatch[1] };
-    }
-    
-    // Look for "project" keyword followed by capitalized word
-    const projectMatch = text.match(/project\s+([A-Z][a-zA-Z]+)(?=\s|$)/i);
-    if (projectMatch) {
-      return { project: projectMatch[1] };
-    }
-    
     return null;
   }
 
-  #parseDate(text) {
-    if (!text) return null;
-    
+  #extractContact(text) {
+    const words = text.split(' ');
+    const actionIndex = words.findIndex(w => 
+      ['call', 'meet', 'email'].includes(w.toLowerCase())
+    );
+    return actionIndex >= 0 && words[actionIndex + 1] 
+      ? words[actionIndex + 1] 
+      : null;
+  }
+
+  #extractProject(text) {
+    const projectMatch = text.match(/re\s+Project\s+(\w+)/i);
+    return projectMatch ? { project: projectMatch[1] } : null;
+  }
+
+  #extractDate(text) {
+    // Month variations and misspellings
+    const months = {
+      // January variations
+      'january': 0, 'jan': 0, 'janu': 0, 'janua': 0, 'janurary': 0,
+      'january': 0, 'jenuary': 0,
+      
+      // February variations
+      'february': 1, 'feb': 1, 'febr': 1, 'febru': 1, 'feburary': 1,
+      'februrary': 1, 'febury': 1,
+      
+      // March variations
+      'march': 2, 'mar': 2, 'march': 2, 'marth': 2, 'merch': 2,
+      
+      // April variations
+      'april': 3, 'apr': 3, 'aprl': 3, 'aprel': 3, 'appril': 3,
+      
+      // May variations
+      'may': 4, 'mai': 4,
+      
+      // June variations
+      'june': 5, 'jun': 5, 'joon': 5, 'juen': 5,
+      
+      // July variations
+      'july': 6, 'jul': 6, 'juley': 6, 'jully': 6, 'julai': 6,
+      
+      // August variations
+      'august': 7, 'aug': 7, 'augst': 7, 'agust': 7, 'augus': 7,
+      
+      // September variations
+      'september': 8, 'sep': 8, 'sept': 8, 'septem': 8, 'septmber': 8,
+      'setember': 8, 'septmeber': 8,
+      
+      // October variations
+      'october': 9, 'oct': 9, 'octo': 9, 'octob': 9, 'octber': 9,
+      'ocktober': 9, 'oktober': 9,
+      
+      // November variations
+      'november': 10, 'nov': 10, 'novem': 10, 'novmber': 10, 'novmeber': 10,
+      'noveber': 10,
+      
+      // December variations
+      'december': 11, 'dec': 11, 'decem': 11, 'decmber': 11, 'decmeber': 11,
+      'desember': 11
+    };
+
+    // Day variations (existing code)
+    const days = {
+      // Sunday variations
+      'sunday': 0, 'sun': 0, 'sundy': 0, 'sund': 0, 'sonday': 0,
+      
+      // Monday variations
+      'monday': 1, 'mon': 1, 'mondy': 1, 'mondey': 1, 'munday': 1,
+      
+      // Tuesday variations
+      'tuesday': 2, 'tue': 2, 'tues': 2, 'tusday': 2, 'tuseday': 2,
+      'tuesd': 2, 'tuez': 2, 'teusday': 2,
+      
+      // Wednesday variations
+      'wednesday': 3, 'wed': 3, 'weds': 3, 'wednsday': 3, 'wensday': 3,
+      'wendsday': 3, 'wednessday': 3, 'wednes': 3, 'wedness': 3,
+      
+      // Thursday variations
+      'thursday': 4, 'thu': 4, 'thur': 4, 'thurs': 4, 'thersday': 4,
+      'thirsday': 4, 'thursdy': 4, 'thrusday': 4,
+      
+      // Friday variations
+      'friday': 5, 'fri': 5, 'fridy': 5, 'fryday': 5, 'freeday': 5,
+      
+      // Saturday variations
+      'saturday': 6, 'sat': 6, 'satur': 6, 'satday': 6, 'saterday': 6,
+      'satrday': 6, 'saturd': 6
+    };
+
+    // Try to match "Month Day" format (e.g., "January 15" or "Jan 15")
+    const monthDayMatch = text.match(/(\w+)\s+(\d{1,2})/i);
+    if (monthDayMatch) {
+      const monthInput = monthDayMatch[1].toLowerCase();
+      const day = parseInt(monthDayMatch[2], 10);
+      const monthIndex = months[monthInput];
+
+      if (monthIndex !== undefined && day >= 1 && day <= 31) {
+        const today = new Date();
+        const date = new Date(today.getFullYear(), monthIndex, day, 9, 0, 0, 0);
+        
+        // If the date has passed, use next year
+        if (date < today) {
+          date.setFullYear(today.getFullYear() + 1);
+        }
+        
+        return date.toISOString();
+      }
+    }
+
+    // Try next weekday format (existing code)
+    const nextDayMatch = text.match(/next\s+(\w+)/i);
+    if (nextDayMatch) {
+      const dayInput = nextDayMatch[1].toLowerCase();
+      const dayIndex = days[dayInput];
+      
+      if (dayIndex !== undefined) {
+        const today = new Date();
+        const currentDay = today.getDay();
+        let daysToAdd = dayIndex - currentDay;
+        
+        // If the day has already passed this week, go to next week
+        if (daysToAdd <= 0) {
+          daysToAdd += 7;
+        }
+        
+        const nextDate = new Date(today);
+        nextDate.setDate(today.getDate() + daysToAdd);
+        // Set to 9 AM by default
+        nextDate.setHours(9, 0, 0, 0);
+        
+        return nextDate.toISOString();
+      }
+    }
+
+    // Fallback to chrono-node (existing code)
     const results = chrono.parse(text);
     if (results.length > 0) {
       const date = results[0].date();
@@ -142,28 +196,152 @@ class Parser {
       }
       return date.toISOString();
     }
+
     return null;
   }
 
-  #parseStatus(text) {
-    if (!text) return 'None';
+  #extractParticipants(text) {
+    const matches = text.match(/@(\w+)/g) || [];
+    return matches.map(m => m.substring(1));
+  }
 
-    const statusWords = {
-      'blocked': 'Blocked',
-      'complete': 'Complete',
-      'started': 'Started',
-      'closed': 'Closed',
-      'abandoned': 'Abandoned'
+  #extractTags(text) {
+    const matches = text.match(/#(\w+)/g) || [];
+    return matches.map(m => m.substring(1));
+  }
+
+  #extractPriority(text) {
+    if (text.toLowerCase().includes('urgently') || 
+        text.toLowerCase().includes('asap')) {
+      return 'high';
+    }
+    return 'normal';
+  }
+
+  #determineStatus(text) {
+    if (text.toLowerCase().includes('done') || 
+        text.toLowerCase().includes('completed')) {
+      return 'complete';
+    }
+    return 'pending';
+  }
+
+  #extractDateTime(text) {
+    const timePatterns = {
+      morning: '09:00',
+      noon: '12:00',
+      afternoon: '14:00',
+      evening: '18:00',
+      night: '20:00'
     };
 
-    const lowercaseText = text.toLowerCase();
-    for (const [keyword, status] of Object.entries(statusWords)) {
-      if (lowercaseText.includes(keyword)) {
-        return status;
+    let date = this.#extractDate(text);
+    if (!date) return null;
+
+    // Try to find time references
+    const timeMatch = text.match(/at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    if (timeMatch) {
+      let [_, hours, minutes = '00', meridian] = timeMatch;
+      hours = parseInt(hours);
+      if (meridian?.toLowerCase() === 'pm' && hours < 12) hours += 12;
+      if (meridian?.toLowerCase() === 'am' && hours === 12) hours = 0;
+      
+      const dateObj = new Date(date);
+      dateObj.setHours(hours, parseInt(minutes));
+      return dateObj.toISOString();
+    }
+
+    // Check for time of day references
+    for (const [timeRef, defaultTime] of Object.entries(timePatterns)) {
+      if (text.toLowerCase().includes(timeRef)) {
+        const [hours, minutes] = defaultTime.split(':');
+        const dateObj = new Date(date);
+        dateObj.setHours(parseInt(hours), parseInt(minutes));
+        return dateObj.toISOString();
       }
     }
 
-    return 'None';
+    return date;
+  }
+
+  #extractLocation(text) {
+    // Match common location patterns
+    const patterns = [
+      /at\s+([^,\.]+(?:(?:,\s*)[^,\.]+)*)/i,  // "at location"
+      /in\s+([^,\.]+(?:(?:,\s*)[^,\.]+)*)/i,   // "in location"
+      /location:\s*([^,\.]+)/i                  // "location: somewhere"
+    ];
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        return {
+          type: 'location',
+          value: match[1].trim()
+        };
+      }
+    }
+    return null;
+  }
+
+  #extractDuration(text) {
+    const durationPattern = /for\s+(\d+)\s*(hour|hr|minute|min)s?/i;
+    const match = text.match(durationPattern);
+    
+    if (match) {
+      const [_, amount, unit] = match;
+      const minutes = unit.toLowerCase().startsWith('h') 
+        ? parseInt(amount) * 60 
+        : parseInt(amount);
+      
+      return {
+        minutes,
+        formatted: `${Math.floor(minutes / 60)}h${minutes % 60}m`
+      };
+    }
+    return null;
+  }
+
+  #extractRecurrence(text) {
+    const patterns = {
+      daily: /every\s+day/i,
+      weekly: /every\s+week/i,
+      monthly: /every\s+month/i,
+      weekdays: /every\s+weekday/i,
+      specific: /every\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i
+    };
+
+    for (const [type, pattern] of Object.entries(patterns)) {
+      const match = text.match(pattern);
+      if (match) {
+        return {
+          type,
+          day: match[1]?.toLowerCase(),
+          interval: 1
+        };
+      }
+    }
+    return null;
+  }
+
+  #extractContext(text) {
+    const contexts = {
+      work: ['meeting', 'project', 'deadline', 'client', 'report'],
+      personal: ['family', 'home', 'shopping', 'birthday', 'holiday'],
+      health: ['doctor', 'dentist', 'gym', 'workout', 'medicine'],
+      finance: ['bank', 'payment', 'invoice', 'budget', 'tax']
+    };
+
+    const matches = new Set();
+    const words = text.toLowerCase().split(/\W+/);
+    
+    for (const [context, keywords] of Object.entries(contexts)) {
+      if (keywords.some(k => words.includes(k))) {
+        matches.add(context);
+      }
+    }
+    
+    return matches.size > 0 ? Array.from(matches) : null;
   }
 }
 
