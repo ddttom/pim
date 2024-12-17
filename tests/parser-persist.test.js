@@ -36,7 +36,7 @@ describe('Parser and Persistence Integration Tests', () => {
   });
 
   describe('Complex Message Parsing and Storage', () => {
-    const testMessage = "Call Fiona next wednsday re Project Cheeseckake urgently with @robin and @ian #disaster";
+    const testMessage = "Call Fiona next wednesday re Project Cheesecake urgently with @robin and @ian #disaster";
 
     test('parses and stores complex message correctly', async () => {
       // 1. Parse the message
@@ -48,7 +48,7 @@ describe('Parser and Persistence Integration Tests', () => {
           action: 'call',
           contact: 'Fiona',
           project: {
-            project: 'Cheeseckake'
+            project: 'Cheesecake'
           },
           final_deadline: expect.any(String), // Will be next Wednesday's date
           status: 'pending',
@@ -70,7 +70,7 @@ describe('Parser and Persistence Integration Tests', () => {
           action: 'call',
           contact: 'Fiona',
           project: {
-            project: 'Cheeseckake'
+            project: 'Cheesecake'
           },
           final_deadline: parsed.parsed.final_deadline,
           status: 'pending',
