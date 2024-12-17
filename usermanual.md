@@ -34,11 +34,13 @@ npm start
 PIM understands natural language input with the following features:
 
 #### Action Recognition
+
 - Basic actions: call, meet, email, review, write
 - Variations: phone, sync, mail, check, draft
 - Context-aware detection
 
 #### Time Understanding
+
 - Dates with common misspellings
 - Time of day references
 - Specific times (2pm, 15:30)
@@ -46,18 +48,21 @@ PIM understands natural language input with the following features:
 - Relative dates (tomorrow, next week)
 
 #### Location Detection
+
 - "at [location]" format
 - "in [location]" format
 - "location: [place]" format
 - Multi-word location support
 
 #### Duration Parsing
+
 - Hour-based durations
 - Minute-based durations
 - Formatted output (1h30m)
 - Unit variations (hour, hr, minute, min)
 
 #### Recurrence Patterns
+
 - Daily ("every day")
 - Weekly ("every week")
 - Monthly ("every month")
@@ -65,7 +70,9 @@ PIM understands natural language input with the following features:
 - Interval support
 
 #### Context Detection
+
 Automatically categorizes into contexts:
+
 - Work: meeting, project, deadline, client, report
 - Personal: family, home, shopping, birthday, holiday
 - Health: doctor, dentist, gym, workout, medicine

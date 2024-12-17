@@ -6,24 +6,27 @@ A modern desktop application for managing personal information, tasks, and notes
 
 ### Core Features
 
-- Natural language input processing
-- Smart date/time parsing
-- Status tracking (None, Blocked, Complete, Started, Closed, Abandoned)
-- Priority system (high, medium, low)
-- Category tagging
-- Advanced filtering capabilities
-- Settings management system with UI configuration
-- JSON-based storage with direct parser output preservation
+- Natural language input processing with fuzzy matching
+- Smart date/time parsing with misspelling support
+- Context-aware task categorization
+- Multi-level priority system
+- Advanced filtering and sorting
+- Comprehensive settings management
+- Transaction-safe JSON storage
 
 ### Natural Language Examples
 
 #### Basic Tasks
 
 ```bash
+# Simple Tasks
 Call John tomorrow at 2pm
-Meet with team in conference room for 1 hour
-Email Sarah about Project Alpha #urgent
-Review code pull request #123 in the morning
+Meet with team in conference room
+Email Sarah about Project Alpha
+
+# With Misspellings (Still Works!)
+Meeting next wednsday with team
+Call Jim on thurdsay morning
 ```
 
 #### Advanced Features
@@ -40,44 +43,44 @@ Team sync every Monday at 10am
 # Context and Priority
 Email finance report #urgent #finance
 Schedule doctor appointment #health
-```
 
-#### Status Updates
-
-```bash
-Call John - blocked by network issues
-Email report - complete
-Project review - started
-Meeting notes - closed
-Task X - abandoned
-```
-
-#### Date and Time
-
-```bash
-next week
-tomorrow morning
-now
-at 2pm
-```
-
-#### Project References
-
-```bash
-Project Alpha meeting tomorrow
-about project Big Launch
-for Project X next week
+# With Participants
+Project review with @sarah and @mike
+Team meeting with @dev-team
 ```
 
 ### Parser Features
 
-- Action detection with variations (call, phone, meet, sync, etc.)
-- Smart date/time parsing with common misspellings
+#### Time Understanding
+
+- Smart date parsing with common misspellings
+- Time of day defaults:
+  - Morning: 9:00 AM
+  - Noon: 12:00 PM
+  - Afternoon: 2:00 PM
+  - Evening: 6:00 PM
+  - Night: 8:00 PM
+
+#### Context Detection
+
+- Work: meetings, projects, deadlines
+- Personal: family, shopping, home
+- Health: doctor, gym, medicine
+- Finance: bank, payments, budget
+
+#### Action Recognition
+
+- Basic: call, meet, email, review, write
+- Variations: phone, sync, mail, check
+- Fuzzy matching for misspellings
+
+#### Additional Features
+
 - Location detection ("at" or "in" locations)
 - Duration parsing (hours and minutes)
 - Recurrence patterns (daily, weekly, monthly)
-- Context detection (work, personal, health, finance)
-- Priority and status tracking
+- Priority levels (high, normal)
+- Status tracking (pending, complete)
 - Project references
 - Participant mentions (@person)
 - Category tags (#tag)
@@ -132,101 +135,95 @@ npm install
 npm start
 ```
 
-## Usage
-
-### Entry Management
-
-- **Create Entry**: Click "New Entry" and type your task in natural language
-- **Edit Entry**: Click the edit icon to modify an existing entry
-- **Delete Entry**: Click the delete icon to remove an entry
-- **View Details**: Click the expand icon to see full entry details
-
-### Settings Management
-
-The application includes a comprehensive settings management system accessible through a modal interface. Configure:
-
-- Time periods (morning, afternoon, evening)
-- Default times for different actions
-- Default reminder intervals
-- Status management preferences
-
-Settings are automatically synchronized between:
-
-- Parser configuration
-- UI settings
-- Stored preferences
-
-### Status Management
-
-Entries can have the following statuses:
-
-- None (default)
-- Blocked
-- Complete
-- Started
-- Closed
-- Abandoned
-
-Status can be set by:
-
-- Including in natural language text (e.g., "- blocked")
-- Using the edit function
-
-### Date Handling
-
-The parser understands various date formats:
-
-- Relative dates ("next week", "tomorrow")
-- Time of day ("morning", "at 2pm")
-- Immediate ("now")
-- Default time is set to 9 AM for dates without specific times
-
-### Projects
-
-Projects can be specified in multiple formats:
-
-- "Project X"
-- "about project Y"
-- "for Project Z"
-- Multi-word project names are supported
-
 ## Development
 
 ### Running Tests
 
 ```bash
+# Run all tests
 npm test
+
+# Run specific test suites
+npm run test:config    # Test configuration system
+npm run test:db        # Test database operations
+npm run test:parser    # Test parser functionality
+npm run test:parser-persist  # Test parser-database integration
 ```
 
-### Storage System
+### Project Structure
 
-The application uses a simple JSON-based storage system that:
-
-- Preserves exact parser output structure
-- Supports plugin extensibility
-- Uses UUIDs for entry identification
-- Includes automatic backup/restore functionality
-- Implements transaction-like operations for data safety
+```bash
+/src
+├── config
+│   ├── ConfigManager.js
+│   └── parser.config.js
+├── db
+│   └── models
+├── main
+├── main.js
+├── plugins
+│   ├── customPlugin.js
+│   ├── locationPlugin.js
+│   └── pluginManager.js
+├── renderer
+│   ├── index.html
+│   ├── renderer.js
+│   └── styles.css
+├── scripts
+├── services
+│   ├── config.js
+│   ├── entry-service.js
+│   ├── json-database.js
+│   ├── logger.js
+│   ├── parser
+│   │   ├── core.js
+│   │   ├── formatters
+│   │   │   └── emoji.js
+│   │   ├── index.js
+│   │   ├── parsers
+│   │   │   ├── action.js
+│   │   │   ├── attendees.js
+│   │   │   ├── categories.js
+│   │   │   ├── complexity.js
+│   │   │   ├── contact.js
+│   │   │   ├── date.js
+│   │   │   ├── dependencies.js
+│   │   │   ├── duration.js
+│   │   │   ├── links.js
+│   │   │   ├── location.js
+│   │   │   ├── priority.js
+│   │   │   ├── project.js
+│   │   │   ├── recurring.js
+│   │   │   ├── reminders.js
+│   │   │   ├── status.js
+│   │   │   ├── subject.js
+│   │   │   ├── time.js
+│   │   │   ├── timeOfDay.js
+│   │   │   └── urgency.js
+│   │   └── utils
+│   │       ├── dateUtils.js
+│   │       ├── patterns.js
+│   │       ├── timeUtils.js
+│   │       └── validation.js
+│   ├── parser.js
+│   └── settings-service.js
+├── types
+│   └── models.ts
+└── utils
+    ├── dateUtils.js
+    └── logger.js 
+```
 
 ### Configuration
 
-Status values and patterns are configured in `src/config/parser.config.js`:
+The application uses a multi-layered configuration system:
 
-```javascript
-status: {
-  values: ['None', 'Blocked', 'Complete', 'Started', 'Closed', 'Abandoned'],
-  default: 'None',
-  patterns: {
-    'Blocked': [/\bblocked\b/i, /\bstuck\b/i],
-    'Complete': [/\bcomplete\b/i, /\bfinished\b/i, /\bdone\b/i],
-    'Started': [/\bstarted\b/i, /\bin progress\b/i, /\bbegun\b/i],
-    'Closed': [/\bclosed\b/i, /\bended\b/i],
-    'Abandoned': [/\babandoned\b/i, /\bcancelled\b/i, /\bdropped\b/i]
-  }
-}
-```
+1. Environment Variables (highest priority)
+2. Settings File (settings.json)
+3. User Config File (config.json)
+4. Default Values (lowest priority)
 
-For detailed configuration options and settings management, see `docs/config.md`.
+For detailed configuration options, see `docs/config.md`.
 
 ## License
 

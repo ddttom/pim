@@ -12,6 +12,7 @@ The application uses a multi-layered configuration system with clear priority le
 ## File Locations
 
 ### pim.json
+
 - **Location**: `{userData}/pim.json`
   - Windows: `%APPDATA%/pim/pim.json`
   - macOS: `~/Library/Application Support/pim/pim.json`
@@ -19,6 +20,7 @@ The application uses a multi-layered configuration system with clear priority le
 - **Purpose**: Database file for entries only
 - **Managed by**: JsonDatabaseService
 - **Contains**:
+
   ```json
   {
     "entries": [],      // User entries/tasks
@@ -30,10 +32,12 @@ The application uses a multi-layered configuration system with clear priority le
   ```
 
 ### settings.json
+
 - **Location**: `{userData}/settings.json`
 - **Purpose**: Runtime settings and user preferences
 - **Managed by**: SettingsService
 - **Example**:
+
   ```json
   {
     "parser": {
@@ -50,6 +54,7 @@ The application uses a multi-layered configuration system with clear priority le
   ```
 
 ### config.json
+
 - **Location**: `{userData}/config.json`
 - **Purpose**: Static configuration overrides
 - **Managed by**: ConfigManager
@@ -58,12 +63,14 @@ The application uses a multi-layered configuration system with clear priority le
 ## Testing
 
 ### Test Files
+
 The application includes several test suites:
 
 1. **Configuration Tests** (`tests/config.test.js`)
    - Tests settings management
    - Environment variable overrides
    - Configuration validation
+
    ```bash
    npm run test:config
    ```
@@ -72,6 +79,7 @@ The application includes several test suites:
    - CRUD operations
    - Entry filtering
    - Batch operations
+
    ```bash
    npm run test:db
    ```
@@ -80,28 +88,33 @@ The application includes several test suites:
    - Integration between parser and database
    - Complex message parsing and storage
    - Example test message:
+
+     ```bash
+     "Call Fiona next wednesday re Project Cheesecake urgently with @robin and @ian #disaster"
      ```
-     "Call Fiona next wednsday re Project Cheeseckake urgently with @robin and @ian #disaster"
-     ```
+
    - Tests parsing of:
      - Actions (call)
      - People (Fiona)
      - Dates (next wednesday)
-     - Topics (Project Cheeseckake)
+     - Topics (Project Cheesecake)
      - Priority (urgently → high)
      - Participants (@robin, @ian)
      - Tags (#disaster)
+
    ```bash
    npm run test:parser-persist
    ```
 
 ### Test Data Location
+
 - Tests use isolated data directory: `tests/__test_data__/`
 - Each test run uses unique filenames with timestamps
 - Example: `pim.test.1234567890.json`
 - All test files are automatically cleaned up
 
 ### Running Tests
+
 ```bash
 # Run all tests
 npm test
@@ -115,6 +128,7 @@ npm run test:parser-persist
 ## Service Responsibilities
 
 ### JsonDatabaseService
+
 - Manages entries only
 - No settings storage
 - Handles CRUD operations
@@ -122,12 +136,14 @@ npm run test:parser-persist
 - Provides transaction-like batch operations
 
 ### SettingsService
+
 - Manages runtime settings
 - Persists user preferences
 - Handles settings file I/O
 - Provides atomic setting updates
 
 ### ConfigManager
+
 - Coordinates configuration loading
 - Validates settings
 - Applies environment variables
@@ -137,21 +153,25 @@ npm run test:parser-persist
 ## Developer Guidelines
 
 ### Adding New Settings
+
 1. Add default value in ConfigManager
 2. Add validation schema
 3. Update relevant tests
 4. Document in this file
 
 ### Environment Variables
+
 - Prefix: `pim.`
 - Format: `pim.category.setting=value`
 - Examples:
+
   ```bash
   pim.parser.maxDepth=5
   pim.reminders.defaultMinutes=30
   ```
 
 ### Error Handling
+
 - Settings validation errors include:
   - Category
   - Invalid value
@@ -160,6 +180,7 @@ npm run test:parser-persist
 - Failed batch operations roll back
 
 ### Testing New Features
+
 1. Create isolated test file
 2. Use unique test filenames
 3. Clean up test data
@@ -167,6 +188,7 @@ npm run test:parser-persist
 5. Include integration tests if needed
 
 ### Best Practices
+
 1. **Configuration**
    - Use environment variables for temporary changes
    - Use settings.json for user preferences
@@ -192,6 +214,7 @@ npm run test:parser-persist
    - Maintain separation of concerns
 
 This configuration system provides:
+
 - Clear separation of concerns
 - Flexible defaults
 - User customization

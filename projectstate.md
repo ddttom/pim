@@ -96,6 +96,8 @@ Note: Whenever 'projectstate.md' is updated, also update 'readme.md' and 'userma
 - Multiple parsing strategies
 - Extensible parsing rules
 - Real-time parsing feedback
+- Common misspelling support
+- Context-aware parsing
 
 #### Supported Patterns
 
@@ -103,6 +105,7 @@ Note: Whenever 'projectstate.md' is updated, also update 'readme.md' and 'userma
    - Basic actions: call, meet, email, review, write
    - Action variations and synonyms
    - Context-aware action detection
+   - Fuzzy matching for variations
 
 2. Date and Time
    - Multiple date formats
@@ -110,41 +113,53 @@ Note: Whenever 'projectstate.md' is updated, also update 'readme.md' and 'userma
    - Relative dates ("next Wednesday")
    - Time specifications
    - Default time assignments
-   - Common misspellings support
+   - Common misspellings support for:
+     - Days (wednsday, wensday, etc.)
+     - Months (janurary, feburary, etc.)
+   - Time period defaults:
+     - Morning: 9:00 AM
+     - Noon: 12:00 PM
+     - Afternoon: 2:00 PM
+     - Evening: 6:00 PM
+     - Night: 8:00 PM
 
 3. Location
    - Location prefixes (at, in)
    - Location markers
    - Multi-word locations
    - Location type detection
+   - Structured location output
 
 4. Duration
    - Hour-based durations
    - Minute-based durations
-   - Formatted output
-   - Unit variations
+   - Formatted output (1h30m)
+   - Unit variations (hour, hr, minute, min)
+   - Default durations
 
 5. Recurrence
-   - Daily patterns
-   - Weekly patterns
-   - Monthly patterns
-   - Weekday-specific patterns
+   - Daily patterns ("every day")
+   - Weekly patterns ("every week")
+   - Monthly patterns ("every month")
+   - Weekday-specific ("every Monday")
    - Interval support
+   - Pattern variations
 
 6. Context Detection
-   - Work context
-   - Personal context
-   - Health context
-   - Finance context
+   - Work context: meeting, project, deadline, client, report
+   - Personal context: family, home, shopping, birthday, holiday
+   - Health context: doctor, dentist, gym, workout, medicine
+   - Finance context: bank, payment, invoice, budget, tax
    - Multi-context support
 
 7. Additional Features
-   - Priority detection
-   - Status tracking
-   - Participant mentions
-   - Project references
-   - Tag support
+   - Priority detection (urgent, asap)
+   - Status tracking (pending, complete)
+   - Participant mentions (@person)
+   - Project references (Project Name)
+   - Tag support (#tag)
    - Custom patterns
+   - Fuzzy matching
 
 #### Parser Output Structure
 
@@ -181,6 +196,32 @@ Note: Whenever 'projectstate.md' is updated, also update 'readme.md' and 'userma
   "plugins": {}
 }
 ```
+
+#### Parser Components
+
+1. Core Parser (`src/services/parser.js`)
+   - Main parsing logic
+   - Component coordination
+   - Output formatting
+
+2. Date Utilities
+   - Common misspelling handling
+   - Date format normalization
+   - Time period defaults
+   - Relative date calculation
+
+3. Pattern Matching
+   - Action detection
+   - Location extraction
+   - Duration parsing
+   - Recurrence patterns
+   - Context identification
+
+4. Validation
+   - Input sanitization
+   - Output validation
+   - Format verification
+   - Data consistency checks
 
 ### 4. User Interface System (`src/renderer/`)
 
