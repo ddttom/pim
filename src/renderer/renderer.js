@@ -12,6 +12,7 @@ let currentFilters = {
   sort: 'date-desc'
 };
 
+// Initialize with default settings until loaded from main process
 let settings = {
   autosave: false,
   spellcheck: true,
@@ -37,117 +38,250 @@ let settings = {
       'italic': 'ctrl+i',
       'underline': 'ctrl+u',
       'undo': 'ctrl+z',
-      'redo': 'ctrl+shift+z',
-      'backup': 'ctrl+shift+s',
-      'escape': 'esc',
-      'header1': 'alt+1',
-      'header2': 'alt+2',
-      'header3': 'alt+3'
+      'redo': 'ctrl+shift+z'
     }
   },
-  notifications: true,
-  autoBackup: {
-    enabled: false,
-    interval: 'daily'
+  advanced: {
+    fontSize: '16px',
+    fontFamily: 'system-ui',
+    borderRadius: '4px',
+    spacing: 'comfortable',
+    sidebarCollapsed: false
   },
   sync: {
     enabled: false,
-    provider: 'none', // 'none', 'dropbox', 'google-drive', 'onedrive'
+    provider: 'none',
     autoSync: false,
-    syncInterval: 'hourly', // 'hourly', 'daily', 'weekly'
+    syncInterval: 'daily',
     lastSync: null
   }
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-  initializeEditor();
-  await loadEntriesList();
-  setupEventListeners();
-  showEntriesList();
+  try {
+    // Initialize editor first
+    initializeEditor();
+
+    // Apply initial settings
+    applySettings(settings);
+
+    // Setup event listeners
+    setupEventListeners();
+
+    // Then load settings from main process
+    const loadedSettings = await ipcRenderer.invoke('get-settings');
+    if (loadedSettings) {
+      settings = loadedSettings;
+      applySettings(settings);
+    }
+
+    // Finally load entries
+    await loadEntriesList();
+    showEntriesList();
+  } catch (error) {
+    console.error('Initialization failed:', error);
+    showToast('Failed to initialize application', 'error');
+  }
 });
 
-function initializeEditor() {
-  editor = new Quill('#editor', {
-    theme: 'snow',
-    modules: {
-      toolbar: [
-        [{ 'header': [1, 2, 3, false] }],
-        ['bold', 'italic', 'underline', 'strike'],
-        ['link', 'blockquote', 'code-block'],
-        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-        ['clean']
-      ]
+// Update settings loaded event listener
+ipcRenderer.on('settings-loaded', (_, loadedSettings) => {
+  if (loadedSettings) {
+    settings = loadedSettings;
+    applySettings(settings);
+    setupSettingsUI(); // Refresh settings UI with new values
+  }
+});
+
+function applySettings(settings) {
+  if (!settings) return;
+
+  try {
+    // Apply theme with fallback
+    document.body.className = settings?.theme?.name || 'light';
+    
+    // Apply advanced settings with fallbacks
+    const advanced = settings?.advanced || {};
+    document.documentElement.style.setProperty('--font-size', advanced.fontSize || '16px');
+    document.documentElement.style.setProperty('--font-family', advanced.fontFamily || 'system-ui');
+    document.documentElement.style.setProperty('--border-radius', advanced.borderRadius || '4px');
+    
+    // Apply editor settings if editor exists
+    if (editor?.root) {
+      editor.root.spellcheck = settings?.spellcheck ?? true;
     }
+    
+    // Apply custom CSS if any
+    if (advanced?.customCSS) {
+      const customStyle = document.getElementById('custom-style') || document.createElement('style');
+      customStyle.id = 'custom-style';
+      customStyle.textContent = advanced.customCSS;
+      document.head.appendChild(customStyle);
+    }
+
+    // Apply sidebar state if specified in settings
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarToggle = sidebar?.querySelector('.sidebar-toggle');
+    if (sidebar && sidebarToggle && advanced?.sidebarCollapsed !== undefined) {
+      sidebar.classList.toggle('collapsed', advanced.sidebarCollapsed);
+    }
+  } catch (error) {
+    console.error('Failed to apply settings:', error);
+  }
+}
+
+function initializeEditor() {
+  try {
+    editor = new Quill('#editor', {
+      theme: 'snow',
+      modules: {
+        toolbar: [
+          [{ 'header': [1, 2, 3, false] }],
+          ['bold', 'italic', 'underline', 'strike'],
+          ['link', 'blockquote', 'code-block'],
+          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+          ['clean']
+        ]
+      }
+    });
+
+    // Apply initial editor settings
+    if (settings) {
+      editor.root.spellcheck = settings.spellcheck;
+    }
+  } catch (error) {
+    console.error('Failed to initialize editor:', error);
+    throw error;
+  }
+}
+
+let filtersVisible = true;
+
+function toggleFilters() {
+  const filters = document.querySelector('.filters');
+  filtersVisible = !filtersVisible;
+  filters.style.display = filtersVisible ? 'block' : 'none';
+  document.getElementById('filter-btn').classList.toggle('active', filtersVisible);
+}
+
+function toggleSortMenu() {
+  const sortBtn = document.getElementById('sort-btn');
+  const dropdown = document.getElementById('sort-dropdown');
+  
+  // Close any other open dropdowns first
+  document.querySelectorAll('.dropdown-content').forEach(d => {
+    if (d !== dropdown) d.style.display = 'none';
   });
+  document.querySelectorAll('.ribbon-btn').forEach(b => {
+    if (b !== sortBtn) b.classList.remove('active');
+  });
+  
+  // Toggle current dropdown
+  const isVisible = dropdown.style.display === 'block';
+  dropdown.style.display = isVisible ? 'none' : 'block';
+  sortBtn.classList.toggle('active', !isVisible);
 }
 
 function setupEventListeners() {
-  document.getElementById('save-btn').addEventListener('click', saveEntry);
-  document.getElementById('new-entry-btn').addEventListener('click', createNewEntry);
-  document.getElementById('image-btn').addEventListener('click', () => {
-    document.getElementById('image-upload').click();
-  });
-  document.getElementById('image-upload').addEventListener('change', handleImageUpload);
-
-  // Search input
-  document.getElementById('search-input').addEventListener('input', debounce((e) => {
-    currentFilters.search = e.target.value;
-    loadEntriesList();
-  }, 300));
-
-  // Sort select
-  document.getElementById('sort-select').addEventListener('change', (e) => {
-    currentFilters.sort = e.target.value;
-    loadEntriesList();
-  });
-
-  // Status filters
-  document.querySelectorAll('.filter-group input[type="checkbox"]').forEach(checkbox => {
-    checkbox.addEventListener('change', (e) => {
-      const filterType = e.target.closest('.filter-group').querySelector('label').textContent.toLowerCase().replace(':', '');
-      const value = e.target.value;
-      
-      if (e.target.checked) {
-        currentFilters[filterType].add(value);
-      } else {
-        currentFilters[filterType].delete(value);
-      }
-      
-      loadEntriesList();
-    });
-  });
-
-  // Add back button handler
-  document.getElementById('back-btn').addEventListener('click', () => {
-    showEntriesList();
-  });
-
-  // Add settings button handler
-  document.getElementById('settings-btn').addEventListener('click', showSettingsModal);
-  document.getElementById('backup-btn').addEventListener('click', createBackup);
-  document.getElementById('restore-btn').addEventListener('click', restoreBackup);
-
-  // Add keyboard shortcut handling
-  document.addEventListener('keydown', (e) => {
-    const shortcut = [
-      e.ctrlKey ? 'ctrl' : '',
-      e.key.toLowerCase()
-    ].filter(Boolean).join('+');
-
-    const handler = KEYBOARD_SHORTCUTS[shortcut];
-    if (handler) {
-      e.preventDefault();
-      handler();
+  // Clear existing event listeners first
+  const buttons = ['new-entry-btn', 'save-btn', 'settings-btn'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) {
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
     }
   });
+
+  // Re-add event listeners
+  const newEntryBtn = document.getElementById('new-entry-btn');
+  const settingsBtn = document.getElementById('settings-btn');
+  const saveBtn = document.getElementById('save-btn');
+  const filterBtn = document.getElementById('filter-btn');
+  const sortBtn = document.getElementById('sort-btn');
+
+  if (newEntryBtn) {
+    newEntryBtn.addEventListener('click', createNewEntry);
+  }
+  
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', showSettingsModal);
+  }
+  
+  if (saveBtn) {
+    saveBtn.addEventListener('click', saveEntry);
+  }
+
+  if (filterBtn) {
+    filterBtn.addEventListener('click', toggleFilters);
+  }
+
+  if (sortBtn) {
+    sortBtn.addEventListener('click', toggleSortMenu);
+  }
+
+  // Add sidebar toggle with triangle icon
+  const sidebarToggle = document.createElement('button');
+  sidebarToggle.className = 'sidebar-toggle';
+  sidebarToggle.title = 'Toggle Sidebar';
+  sidebarToggle.textContent = '←'; // Initial state (collapse)
+  
+  const sidebar = document.querySelector('.sidebar');
+  const sidebarHeader = document.querySelector('.sidebar-header');
+  
+  if (sidebar && sidebarHeader) {
+    sidebarHeader.appendChild(sidebarToggle);
+
+    sidebarToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+      // Update arrow direction
+      sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '→' : '←';
+      
+      const isCollapsed = sidebar.classList.contains('collapsed');
+      localStorage.setItem('sidebarCollapsed', isCollapsed);
+      
+      if (settings?.advanced) {
+        settings.advanced.sidebarCollapsed = isCollapsed;
+      }
+    });
+
+    // Restore sidebar state
+    const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    if (sidebarCollapsed) {
+      sidebar.classList.add('collapsed');
+      sidebarToggle.textContent = '→';
+    }
+  }
+
+  // Add back button handler
+  const backBtn = document.getElementById('back-btn');
+  if (backBtn) {
+    backBtn.addEventListener('click', () => {
+      const editorContainer = document.getElementById('editor-container');
+      if (editorContainer) {
+        editorContainer.classList.add('hidden');
+      }
+      showEntriesList();
+    });
+  }
 }
 
 async function loadEntriesList() {
-  const entries = await ipcRenderer.invoke('get-entries');
-  const filteredEntries = filterEntries(entries);
-  const sortedEntries = sortEntries(filteredEntries);
-  
-  renderEntries(sortedEntries);
+  try {
+    const entriesList = document.getElementById('entries-list');
+    if (!entriesList) {
+      console.error('Entries list element not found');
+      return;
+    }
+
+    const entries = await ipcRenderer.invoke('get-entries');
+    const filteredEntries = filterEntries(entries);
+    const sortedEntries = sortEntries(filteredEntries);
+    
+    renderEntries(sortedEntries);
+  } catch (error) {
+    console.error('Failed to load entries:', error);
+    showToast('Failed to load entries', 'error');
+  }
 }
 
 function filterEntries(entries) {
@@ -207,44 +341,44 @@ function debounce(func, wait) {
 
 function renderEntries(entries) {
   const entriesList = document.getElementById('entries-list');
-  entriesList.innerHTML = '';
+  if (!entriesList) return;
 
-  if (entries.length === 0) {
-    entriesList.innerHTML = `
-      <div class="empty-state">
-        <p>No entries yet. Create your first entry!</p>
-        <button class="primary-btn" onclick="createNewEntry()">New Entry</button>
+  try {
+    entriesList.innerHTML = entries.map(entry => `
+      <div class="entry-item" data-id="${entry.id}">
+        <div class="entry-header">
+          <h3>${entry.title || 'Untitled'}</h3>
+          <span class="entry-date">${formatDate(entry.created_at)}</span>
+        </div>
+        <div class="entry-preview">${entry.preview || ''}</div>
       </div>
-    `;
-    return;
+    `).join('');
+
+    // Add click handlers to entries
+    entriesList.querySelectorAll('.entry-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const id = item.dataset.id;
+        if (id) loadEntry(id);
+      });
+    });
+  } catch (error) {
+    console.error('Failed to render entries:', error);
+    showToast('Failed to display entries', 'error');
   }
-
-  entries.forEach(entry => {
-    const div = document.createElement('div');
-    div.className = 'entry-item';
-    div.innerHTML = `
-      <div class="entry-header">
-        <h3>${entry.content.raw.substring(0, 50)}${entry.content.raw.length > 50 ? '...' : ''}</h3>
-        <span class="entry-date">${formatDate(entry.created_at)}</span>
-      </div>
-      <div class="entry-preview">${formatPreview(entry)}</div>
-      <div class="entry-actions">
-        <button class="edit-btn" onclick="loadEntry('${entry.id}')">Edit</button>
-        <button class="delete-btn" onclick="deleteEntry('${entry.id}')">Delete</button>
-      </div>
-    `;
-    entriesList.appendChild(div);
-  });
 }
 
 function formatDate(dateString) {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch (error) {
+    console.error('Failed to format date:', error);
+    return dateString;
+  }
 }
 
 function formatPreview(entry) {
@@ -295,26 +429,22 @@ async function deleteEntry(id) {
 
 async function saveEntry() {
   try {
-    const content = editor.root.innerHTML;
-    const markdown = turndown.turndown(content);
-    
-    const entry = {
-      raw_content: editor.getText(),
-      markdown: markdown,
-      parsed: await ipcRenderer.invoke('parse-text', editor.getText())
+    const content = {
+      raw: editor.getText() || '',
+      html: editor.root.innerHTML
     };
 
     if (currentEntryId) {
-      await ipcRenderer.invoke('update-entry', currentEntryId, entry);
+      await ipcRenderer.invoke('update-entry', currentEntryId, content);
     } else {
-      currentEntryId = await ipcRenderer.invoke('add-entry', entry);
+      currentEntryId = await ipcRenderer.invoke('add-entry', content);
     }
 
+    showToast('Entry saved successfully');
     await loadEntriesList();
-    showEntriesList();
   } catch (error) {
     console.error('Failed to save entry:', error);
-    alert('Failed to save entry');
+    showToast('Failed to save entry: ' + error.message, 'error');
   }
 }
 
@@ -353,96 +483,138 @@ async function loadEntries() {
 }
 
 function showEntriesList() {
-  document.getElementById('editor-container').classList.add('hidden');
-  document.getElementById('entries-list').parentElement.classList.remove('hidden');
+  const editorContainer = document.getElementById('editor-container');
+  const entriesList = document.getElementById('entries-list');
+  
+  if (editorContainer) {
+    editorContainer.classList.add('hidden');
+  }
+  
+  if (entriesList) {
+    entriesList.parentElement.classList.remove('hidden');
+  }
+  
+  // Clear current entry
+  currentEntryId = null;
+  
+  // Clear editor content
+  if (editor) {
+    editor.setContents([]);
+  }
 }
 
 function showEditor() {
   document.getElementById('editor-container').classList.remove('hidden');
-  document.getElementById('entries-list').parentElement.classList.add('hidden');
+  document.getElementById('save-btn').classList.remove('hidden');
+  document.querySelector('.sidebar').classList.add('hidden');
 }
 
 async function showSettingsModal() {
   try {
-    // Load current settings
-    settings = await ipcRenderer.invoke('get-settings');
-    
-    // Update form values
-    document.getElementById('setting-autosave').checked = settings.autosave;
-    document.getElementById('setting-spellcheck').checked = settings.spellcheck;
-    document.getElementById('setting-theme').value = settings.theme.name;
-    document.getElementById('setting-date-format').value = settings.dateFormat;
-    
-    document.getElementById('settings-modal').classList.remove('hidden');
+    const modal = document.getElementById('settings-modal');
+    if (!modal) {
+      console.error('Settings modal not found');
+      return;
+    }
+
+    // Setup UI before showing modal
+    await setupSettingsUI();
+
+    // Show modal
+    modal.style.display = 'flex';
+    modal.classList.add('visible');
   } catch (error) {
-    showToast('Failed to load settings', 'error');
+    console.error('Failed to show settings modal:', error);
+    showToast('Failed to open settings', 'error');
   }
 }
 
+// Update closeSettingsModal function
 function closeSettingsModal() {
-  document.getElementById('settings-modal').classList.add('hidden');
+  const modal = document.getElementById('settings-modal');
+  if (modal) {
+    modal.classList.remove('visible');
+    // Wait for animation to finish
+    setTimeout(() => {
+      modal.style.display = 'none';
+    }, 300);
+  }
 }
 
+// Add function to create settings modal
+function createSettingsModal() {
+  const modal = document.createElement('div');
+  modal.id = 'settings-modal';
+  modal.className = 'modal hidden';
+  
+  modal.innerHTML = `
+    <div class="modal-overlay"></div>
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2>Settings</h2>
+        <button class="close-btn" onclick="closeSettingsModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Settings content will be inserted here -->
+      </div>
+      <div class="modal-footer">
+        <button class="primary-btn" onclick="saveSettings()">Save</button>
+        <button class="secondary-btn" onclick="closeSettingsModal()">Cancel</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  
+  // Add click handler to close on overlay click
+  modal.querySelector('.modal-overlay').addEventListener('click', closeSettingsModal);
+  
+  return modal;
+}
+
+// Add function to save settings
 async function saveSettings() {
   try {
-    const newSettings = {
-      ...settings,
-      autosave: document.getElementById('setting-autosave').checked,
-      spellcheck: document.getElementById('setting-spellcheck').checked,
+    const updates = {
+      ...settings, // Keep existing settings as base
+      autosave: document.getElementById('setting-autosave')?.checked ?? false,
+      spellcheck: document.getElementById('setting-spellcheck')?.checked ?? true,
       theme: {
-        name: document.getElementById('setting-theme').value,
-        custom: {
-          primary: document.getElementById('setting-primary-color').value,
-          secondary: document.getElementById('setting-secondary-color').value,
-          background: document.getElementById('setting-background-color').value,
-          text: settings.theme.custom.text,
-          accent: settings.theme.custom.accent
+        name: document.getElementById('setting-theme')?.value || 'light',
+        custom: settings.theme?.custom || {
+          primary: '#3498db',
+          secondary: '#95a5a6',
+          background: '#f5f5f5',
+          text: '#333333',
+          accent: '#2ecc71'
         }
       },
-      dateFormat: document.getElementById('setting-date-format').value,
-      shortcuts: document.getElementById('setting-shortcuts').checked,
-      notifications: document.getElementById('setting-notifications').checked,
-      autoBackup: {
-        enabled: document.getElementById('setting-autobackup').value !== '',
-        interval: document.getElementById('setting-autobackup').value || 'daily'
+      dateFormat: document.getElementById('setting-date-format')?.value || 'medium',
+      advanced: {
+        fontSize: `${document.getElementById('setting-font-size')?.value || 16}px`,
+        fontFamily: document.getElementById('setting-font-family')?.value || 'system-ui',
+        borderRadius: `${document.getElementById('setting-border-radius')?.value || 4}px`,
+        spacing: document.getElementById('setting-spacing')?.value || 'comfortable',
+        sidebarCollapsed: settings.advanced?.sidebarCollapsed || false
+      },
+      sync: {
+        enabled: document.getElementById('setting-sync-enabled')?.checked ?? false,
+        provider: document.getElementById('setting-sync-provider')?.value || 'none',
+        autoSync: document.getElementById('setting-autosync')?.checked ?? false,
+        syncInterval: document.getElementById('setting-sync-interval')?.value || 'daily',
+        lastSync: settings.sync?.lastSync || null
       }
     };
 
-    await ipcRenderer.invoke('update-settings', newSettings);
-    settings = newSettings;
-    
-    applySettings();
+    // Save settings to main process
+    await ipcRenderer.invoke('update-settings', updates);
+    settings = updates; // Update local settings
+    applySettings(settings);
     closeSettingsModal();
-    showToast('Settings saved successfully', 'success');
+    showToast('Settings saved successfully');
   } catch (error) {
+    console.error('Failed to save settings:', error);
     showToast('Failed to save settings', 'error');
-  }
-}
-
-function applySettings() {
-  // Apply theme
-  const { theme } = settings;
-  document.documentElement.style.setProperty('--primary-color', theme.custom.primary);
-  document.documentElement.style.setProperty('--secondary-color', theme.custom.secondary);
-  document.documentElement.style.setProperty('--background-color', theme.custom.background);
-  document.documentElement.style.setProperty('--text-color', theme.custom.text);
-  document.documentElement.style.setProperty('--accent-color', theme.custom.accent);
-  
-  document.body.className = theme.name;
-  
-  // Apply spell check
-  editor.root.spellcheck = settings.spellcheck;
-  
-  // Setup autosave if enabled
-  if (settings.autosave) {
-    editor.on('text-change', debounce(() => {
-      if (currentEntryId) saveEntry();
-    }, 1000));
-  }
-
-  // Setup auto backup if enabled
-  if (settings.autoBackup.enabled) {
-    setupAutoBackup();
   }
 }
 
@@ -739,16 +911,13 @@ function executeAction(action) {
     save: saveEntry,
     search: focusSearch,
     settings: showSettingsModal,
-    bold: () => editor.format('bold', true),
-    italic: () => editor.format('italic', true),
-    underline: () => editor.format('underline', true),
-    undo: () => editor.history.undo(),
-    redo: () => editor.history.redo(),
+    bold: () => editor?.format('bold', true),
+    italic: () => editor?.format('italic', true),
+    underline: () => editor?.format('underline', true),
+    undo: () => editor?.history.undo(),
+    redo: () => editor?.history.redo(),
     backup: createBackup,
     escape: handleEscape,
-    header1: () => editor.format('header', 1),
-    header2: () => editor.format('header', 2),
-    header3: () => editor.format('header', 3),
     sync: syncNow,
     toggleView: toggleViewMode,
     filterEntries: focusFilters,
@@ -763,24 +932,12 @@ function executeAction(action) {
 }
 
 // Add cloud sync to settings
-let settings = {
-  // ... existing settings ...
-  sync: {
-    enabled: false,
-    provider: 'none', // 'none', 'dropbox', 'google-drive', 'onedrive'
-    autoSync: false,
-    syncInterval: 'hourly', // 'hourly', 'daily', 'weekly'
-    lastSync: null
-  }
-};
-
-// Add cloud sync section to settings modal
 document.querySelector('.modal-body').innerHTML += `
   <div class="settings-section">
     <h3>Cloud Sync</h3>
     <div class="setting-item">
       <label>
-        <input type="checkbox" id="setting-sync-enabled">
+        <input type="checkbox" id="setting-sync-enabled" ${settings.sync.enabled ? 'checked' : ''}>
         Enable Cloud Sync
       </label>
     </div>
@@ -860,50 +1017,29 @@ async function syncNow() {
 
 // Add more keyboard shortcuts
 settings.shortcuts.custom = {
-  ...settings.shortcuts.custom,
-  'sync': 'ctrl+shift+y',
+  'newEntry': 'ctrl+n',
+  'save': 'ctrl+s',
+  'search': 'ctrl+f',
+  'settings': 'ctrl+,',
+  'bold': 'ctrl+b',
+  'italic': 'ctrl+i',
+  'underline': 'ctrl+u',
+  'undo': 'ctrl+z',
+  'redo': 'ctrl+shift+z',
   'toggleView': 'ctrl+\\',
   'filterEntries': 'ctrl+shift+f',
   'clearFilters': 'ctrl+shift+x',
   'nextEntry': 'alt+down',
   'prevEntry': 'alt+up',
-  'duplicate': 'ctrl+d',
-  'archive': 'ctrl+shift+a'
-};
-
-// Add actions for new shortcuts
-function executeAction(action) {
-  const actions = {
-    // ... existing actions ...
-    sync: syncNow,
-    toggleView: toggleViewMode,
-    filterEntries: focusFilters,
-    clearFilters: clearAllFilters,
-    nextEntry: selectNextEntry,
-    prevEntry: selectPrevEntry,
-    duplicate: duplicateCurrentEntry,
-    archive: archiveCurrentEntry
-  };
-  
-  actions[action]?.();
-}
-
-// Add theme customization
-const advancedThemeSettings = {
-  fontSize: '16px',
-  fontFamily: 'system-ui',
-  borderRadius: '4px',
-  spacing: 'comfortable', // 'compact', 'comfortable', 'spacious'
-  animations: true,
-  customCSS: ''
+  'duplicate': 'ctrl+d'
 };
 
 // Add advanced theme settings to modal
 document.querySelector('.settings-section:nth-child(2)').innerHTML += `
   <div class="setting-item">
     <label>Font Size:</label>
-    <input type="range" id="setting-font-size" min="12" max="24" value="16">
-    <span id="font-size-value">16px</span>
+    <input type="range" id="setting-font-size" min="12" max="24" value="${parseInt(settings.advanced.fontSize)}">
+    <span id="font-size-value">${settings.advanced.fontSize}</span>
   </div>
   <div class="setting-item">
     <label>Font Family:</label>
@@ -916,8 +1052,8 @@ document.querySelector('.settings-section:nth-child(2)').innerHTML += `
   </div>
   <div class="setting-item">
     <label>Border Radius:</label>
-    <input type="range" id="setting-border-radius" min="0" max="16" value="4">
-    <span id="border-radius-value">4px</span>
+    <input type="range" id="setting-border-radius" min="0" max="16" value="${settings.advanced.borderRadius}">
+    <span id="border-radius-value">${settings.advanced.borderRadius}</span>
   </div>
   <div class="setting-item">
     <label>Spacing:</label>
@@ -938,3 +1074,162 @@ document.querySelector('.settings-section:nth-child(2)').innerHTML += `
     <textarea id="setting-custom-css" rows="4" placeholder="Enter custom CSS rules"></textarea>
   </div>
 `;
+
+// Add this function to handle all settings UI setup
+async function setupSettingsUI() {
+  const modalBody = document.querySelector('#settings-modal .modal-body');
+  if (!modalBody) {
+    throw new Error('Modal body not found');
+  }
+
+  try {
+    // Get fresh settings from main process
+    const currentSettings = await ipcRenderer.invoke('get-settings');
+    if (currentSettings) {
+      settings = currentSettings;
+    }
+
+    modalBody.innerHTML = `
+      <div class="settings-section">
+        <h3>Editor</h3>
+        <div class="setting-item">
+          <label>
+            <input type="checkbox" id="setting-autosave" ${settings?.autosave ? 'checked' : ''}>
+            Auto-save entries
+          </label>
+        </div>
+        <div class="setting-item">
+          <label>
+            <input type="checkbox" id="setting-spellcheck" ${settings?.spellcheck ? 'checked' : ''}>
+            Enable spell check
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Display</h3>
+        <div class="setting-item">
+          <label>Theme:</label>
+          <select id="setting-theme">
+            <option value="light" ${settings?.theme?.name === 'light' ? 'selected' : ''}>Light</option>
+            <option value="dark" ${settings?.theme?.name === 'dark' ? 'selected' : ''}>Dark</option>
+            <option value="system" ${settings?.theme?.name === 'system' ? 'selected' : ''}>System</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <label>Font Size:</label>
+          <input type="range" id="setting-font-size" min="12" max="24" 
+            value="${parseInt(settings?.advanced?.fontSize || '16')}">
+          <span id="font-size-value">${settings?.advanced?.fontSize || '16px'}</span>
+        </div>
+        <div class="setting-item">
+          <label>Font Family:</label>
+          <select id="setting-font-family">
+            <option value="system-ui">System Default</option>
+            <option value="'Segoe UI'">Segoe UI</option>
+            <option value="Roboto">Roboto</option>
+            <option value="'SF Pro'">SF Pro</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <label>Date format:</label>
+          <select id="setting-date-format">
+            <option value="short">Short (MM/DD/YY)</option>
+            <option value="medium">Medium (MMM DD, YYYY)</option>
+            <option value="long">Long (MMMM DD, YYYY)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Cloud Sync</h3>
+        <div class="setting-item">
+          <label>
+            <input type="checkbox" id="setting-sync-enabled" ${settings?.sync?.enabled ? 'checked' : ''}>
+            Enable Cloud Sync
+          </label>
+        </div>
+        <div class="setting-item">
+          <label>Provider:</label>
+          <select id="setting-sync-provider" ${!settings?.sync?.enabled ? 'disabled' : ''}>
+            <option value="none">Select Provider</option>
+            <option value="dropbox">Dropbox</option>
+            <option value="google-drive">Google Drive</option>
+            <option value="onedrive">OneDrive</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <label>
+            <input type="checkbox" id="setting-autosync" ${!settings?.sync?.enabled ? 'disabled' : ''}>
+            Auto Sync
+          </label>
+        </div>
+        <div class="setting-item">
+          <label>Sync Interval:</label>
+          <select id="setting-sync-interval" ${!settings?.sync?.enabled || !settings?.sync?.autoSync ? 'disabled' : ''}>
+            <option value="hourly">Every Hour</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Backup</h3>
+        <div class="setting-item">
+          <button id="backup-btn" class="secondary-btn">Create Backup</button>
+          <button id="restore-btn" class="secondary-btn">Restore Backup</button>
+        </div>
+      </div>
+    `;
+
+    // Setup event handlers after HTML is inserted
+    setupSettingsEventHandlers();
+  } catch (error) {
+    console.error('Failed to setup settings UI:', error);
+    showToast('Failed to load settings interface', 'error');
+  }
+}
+
+// Add this function to set up settings event handlers
+function setupSettingsEventHandlers() {
+  // Sync settings handlers
+  const syncEnabled = document.getElementById('setting-sync-enabled');
+  if (syncEnabled) {
+    syncEnabled.addEventListener('change', (e) => {
+      const enabled = e.target.checked;
+      document.getElementById('setting-sync-provider').disabled = !enabled;
+      document.getElementById('setting-autosync').disabled = !enabled;
+      document.getElementById('sync-now-btn').disabled = !enabled;
+      
+      if (!enabled) {
+        document.getElementById('setting-sync-interval').disabled = true;
+        document.getElementById('setting-autosync').checked = false;
+      }
+    });
+  }
+
+  // Auto sync handler
+  const autoSync = document.getElementById('setting-autosync');
+  if (autoSync) {
+    autoSync.addEventListener('change', (e) => {
+      document.getElementById('setting-sync-interval').disabled = !e.target.checked;
+    });
+  }
+
+  // Theme preset handler
+  const themePreset = document.getElementById('theme-preset');
+  if (themePreset) {
+    themePreset.addEventListener('change', (e) => {
+      const preset = themePresets[e.target.value];
+      if (preset) {
+        Object.entries(preset).forEach(([key, value]) => {
+          const element = document.getElementById(`setting-${key}-color`);
+          if (element) element.value = value;
+        });
+      }
+    });
+  }
+
+  // ... other settings handlers ...
+}

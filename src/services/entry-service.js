@@ -11,46 +11,34 @@ class EntryService {
 
   async addEntry(content) {
     try {
-      logger.info('Parsing entry content:', content);
-      
-      // Get the raw parser output
-      const parserOutput = this.#parser.parse(content);
-      if (!parserOutput) {
-        throw new Error('Failed to parse entry content');
-      }
+      const parsed = this.#parser.parse(content);
+      const entry = {
+        content,
+        parsed,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
 
-      logger.debug('Parser output:', parserOutput);
-
-      // Add entry to database with exact parser output structure
-      const entryId = await this.#db.addEntry(parserOutput);
-      logger.info('Entry added successfully:', entryId);
-      
-      return entryId;
+      const id = await this.#db.addEntry(entry);
+      return { ...entry, id };
     } catch (error) {
-      logger.error('Failed to add entry:', error);
+      console.error('Failed to add entry:', error);
       throw error;
     }
   }
 
   async updateEntry(id, updates) {
     try {
-      logger.info('Updating entry:', id, updates);
-
-      // If there's new content, get fresh parser output
-      if (updates.raw_content) {
-        const parserOutput = this.#parser.parse(updates.raw_content);
-        if (!parserOutput) {
-          throw new Error('Failed to parse updated content');
-        }
-        updates = parserOutput;
+      if (updates.content) {
+        const parsed = this.#parser.parse(updates.content);
+        updates.parsed = parsed;
       }
-
-      const updated = await this.#db.updateEntry(id, updates);
-      logger.info('Entry updated successfully:', id);
       
+      updates.updated_at = new Date().toISOString();
+      const updated = await this.#db.updateEntry(id, updates);
       return updated;
     } catch (error) {
-      logger.error('Failed to update entry:', error);
+      console.error('Failed to update entry:', error);
       throw error;
     }
   }
@@ -59,7 +47,7 @@ class EntryService {
     try {
       return await this.#db.getEntry(id);
     } catch (error) {
-      logger.error('Failed to get entry:', error);
+      console.error('Failed to get entry:', error);
       throw error;
     }
   }
@@ -68,7 +56,7 @@ class EntryService {
     try {
       return await this.#db.deleteEntry(id);
     } catch (error) {
-      logger.error('Failed to delete entry:', error);
+      console.error('Failed to delete entry:', error);
       throw error;
     }
   }
@@ -77,7 +65,7 @@ class EntryService {
     try {
       return await this.#db.getEntries(filters);
     } catch (error) {
-      logger.error('Failed to get entries:', error);
+      console.error('Failed to get entries:', error);
       throw error;
     }
   }
@@ -99,7 +87,7 @@ class EntryService {
 
       return await this.#db.updateEntry(entryId, updates);
     } catch (error) {
-      logger.error('Failed to update plugin data:', error);
+      console.error('Failed to update plugin data:', error);
       throw error;
     }
   }
@@ -111,9 +99,9 @@ class EntryService {
         throw new Error(`Entry with id ${entryId} not found`);
       }
 
-      return entry.plugins[pluginName] || null;
+      return entry.plugins?.[pluginName] || null;
     } catch (error) {
-      logger.error('Failed to get plugin data:', error);
+      console.error('Failed to get plugin data:', error);
       throw error;
     }
   }

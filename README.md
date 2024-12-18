@@ -1,66 +1,47 @@
-# Personal Information Manager (PIM)
+# PIM (Personal Information Manager)
 
-A powerful desktop application for managing personal information with smart parsing, rich text editing, and cloud sync capabilities.
+A desktop application for managing personal information with rich text editing capabilities.
 
 ## Features
 
-### Core Functionality
-- Rich text editor with Markdown support
-- Smart text parsing for dates, priorities, and participants
-- Full-text search and advanced filtering
-- Keyboard-driven workflow
-
-### User Interface
-- Modern, customizable interface
-- Multiple theme options
-- Responsive layout
-- Customizable keyboard shortcuts
-
-### Data Management
-- Local storage with JSON database
-- Automatic backups
-- Cloud sync support
-  - Dropbox integration
-  - Google Drive support
-  - OneDrive compatibility
-
-### Customization
-- Theme customization
-  - Font controls
-  - Spacing options
-  - Custom CSS support
-- Keyboard shortcut customization
-- Display preferences
+- Rich text editor with markdown support
+- Collapsible sidebar for better workspace management
+- Advanced settings management
+- Customizable themes
+- Keyboard shortcuts
+- Search and filter capabilities
+- Cloud sync support (coming soon)
 
 ## Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/pim.git
-
-# Install dependencies
-cd pim
 npm install
-
-# Start the application
 npm start
 ```
 
-## Development
+## Usage
 
-```bash
-# Run in development mode
-npm run dev
+- Use the sidebar toggle (←/→) to collapse/expand the sidebar
+- Create new entries with Ctrl+N or the New Entry button
+- Save entries with Ctrl+S
+- Access settings via the gear icon or Ctrl+,
+- Use keyboard shortcuts for common actions
 
-# Run tests
-npm test
+## Keyboard Shortcuts
 
-# Build for production
-npm run build
-```
+- `Ctrl+N`: New entry
+- `Ctrl+S`: Save
+- `Ctrl+F`: Search
+- `Ctrl+,`: Settings
+- `Ctrl+\`: Toggle sidebar
+- `Ctrl+B`: Bold
+- `Ctrl+I`: Italic
+- `Ctrl+U`: Underline
 
 ## Contributing
-Please read CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
+
+See CONTRIBUTING.md for development guidelines.
 
 ## License
-This project is licensed under the MIT License - see the LICENSE file for details.
+
+MIT

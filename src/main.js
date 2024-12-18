@@ -1,175 +1,47 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const JsonDatabaseService = require('./services/json-database');
-const ConfigManager = require('./config/ConfigManager');
-const logger = require('./services/logger');
+const Database = require('./services/json-database');
+const Parser = require('./services/parser');
 const EntryService = require('./services/entry-service');
 const SettingsService = require('./services/settings-service');
+const logger = require('./services/logger');
 
-class MainProcess {
-  #db;
-  #config;
-  #parser;
-  #mainWindow;
-  #entryService;
-  #settings;
-  #isInitialized = false;
+let mainWindow;
+let database;
+let parser;
+let entryService;
+let settingsService;
 
-  constructor() {
-    this.#initializeApp();
+async function initializeServices() {
+  try {
+    const userDataPath = app.getPath('userData');
+
+    // Initialize settings first
+    settingsService = new SettingsService(userDataPath);
+    await settingsService.load();
+    logger.info('Settings loaded successfully');
+
+    // Initialize database with proper path
+    const dbPath = path.join(userDataPath, 'database.json');
+    database = new Database(dbPath);
+    await database.initialize();
+    logger.info('JSON database loaded successfully');
+
+    parser = new Parser(logger);
+    entryService = new EntryService(database, parser);
+
+    logger.info('All services initialized successfully');
+  } catch (error) {
+    logger.error('Failed to initialize services:', error);
+    throw error;
   }
+}
 
-  #initializeApp() {
-    app.whenReady().then(async () => {
-      try {
-        await this.#initializeServices();
-        this.#setupIpcHandlers();
-        this.#createWindow();
-        this.#isInitialized = true;
-        
-        app.on('activate', () => {
-          if (BrowserWindow.getAllWindows().length === 0) {
-            this.#createWindow();
-          }
-        });
-      } catch (error) {
-        logger.error('Failed to initialize application:', error);
-        app.exit(1);
-      }
-    });
+async function createWindow() {
+  try {
+    await initializeServices();
 
-    app.on('window-all-closed', () => {
-      if (process.platform !== 'darwin') {
-        app.quit();
-      }
-    });
-
-    app.on('before-quit', async (event) => {
-      event.preventDefault();
-      await this.#cleanup();
-      app.exit(0);
-    });
-  }
-
-  #setupIpcHandlers() {
-    // Entry-related handlers
-    ipcMain.handle('add-entry', this.#handleAddEntry.bind(this));
-    ipcMain.handle('get-entries', this.#handleGetEntries.bind(this));
-    ipcMain.handle('delete-entry', this.#handleDeleteEntry.bind(this));
-    ipcMain.handle('add-image', this.#handleAddImage.bind(this));
-
-    // Parser-related handlers
-    ipcMain.handle('parse-text', this.#handleParseText.bind(this));
-
-    // Settings-related handlers
-    ipcMain.handle('get-settings', this.#handleGetSettings.bind(this));
-    ipcMain.handle('update-settings', this.#handleUpdateSettings.bind(this));
-  }
-
-  async #handleAddEntry(event, content) {
-    try {
-      logger.info('Received add-entry request with content:', content);
-      const entryId = await this.#entryService.addEntry(content);
-      logger.info('Entry added successfully with ID:', entryId);
-      return entryId;
-    } catch (error) {
-      logger.error('Failed to add entry', error);
-      throw error;
-    }
-  }
-
-  async #handleGetEntries(event, filters = {}) {
-    try {
-      return await this.#db.getEntries(filters);
-    } catch (error) {
-      logger.error('Failed to get entries', error);
-      throw error;
-    }
-  }
-
-  async #handleDeleteEntry(event, id) {
-    try {
-      const result = await this.#db.deleteEntry(id);
-      if (!result) {
-        throw new Error(`Entry with id ${id} not found`);
-      }
-      return result;
-    } catch (error) {
-      logger.error('Failed to delete entry', error);
-      throw error;
-    }
-  }
-
-  async #handleAddImage(event, entryId, buffer, filename) {
-    try {
-      return await this.#db.addImage(entryId, Buffer.from(buffer), filename);
-    } catch (error) {
-      logger.error('Failed to add image', error);
-      throw error;
-    }
-  }
-
-  #handleParseText(event, text) {
-    try {
-      return this.#parser.parse(text);
-    } catch (error) {
-      logger.error('Failed to parse text', error);
-      throw error;
-    }
-  }
-
-  async #handleGetSettings() {
-    try {
-      return await this.#config.getAll();
-    } catch (error) {
-      logger.error('Failed to get settings', error);
-      throw error;
-    }
-  }
-
-  async #handleUpdateSettings(event, settings) {
-    try {
-      await this.#config.update(settings);
-      return true;
-    } catch (error) {
-      logger.error('Failed to update settings', error);
-      throw error;
-    }
-  }
-
-  async #initializeServices() {
-    try {
-      const userDataPath = app.getPath('userData');
-      
-      // Initialize settings service first
-      this.#settings = new SettingsService(userDataPath);
-      await this.#settings.initialize();
-
-      // Initialize config with settings service
-      this.#config = new ConfigManager(this.#settings);
-      await this.#config.initialize();
-
-      // Initialize database for entries
-      const dbPath = path.join(userDataPath, 'pim.json');
-      this.#db = new JsonDatabaseService();
-      await this.#db.initialize(dbPath);
-
-      // Initialize parser
-      const Parser = require('./services/parser');
-      this.#parser = new Parser(logger);
-
-      // Initialize entry service
-      this.#entryService = new EntryService(this.#db, this.#parser);
-      
-      logger.info('All services initialized successfully');
-    } catch (error) {
-      logger.error('Failed to initialize services', error);
-      throw error;
-    }
-  }
-
-  #createWindow() {
-    this.#mainWindow = new BrowserWindow({
+    mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
       webPreferences: {
@@ -178,70 +50,88 @@ class MainProcess {
       }
     });
 
-    this.#mainWindow.on('close', this.#handleWindowClose.bind(this));
-    this.#mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+    await mainWindow.loadFile('src/renderer/index.html');
 
-    if (process.env.NODE_ENV === 'development') {
-      this.#mainWindow.webContents.openDevTools();
-    }
-  }
-
-  async #handleWindowClose(event) {
-    if (process.platform === 'darwin') {
-      event.preventDefault();
-      this.#mainWindow.hide();
-      return;
-    }
-    
-    event.preventDefault();
-    await this.#cleanup();
+    // Send settings to renderer after window loads
+    mainWindow.webContents.on('did-finish-load', () => {
+      mainWindow.webContents.send('settings-loaded', settingsService.get());
+    });
+  } catch (error) {
+    logger.error('Failed to create window:', error);
     app.quit();
-  }
-
-  async #cleanup() {
-    if (!this.#isInitialized) return;
-
-    try {
-      // Save all pending changes
-      if (this.#config) {
-        await this.#config.backup();
-      }
-
-      // Close database connections
-      if (this.#db?.isInitialized()) {
-        await this.#db.close();
-      }
-
-      // Clean up services
-      if (this.#entryService) {
-        await this.#entryService.cleanup();
-      }
-
-      this.#isInitialized = false;
-      logger.info('Application cleanup completed successfully');
-    } catch (error) {
-      logger.error('Error during cleanup:', error);
-      throw error;
-    }
-  }
-
-  isInitialized() {
-    return this.#isInitialized;
-  }
-
-  getDatabase() {
-    return this.#db;
-  }
-
-  getConfig() {
-    return this.#config;
-  }
-
-  getParser() {
-    return this.#parser;
   }
 }
 
-// Create and export a single instance
-const mainProcess = new MainProcess();
-module.exports = mainProcess;
+// App event handlers
+app.whenReady().then(createWindow);
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+});
+
+// IPC handlers
+ipcMain.handle('get-settings', () => settingsService.get());
+ipcMain.handle('update-settings', async (_, updates) => {
+  try {
+    const updated = await settingsService.update(updates);
+    mainWindow.webContents.send('settings-loaded', updated);
+    return updated;
+  } catch (error) {
+    logger.error('Failed to update settings:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('add-entry', async (_, content) => {
+  try {
+    logger.info('Received add-entry request with content:', content);
+    return await entryService.addEntry(content);
+  } catch (error) {
+    logger.error('Failed to add entry:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('update-entry', async (_, id, updates) => {
+  try {
+    return await entryService.updateEntry(id, updates);
+  } catch (error) {
+    logger.error('Failed to update entry:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('get-entries', async () => {
+  try {
+    return await entryService.getEntries();
+  } catch (error) {
+    logger.error('Failed to get entries:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('get-entry', async (_, id) => {
+  try {
+    return await entryService.getEntry(id);
+  } catch (error) {
+    logger.error('Failed to get entry:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('delete-entry', async (_, id) => {
+  try {
+    return await entryService.deleteEntry(id);
+  } catch (error) {
+    logger.error('Failed to delete entry:', error);
+    throw error;
+  }
+});

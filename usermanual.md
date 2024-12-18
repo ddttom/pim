@@ -1,106 +1,48 @@
 # PIM User Manual
 
-## Table of Contents
-1. Getting Started
-2. Basic Usage
-3. Advanced Features
-4. Keyboard Shortcuts
-5. Cloud Sync
-6. Customization
-7. Troubleshooting
+## Interface Overview
 
-## 1. Getting Started
-Launch the application and you'll see the main interface with:
-- Entry list on the left
-- Editor on the right
-- Search and filter options
-- Settings button
+### Sidebar
+- The sidebar contains your list of entries and search functionality
+- Use the arrow toggle (←/→) on the right edge to collapse/expand
+- When collapsed, click the arrow to expand
+- The sidebar collapses immediately for better performance
 
-## 2. Basic Usage
-### Creating Entries
-- Click "New Entry" or press Ctrl+N
-- Type your content
-- Use the toolbar for formatting
-- Click "Save" or press Ctrl+S
+### Toolbar
+- New Entry: Create a new document
+- Save: Save current entry
+- Filter: Show/hide filter options
+- Sort: Change entry sort order
+- Settings: Access application settings
 
-### Managing Entries
-- Search entries using the search bar
-- Filter by status, priority, or date
-- Click entries to edit
-- Use delete button to remove entries
+### Settings
+Access settings through the gear icon to configure:
+- Editor preferences
+- Display options
+- Cloud sync (coming soon)
+- Backup/restore
+- Theme customization
 
-## 3. Advanced Features
-### Smart Parsing
-The application automatically detects:
-- Dates and deadlines
-- Priority levels
-- Participant names
-- Tags and categories
+### Keyboard Shortcuts
+- `Ctrl+N`: New entry
+- `Ctrl+S`: Save
+- `Ctrl+F`: Search
+- `Ctrl+,`: Settings
+- `Ctrl+\`: Toggle sidebar
+- `Ctrl+B`: Bold
+- `Ctrl+I`: Italic
+- `Ctrl+U`: Underline
 
-### Cloud Sync
-1. Open Settings (Ctrl+,)
-2. Enable Cloud Sync
-3. Select your provider:
-   - Dropbox
-   - Google Drive
-   - OneDrive
-4. Configure sync settings:
-   - Auto-sync
-   - Sync interval
-   - Manual sync option
+## Tips & Tricks
+- Use the sidebar toggle to maximize workspace
+- Access common functions through keyboard shortcuts
+- Customize the interface through settings
+- Use filters to organize entries
+- Regular backups recommended
 
-## 4. Keyboard Shortcuts
-### Default Shortcuts
-- Ctrl+N: New entry
-- Ctrl+S: Save entry
-- Ctrl+F: Search
-- Ctrl+,: Settings
-- Ctrl+B: Bold
-- Ctrl+I: Italic
-- Ctrl+U: Underline
-- Alt+1/2/3: Headers
-
-### Customizing Shortcuts
-1. Open Settings
-2. Go to Keyboard Shortcuts
-3. Click "Record" next to any action
-4. Press your desired key combination
-
-## 5. Customization
-### Theme Settings
-- Choose from preset themes
-- Customize colors
-- Adjust font size and family
-- Modify spacing
-- Add custom CSS
-
-### Display Options
-- Font size
-- Font family
-- Border radius
-- Spacing density
-- Animation toggles
-
-## 6. Troubleshooting
-### Common Issues
-1. Sync fails to connect
-   - Check internet connection
-   - Verify provider authentication
-   - Try manual sync
-
-2. Settings not saving
-   - Restart application
-   - Check permissions
-   - Clear cache
-
-### Support
-For additional help:
-1. Check the GitHub issues
-2. Submit a bug report
-3. Contact support team
-
-## 7. Updates
-The application will automatically check for updates. To manually update:
-1. Go to Settings
-2. Click "Check for Updates"
-3. Follow the prompts to install
+## Troubleshooting
+If you encounter issues:
+1. Check settings configuration
+2. Restart the application
+3. Clear local storage if needed
+4. Contact support with error details
