@@ -1,265 +1,66 @@
 # Personal Information Manager (PIM)
 
-A modern desktop application for managing personal information, tasks, and notes with advanced natural language processing capabilities.
+A powerful desktop application for managing personal information with smart parsing, rich text editing, and cloud sync capabilities.
 
 ## Features
 
-### Core Features
+### Core Functionality
+- Rich text editor with Markdown support
+- Smart text parsing for dates, priorities, and participants
+- Full-text search and advanced filtering
+- Keyboard-driven workflow
 
-- Natural language input processing with fuzzy matching
-- Smart date/time parsing with misspelling support
-- Context-aware task categorization
-- Rich text editing with markdown support
-- Image attachment support
-- Multi-level priority system
-- Advanced filtering and sorting
-- Comprehensive settings management
-- Transaction-safe JSON storage
-- Intelligent facet detection:
-  - Actions (call, meet, email, etc.)
-  - Contacts and participants
-  - Projects and categories
-  - Locations and durations
-  - Recurrence patterns
-  - Links and attachments
+### User Interface
+- Modern, customizable interface
+- Multiple theme options
+- Responsive layout
+- Customizable keyboard shortcuts
 
-### Natural Language Examples
+### Data Management
+- Local storage with JSON database
+- Automatic backups
+- Cloud sync support
+  - Dropbox integration
+  - Google Drive support
+  - OneDrive compatibility
 
-#### Basic Tasks
-
-```bash
-# Simple Tasks
-Call John tomorrow at 2pm
-Meet with team in conference room
-Email Sarah about Project Alpha
-
-# With Misspellings (Still Works!)
-Meeting next wednsday with team
-Call Jim on thurdsay morning
-```
-
-#### Advanced Features
-
-```bash
-# Time and Location
-Meet John at Starbucks tomorrow morning
-Call team at 3pm in the conference room
-
-# Duration and Recurrence
-Review code for 2 hours
-Team sync every Monday at 10am
-
-# Context and Priority
-Email finance report #urgent #finance
-Schedule doctor appointment #health
-
-# With Participants
-Project review with @sarah and @mike
-Team meeting with @dev-team
-```
-
-#### Rich Tasks
-
-```bash
-# Rich Tasks
-Meet @john and @sarah about #project-alpha
-Client meeting in conference room for 2 hours
-Weekly standup every Monday at 10am
-
-# With Context
-Doctor appointment next Tuesday #health
-Team sync with @dev-team about deployment
-Review specs at client office with attachments
-
-# With Links
-Review docs at file://specs/v1.pdf
-Check updates at https://project.dev/status
-```
-
-### Parser Features
-
-#### Time Understanding
-
-- Smart date parsing with common misspellings
-- Time of day defaults:
-  - Morning: 9:00 AM
-  - Noon: 12:00 PM
-  - Afternoon: 2:00 PM
-  - Evening: 6:00 PM
-  - Night: 8:00 PM
-
-#### Context Detection
-
-- Work: meetings, projects, deadlines
-- Personal: family, shopping, home
-- Health: doctor, gym, medicine
-- Finance: bank, payments, budget
-
-#### Action Recognition
-
-- Basic: call, meet, email, review, write
-- Variations: phone, sync, mail, check
-- Fuzzy matching for misspellings
-
-#### Additional Features
-
-- Location detection ("at" or "in" locations)
-- Duration parsing (hours and minutes)
-- Recurrence patterns (daily, weekly, monthly)
-- Priority levels (high, normal)
-- Status tracking (pending, complete)
-- Project references
-- Participant mentions (@person)
-- Category tags (#tag)
-
-### Storage Format
-
-```javascript
-{
-  "id": "uuid",
-  "created_at": "2024-12-16T18:45:43.824Z",
-  "updated_at": "2024-12-16T18:45:43.824Z",
-  "content": {
-    "raw": "Call John about project Cheesecake",
-    "markdown": "Call John about project Cheesecake",
-    "images": []
-  },
-  "parsed": {
-    "action": "call",
-    "contact": "John",
-    "project": {
-      "project": "Cheesecake"
-    },
-    "final_deadline": "2024-12-17T09:00:00.000Z",
-    "participants": [],
-    "tags": [],
-    "priority": "normal",
-    "status": "pending",
-    "location": null,
-    "duration": null,
-    "recurrence": null,
-    "contexts": [],
-    "categories": [],
-    "images": [],
-    "links": []
-  },
-  "plugins": {}
-}
-```
+### Customization
+- Theme customization
+  - Font controls
+  - Spacing options
+  - Custom CSS support
+- Keyboard shortcut customization
+- Display preferences
 
 ## Installation
 
-1. Clone the repository:
-
 ```bash
-git clone https://github.com/ddttom/pim.git
+# Clone the repository
+git clone https://github.com/yourusername/pim.git
+
+# Install dependencies
 cd pim
-```
-
-2. Install dependencies:
-
-```bash
 npm install
-```
 
-3. Start the application:
-
-```bash
+# Start the application
 npm start
 ```
 
 ## Development
 
-### Running Tests
-
 ```bash
-# Run all tests
+# Run in development mode
+npm run dev
+
+# Run tests
 npm test
 
-# Run specific test suites
-npm run test:config    # Test configuration system
-npm run test:db        # Test database operations
-npm run test:parser    # Test parser functionality
-npm run test:parser-persist  # Test parser-database integration
+# Build for production
+npm run build
 ```
 
-### Project Structure
-
-```bash
-/src
-├── config
-│   ├── ConfigManager.js
-│   └── parser.config.js
-├── db
-│   └── models
-├── main
-├── main.js
-├── plugins
-│   ├���─ customPlugin.js
-│   ├── locationPlugin.js
-│   └── pluginManager.js
-├── renderer
-│   ├── index.html
-│   ├── renderer.js
-│   └── styles.css
-├── scripts
-├── services
-│   ├── config.js
-│   ├── entry-service.js
-│   ├── json-database.js
-│   ├── logger.js
-│   ├── parser
-│   │   ├── core.js
-│   │   ├── formatters
-│   │   │   └── emoji.js
-│   │   ├── index.js
-│   │   ├── parsers
-│   │   │   ├── action.js
-│   │   │   ├── attendees.js
-│   │   │   ├── categories.js
-│   │   │   ├── complexity.js
-│   │   │   ├── contact.js
-│   │   │   ├── date.js
-│   │   │   ├── dependencies.js
-│   │   │   ├── duration.js
-│   │   │   ├── links.js
-│   │   │   ├── location.js
-│   │   │   ├── priority.js
-│   │   │   ├── project.js
-│   │   │   ├── recurring.js
-│   │   │   ├── reminders.js
-│   │   │   ├── status.js
-│   │   │   ├── subject.js
-│   │   │   ├── time.js
-│   │   │   ├── timeOfDay.js
-│   │   │   └── urgency.js
-│   │   └── utils
-│   │       ├── dateUtils.js
-│   │       ├── patterns.js
-│   │       ├── timeUtils.js
-│   │       └── validation.js
-│   ├── parser.js
-│   └── settings-service.js
-├── types
-│   └── models.ts
-└── utils
-    ├── dateUtils.js
-    └── logger.js 
-```
-
-### Configuration
-
-The application uses a multi-layered configuration system:
-
-1. Environment Variables (highest priority)
-2. Settings File (settings.json)
-3. User Config File (config.json)
-4. Default Values (lowest priority)
-
-For detailed configuration options, see `docs/config.md`.
+## Contributing
+Please read CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
 
 ## License
-
-ISC License (ISC)
-
-Copyright (c) 2024 Tom Cranstoun
+This project is licensed under the MIT License - see the LICENSE file for details.

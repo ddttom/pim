@@ -12,10 +12,9 @@ class ConfigError extends Error {
 
 // Manages all configuration/settings with validation and defaults
 class ConfigManager {
-  constructor(settingsService, configPath = null) {
+  constructor(settingsService) {
     this.settings = settingsService;
     this.currentConfig = null;
-    this.configPath = configPath; // Allow injection of config path for testing
     this.logger = {
       debug: (msg) => {
         if (process.env.DEBUG && process.env.NODE_ENV !== 'test') {
@@ -34,7 +33,6 @@ class ConfigManager {
       },
       error: (msg, err) => {
         if (process.env.NODE_ENV === 'test') {
-          // In test environment, only log critical errors
           if (err && err.critical) console.error(msg, err);
         } else {
           console.error(msg, err);
@@ -94,22 +92,16 @@ class ConfigManager {
 
   async initialize() {
     try {
-      // 1. Load config.json if it exists
-      const fileConfig = await this.loadConfigFile();
-      
-      // 2. Load saved settings from database
+      // 1. Load saved settings from database
       const savedSettings = await this.settings.getAllSettings();
       
-      // 3. Merge with defaults (file config takes precedence over defaults)
-      const mergedDefaults = this.mergeWithDefaults(fileConfig);
+      // 2. Merge with defaults
+      this.currentConfig = this.mergeWithDefaults(savedSettings);
       
-      // 4. Merge with database settings (database takes precedence)
-      this.currentConfig = this.mergeWithDefaults(savedSettings, mergedDefaults);
-      
-      // 5. Apply environment variables (highest priority)
+      // 3. Apply environment variables (highest priority)
       this.applyEnvironmentVariables();
       
-      // 6. Validate the final config
+      // 4. Validate the final config
       this.validateConfig(this.currentConfig);
       
       return this.currentConfig;
@@ -183,7 +175,7 @@ class ConfigManager {
     // 1. Validate settings first
     await this.validateConfig({ [category]: settings });
     
-    // 2. Save to settings.json
+    // 2. Save to settings service
     await this.settings.saveSetting(category, settings);
     
     // 3. Update in-memory config
@@ -191,6 +183,12 @@ class ConfigManager {
       ...this.currentConfig[category],
       ...settings
     };
+
+    // 4. Emit change event
+    this.emit('configChanged', {
+      category,
+      settings
+    });
   }
 
   get(category, key) {
@@ -262,40 +260,25 @@ class ConfigManager {
 
   async backup() {
     try {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const backupPath = path.join(
-        path.dirname(this.configPath),
-        `backups/config-${timestamp}.json`
-      );
-      
-      await fs.mkdir(path.dirname(backupPath), { recursive: true });
-      await fs.writeFile(
-        backupPath,
-        JSON.stringify(this.currentConfig, null, 2)
-      );
-      
-      this.emit('backupCreated', backupPath);
-      return backupPath;
+      // Use settings service for backup
+      await this.settings.saveAllSettings(this.currentConfig);
+      this.emit('backupCreated', null);
     } catch (error) {
       this.emit('error', error);
       throw error;
     }
   }
 
-  async restore(backupPath) {
+  async restore(backupData) {
     try {
-      const backupConfig = JSON.parse(
-        await fs.readFile(backupPath, 'utf8')
-      );
+      // Validate backup data
+      this.validateConfig(backupData);
       
-      // Validate backup config
-      this.validateConfig(backupConfig);
-      
-      // Save to database
-      await this.settings.saveAllSettings(backupConfig);
+      // Save to settings service
+      await this.settings.saveAllSettings(backupData);
       
       // Update current config
-      this.currentConfig = backupConfig;
+      this.currentConfig = backupData;
       
       this.emit('configRestored', this.currentConfig);
       return this.currentConfig;

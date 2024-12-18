@@ -7,18 +7,114 @@
 </head>
 <body>
     <div class="container">
-        <div id="editor-container">
-            <div id="editor"></div>
-            <div class="editor-controls">
-                <button id="save-btn">Save</button>
-                <input type="file" id="image-upload" accept="image/*" multiple style="display: none">
-                <button id="image-btn">Add Images</button>
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Entries</h2>
+                <div class="header-actions">
+                    <button id="settings-btn" class="secondary-btn" data-shortcut="Ctrl+,">Settings</button>
+                    <button id="new-entry-btn" class="primary-btn" data-shortcut="Ctrl+N">New Entry</button>
+                </div>
             </div>
+            <div class="search-bar">
+                <input type="text" id="search-input" placeholder="Search entries...">
+            </div>
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Sort by:</label>
+                    <select id="sort-select">
+                        <option value="date-desc">Newest first</option>
+                        <option value="date-asc">Oldest first</option>
+                        <option value="priority">Priority</option>
+                        <option value="deadline">Deadline</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Status:</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" value="pending" checked> Pending</label>
+                        <label><input type="checkbox" value="complete"> Complete</label>
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label>Priority:</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" value="high"> High</label>
+                        <label><input type="checkbox" value="normal" checked> Normal</label>
+                        <label><input type="checkbox" value="low"> Low</label>
+                    </div>
+                </div>
+            </div>
+            <div id="entries-list" class="entries-list"></div>
         </div>
-        <div id="entries-list"></div>
+        <div id="editor-container" class="hidden">
+            <div class="editor-header">
+                <button id="back-btn" class="secondary-btn">← Back to List</button>
+                <div class="editor-actions">
+                    <button id="save-btn" class="primary-btn" data-shortcut="Ctrl+S">Save</button>
+                    <button id="image-btn" class="secondary-btn">Add Images</button>
+                </div>
+            </div>
+            <div id="editor"></div>
+            <input type="file" id="image-upload" accept="image/*" multiple style="display: none">
+        </div>
     </div>
     
     <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
     <script src="renderer.js"></script>
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="close-btn" onclick="closeSettingsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>Editor</h3>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="setting-autosave">
+                            Auto-save entries
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="setting-spellcheck" checked>
+                            Enable spell check
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Display</h3>
+                    <div class="setting-item">
+                        <label>Theme:</label>
+                        <select id="setting-theme">
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                            <option value="system">System</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label>Date format:</label>
+                        <select id="setting-date-format">
+                            <option value="short">Short (MM/DD/YY)</option>
+                            <option value="medium">Medium (MMM DD, YYYY)</option>
+                            <option value="long">Long (MMMM DD, YYYY)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Backup</h3>
+                    <div class="setting-item">
+                        <button id="backup-btn" class="secondary-btn">Create Backup</button>
+                        <button id="restore-btn" class="secondary-btn">Restore Backup</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary-btn" onclick="closeSettingsModal()">Cancel</button>
+                <button class="primary-btn" onclick="saveSettings()">Save Changes</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

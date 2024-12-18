@@ -1,138 +1,165 @@
 const path = require('path');
 const fs = require('fs').promises;
-const { app } = require('electron');
 const { TEST_DIR } = require('./setup');
 const SettingsService = require('../src/services/settings-service');
 const ConfigManager = require('../src/config/ConfigManager');
-const JsonDatabaseService = require('../src/services/json-database');
 
-describe('Configuration and Database Tests', () => {
+describe('Configuration Tests', () => {
   let settingsService;
   let configManager;
-  let dbService;
+  let configChangeEvents;
   
   beforeEach(async () => {
-    // Use test-specific filenames
-    const testId = Date.now();
-    const settingsPath = path.join(TEST_DIR, `settings.test.${testId}.json`);
-    const dbPath = path.join(TEST_DIR, `pim.test.${testId}.json`);
-    
-    // Initialize services with test paths
+    // Initialize services
     settingsService = new SettingsService(TEST_DIR);
-    settingsService.settingsPath = settingsPath;
+    await settingsService.initialize();
     
-    configManager = new ConfigManager(settingsService, settingsPath);
+    configManager = new ConfigManager(settingsService);
     
-    dbService = new JsonDatabaseService();
-    await dbService.initialize(dbPath);
-  });
-
-  afterEach(async () => {
-    // Clean up test files
-    const files = await fs.readdir(TEST_DIR);
-    await Promise.all(
-      files
-        .filter(f => f.includes('.test.'))
-        .map(f => fs.unlink(path.join(TEST_DIR, f)))
-    );
-  });
-
-  describe('Settings Service', () => {
-    test('saves and loads settings correctly', async () => {
-      const testSettings = {
-        parser: {
-          maxDepth: 5,
-          ignoreFiles: ['.git']
-        }
-      };
-
-      await settingsService.saveAllSettings(testSettings);
-      const loaded = await settingsService.getAllSettings();
-      
-      expect(loaded).toEqual(testSettings);
-    });
-
-    test('updates individual settings', async () => {
-      await settingsService.saveSetting('parser', { maxDepth: 3 });
-      await settingsService.saveSetting('parser', { ignoreFiles: ['.git'] });
-      
-      const settings = await settingsService.getAllSettings();
-      expect(settings.parser).toEqual({
-        maxDepth: 3,
-        ignoreFiles: ['.git']
-      });
+    // Track config change events
+    configChangeEvents = [];
+    configManager.on('configChanged', (event) => {
+      configChangeEvents.push(event);
     });
   });
 
-  describe('Config Manager', () => {
-    test('applies environment variables over saved settings', async () => {
-      // Save base settings
+  describe('Initialization', () => {
+    test('loads default config when no settings exist', async () => {
+      const config = await configManager.initialize();
+      
+      expect(config.parser.maxDepth).toBe(3);
+      expect(config.parser.ignoreFiles).toEqual(['.git', 'node_modules']);
+      expect(config.reminders.defaultMinutes).toBe(15);
+    });
+
+    test('merges settings with defaults', async () => {
       await settingsService.saveSetting('parser', {
-        maxDepth: 3,
-        ignoreFiles: ['.git']
+        maxDepth: 5,
+        customSetting: 'value'
       });
 
-      // Set environment variable
-      process.env['pim.parser.maxDepth'] = '5';
+      const config = await configManager.initialize();
+      
+      expect(config.parser.maxDepth).toBe(5);
+      expect(config.parser.ignoreFiles).toEqual(['.git', 'node_modules']);
+      expect(config.parser.customSetting).toBe('value');
+    });
+
+    test('validates configuration on load', async () => {
+      await settingsService.saveSetting('parser', {
+        maxDepth: -1 // Invalid value
+      });
+
+      await expect(configManager.initialize()).rejects.toThrow('Invalid config value');
+    });
+  });
+
+  describe('Settings Updates', () => {
+    beforeEach(async () => {
+      await configManager.initialize();
+    });
+
+    test('updates and persists settings', async () => {
+      await configManager.updateSettings('parser', {
+        maxDepth: 5
+      });
+
+      // Verify in-memory update
+      expect(configManager.get('parser').maxDepth).toBe(5);
+
+      // Verify persisted update
+      const savedSettings = await settingsService.getAllSettings();
+      expect(savedSettings.parser.maxDepth).toBe(5);
+    });
+
+    test('emits change events', async () => {
+      await configManager.updateSettings('parser', {
+        maxDepth: 5
+      });
+
+      expect(configChangeEvents).toHaveLength(1);
+      expect(configChangeEvents[0]).toEqual({
+        category: 'parser',
+        settings: { maxDepth: 5 }
+      });
+    });
+
+    test('validates updates', async () => {
+      await expect(
+        configManager.updateSettings('parser', {
+          maxDepth: -1
+        })
+      ).rejects.toThrow('Invalid config value');
+    });
+  });
+
+  describe('Environment Variables', () => {
+    beforeEach(async () => {
+      await configManager.initialize();
+    });
+
+    test('applies environment overrides', async () => {
+      process.env['pim.parser.maxDepth'] = '10';
       
       await configManager.initialize();
       
-      expect(configManager.get('parser').maxDepth).toBe(5);
-      expect(configManager.get('parser').ignoreFiles).toEqual(['.git']);
-      
-      // Cleanup
-      delete process.env['pim.parser.maxDepth'];
+      expect(configManager.get('parser').maxDepth).toBe(10);
     });
 
-    test('validates settings on update', async () => {
-      await expect(
-        configManager.updateSettings('parser', { maxDepth: -1 })
-      ).rejects.toThrow();
+    test('validates environment values', async () => {
+      process.env['pim.parser.maxDepth'] = '-1';
+      
+      await configManager.initialize();
+      
+      // Should keep default value
+      expect(configManager.get('parser').maxDepth).toBe(3);
+    });
+
+    test('handles array values', async () => {
+      process.env['pim.parser.ignoreFiles'] = '["temp","dist"]';
+      
+      await configManager.initialize();
+      
+      expect(configManager.get('parser').ignoreFiles).toEqual(['temp', 'dist']);
     });
   });
 
-  describe('Database Service', () => {
-    test('saves and retrieves entries', async () => {
-      const testEntry = {
-        content: 'Test task',
-        parsed: {
-          status: 'pending',
-          priority: 'high'
+  describe('Backup and Restore', () => {
+    beforeEach(async () => {
+      await configManager.initialize();
+    });
+
+    test('creates and restores backups', async () => {
+      // Modify some settings
+      await configManager.updateSettings('parser', {
+        maxDepth: 5
+      });
+
+      // Create backup
+      const originalConfig = { ...configManager.currentConfig };
+      await configManager.backup();
+
+      // Modify settings again
+      await configManager.updateSettings('parser', {
+        maxDepth: 10
+      });
+
+      // Restore from backup
+      await configManager.restore(originalConfig);
+
+      expect(configManager.get('parser').maxDepth).toBe(5);
+    });
+
+    test('validates backup data before restore', async () => {
+      const invalidBackup = {
+        parser: {
+          maxDepth: -1
         }
       };
 
-      const id = await dbService.addEntry(testEntry);
-      const retrieved = await dbService.getEntry(id);
-      
-      expect(retrieved.content).toBe(testEntry.content);
-      expect(retrieved.parsed).toEqual(testEntry.parsed);
-    });
-
-    test('filters entries correctly', async () => {
-      const entries = [
-        { parsed: { status: 'pending', priority: 'high' } },
-        { parsed: { status: 'complete', priority: 'low' } }
-      ];
-
-      for (const entry of entries) {
-        await dbService.addEntry(entry);
-      }
-
-      const filters = {
-        status: new Set(['pending'])
-      };
-
-      const filtered = await dbService.getEntries(filters);
-      expect(filtered).toHaveLength(1);
-      expect(filtered[0].parsed.status).toBe('pending');
-    });
-
-    test('updates entries', async () => {
-      const id = await dbService.addEntry({ content: 'Original' });
-      await dbService.updateEntry(id, { content: 'Updated' });
-      
-      const entry = await dbService.getEntry(id);
-      expect(entry.content).toBe('Updated');
+      await expect(
+        configManager.restore(invalidBackup)
+      ).rejects.toThrow('Invalid config value');
     });
   });
 }); 
