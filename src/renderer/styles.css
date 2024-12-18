@@ -1,3 +1,203 @@
+/* Add at the top of the file */
+:root {
+    --ribbon-height: 60px;
+    --sidebar-width: 300px;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.ribbon {
+    height: var(--ribbon-height);
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 16px;
+    flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.ribbon-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 100%;
+    padding: 0 8px;
+}
+
+.ribbon-divider {
+    width: 1px;
+    height: 32px;
+    background-color: #e5e7eb;
+    margin: 0 8px;
+}
+
+.ribbon-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.ribbon-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.ribbon-btn:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.ribbon-btn .btn-icon {
+    font-size: 16px;
+    opacity: 0.9;
+}
+
+.app-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #374151;
+    margin: 0;
+}
+
+.main-container {
+    display: flex;
+    height: calc(100vh - var(--ribbon-height));
+    overflow: hidden;
+}
+
+/* Update existing styles */
+.sidebar {
+    width: var(--sidebar-width);
+    border-right: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.search-bar {
+    padding: 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.search-bar input {
+    width: 100%;
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.filters {
+    padding: 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.entries-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+#editor-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    background: white;
+}
+
+/* Update button styles */
+.primary-btn {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+}
+
+.primary-btn:hover {
+    background-color: #2563eb;
+}
+
+.secondary-btn {
+    background-color: #ffffff;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+}
+
+.secondary-btn:hover {
+    background-color: #f9fafb;
+    border-color: #d1d5db;
+}
+
+/* Add button animations */
+@keyframes buttonPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+
+.ribbon-btn:active {
+    animation: buttonPop 0.2s ease;
+}
+
+/* Add tooltip animations */
+[data-shortcut]:hover:after {
+    animation: tooltipFade 0.2s ease;
+}
+
+@keyframes tooltipFade {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 5px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+/* Add hover effects for buttons */
+.ribbon-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.ribbon-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s, height 0.3s;
+}
+
+.ribbon-btn:hover::after {
+    width: 200%;
+    height: 200%;
+}
+
 /* General Styles */
 * {
     margin: 0;

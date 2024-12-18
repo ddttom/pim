@@ -6,15 +6,49 @@
     <link href="styles.css" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
+    <div class="ribbon">
+        <div class="ribbon-section">
+            <h1 class="app-title">PIM</h1>
+        </div>
+        <div class="ribbon-section">
+            <button id="new-entry-btn" class="ribbon-btn primary-btn" data-shortcut="Ctrl+N">
+                <span class="btn-icon">📝</span>
+                New Entry
+            </button>
+            <button id="save-btn" class="ribbon-btn primary-btn" data-shortcut="Ctrl+S">
+                <span class="btn-icon">💾</span>
+                Save
+            </button>
+        </div>
+        <div class="ribbon-divider"></div>
+        <div class="ribbon-section">
+            <button id="filter-btn" class="ribbon-btn secondary-btn" data-shortcut="Ctrl+F">
+                <span class="btn-icon">🔍</span>
+                Filter
+            </button>
+            <button id="sort-btn" class="ribbon-btn secondary-btn">
+                <span class="btn-icon">↕️</span>
+                Sort
+            </button>
+        </div>
+        <div class="ribbon-divider"></div>
+        <div class="ribbon-section">
+            <button id="backup-btn" class="ribbon-btn secondary-btn" data-shortcut="Ctrl+Shift+B">
+                <span class="btn-icon">📦</span>
+                Backup
+            </button>
+            <button id="sync-btn" class="ribbon-btn secondary-btn" data-shortcut="Ctrl+Shift+Y">
+                <span class="btn-icon">🔄</span>
+                Sync
+            </button>
+            <button id="settings-btn" class="ribbon-btn secondary-btn" data-shortcut="Ctrl+,">
+                <span class="btn-icon">⚙️</span>
+                Settings
+            </button>
+        </div>
+    </div>
+    <div class="main-container">
         <div class="sidebar">
-            <div class="sidebar-header">
-                <h2>Entries</h2>
-                <div class="header-actions">
-                    <button id="settings-btn" class="secondary-btn" data-shortcut="Ctrl+,">Settings</button>
-                    <button id="new-entry-btn" class="primary-btn" data-shortcut="Ctrl+N">New Entry</button>
-                </div>
-            </div>
             <div class="search-bar">
                 <input type="text" id="search-input" placeholder="Search entries...">
             </div>
