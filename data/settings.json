@@ -1,0 +1,43 @@
+{
+  "autosave": true,
+  "spellcheck": true,
+  "theme": {
+    "name": "light",
+    "custom": {
+      "primary": "#3498db",
+      "secondary": "#95a5a6",
+      "background": "#f5f5f5",
+      "text": "#333333",
+      "accent": "#2ecc71"
+    }
+  },
+  "dateFormat": "short",
+  "shortcuts": {
+    "enabled": true,
+    "custom": {
+      "newEntry": "ctrl+n",
+      "save": "ctrl+s",
+      "search": "ctrl+f",
+      "settings": "ctrl+,",
+      "bold": "ctrl+b",
+      "italic": "ctrl+i",
+      "underline": "ctrl+u",
+      "undo": "ctrl+z",
+      "redo": "ctrl+shift+z"
+    }
+  },
+  "advanced": {
+    "fontSize": "16px",
+    "fontFamily": "system-ui",
+    "borderRadius": "4px",
+    "spacing": "comfortable",
+    "sidebarCollapsed": true
+  },
+  "sync": {
+    "enabled": false,
+    "provider": "none",
+    "autoSync": false,
+    "syncInterval": "hourly",
+    "lastSync": null
+  }
+}

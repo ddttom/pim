@@ -1,69 +1,103 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
-const path = require('path');
-const Database = require('./services/json-database');
-const Parser = require('./services/parser');
-const EntryService = require('./services/entry-service');
-const SettingsService = require('./services/settings-service');
-const logger = require('./services/logger');
+import { app, BrowserWindow, ipcMain } from 'electron';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { getSettings, saveSettings } from './services/settings-service.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 let mainWindow;
-let database;
-let parser;
-let entryService;
-let settingsService;
 
-async function initializeServices() {
+export function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      enableRemoteModule: false,
+      preload: join(__dirname, 'preload.cjs')
+    }
+  });
+
+  mainWindow.loadFile(join(__dirname, 'renderer', 'index.html'));
+}
+
+// IPC handlers
+ipcMain.handle('get-settings', async () => {
   try {
-    const userDataPath = app.getPath('userData');
-
-    // Initialize settings first
-    settingsService = new SettingsService(userDataPath);
-    await settingsService.load();
-    logger.info('Settings loaded successfully');
-
-    // Initialize database with proper path
-    const dbPath = path.join(userDataPath, 'database.json');
-    database = new Database(dbPath);
-    await database.initialize();
-    logger.info('JSON database loaded successfully');
-
-    parser = new Parser(logger);
-    entryService = new EntryService(database, parser);
-
-    logger.info('All services initialized successfully');
+    const settings = await getSettings();
+    return settings;
   } catch (error) {
-    logger.error('Failed to initialize services:', error);
+    console.error('Failed to get settings:', error);
     throw error;
   }
-}
+});
 
-async function createWindow() {
+ipcMain.handle('update-settings', async (_, settings) => {
   try {
-    await initializeServices();
-
-    mainWindow = new BrowserWindow({
-      width: 1200,
-      height: 800,
-      webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false
-      }
-    });
-
-    await mainWindow.loadFile('src/renderer/index.html');
-
-    // Send settings to renderer after window loads
-    mainWindow.webContents.on('did-finish-load', () => {
-      mainWindow.webContents.send('settings-loaded', settingsService.get());
-    });
+    const updatedSettings = await saveSettings(settings);
+    // Notify renderer of settings update
+    mainWindow?.webContents.send('settings-loaded', updatedSettings);
+    return updatedSettings;
   } catch (error) {
-    logger.error('Failed to create window:', error);
-    app.quit();
+    console.error('Failed to update settings:', error);
+    throw error;
   }
-}
+});
 
-// App event handlers
-app.whenReady().then(createWindow);
+ipcMain.handle('get-entries', async () => {
+  // TODO: Implement entries retrieval
+  return [];
+});
+
+ipcMain.handle('add-entry', async (_, content) => {
+  // TODO: Implement entry creation
+  return 'new-entry-id';
+});
+
+ipcMain.handle('update-entry', async (_, id, content) => {
+  // TODO: Implement entry update
+  return true;
+});
+
+ipcMain.handle('delete-entry', async (_, id) => {
+  // TODO: Implement entry deletion
+  return true;
+});
+
+ipcMain.handle('add-image', async (_, entryId, buffer, filename) => {
+  // TODO: Implement image addition
+  return { path: 'image-path' };
+});
+
+ipcMain.handle('create-backup', async () => {
+  // TODO: Implement backup creation
+  return true;
+});
+
+ipcMain.handle('restore-backup', async () => {
+  // TODO: Implement backup restoration
+  return true;
+});
+
+ipcMain.handle('sync-data', async (_, provider) => {
+  // TODO: Implement data sync
+  return true;
+});
+
+// App lifecycle events
+app.whenReady().then(async () => {
+  createWindow();
+  
+  // Load initial settings
+  try {
+    const settings = await getSettings();
+    mainWindow?.webContents.send('settings-loaded', settings);
+  } catch (error) {
+    console.error('Failed to load initial settings:', error);
+  }
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -74,64 +108,5 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
-  }
-});
-
-// IPC handlers
-ipcMain.handle('get-settings', () => settingsService.get());
-ipcMain.handle('update-settings', async (_, updates) => {
-  try {
-    const updated = await settingsService.update(updates);
-    mainWindow.webContents.send('settings-loaded', updated);
-    return updated;
-  } catch (error) {
-    logger.error('Failed to update settings:', error);
-    throw error;
-  }
-});
-
-ipcMain.handle('add-entry', async (_, content) => {
-  try {
-    logger.info('Received add-entry request with content:', content);
-    return await entryService.addEntry(content);
-  } catch (error) {
-    logger.error('Failed to add entry:', error);
-    throw error;
-  }
-});
-
-ipcMain.handle('update-entry', async (_, id, updates) => {
-  try {
-    return await entryService.updateEntry(id, updates);
-  } catch (error) {
-    logger.error('Failed to update entry:', error);
-    throw error;
-  }
-});
-
-ipcMain.handle('get-entries', async () => {
-  try {
-    return await entryService.getEntries();
-  } catch (error) {
-    logger.error('Failed to get entries:', error);
-    throw error;
-  }
-});
-
-ipcMain.handle('get-entry', async (_, id) => {
-  try {
-    return await entryService.getEntry(id);
-  } catch (error) {
-    logger.error('Failed to get entry:', error);
-    throw error;
-  }
-});
-
-ipcMain.handle('delete-entry', async (_, id) => {
-  try {
-    return await entryService.deleteEntry(id);
-  } catch (error) {
-    logger.error('Failed to delete entry:', error);
-    throw error;
   }
 });
