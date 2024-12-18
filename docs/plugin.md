@@ -200,6 +200,7 @@ module.exports = {
 ### Runtime Configuration
 
 Plugins can be configured through:
+
 1. Configuration files
 2. Environment variables
 3. Settings interface
@@ -262,7 +263,7 @@ describe('MyPlugin', () => {
 
 ### Package Structure
 
-```
+```bash
 my-pim-plugin/
 ├── package.json
 ├── index.js
@@ -306,4 +307,4 @@ pluginManager.register(new MyPlugin());
    - Validate URLs
    - Use secure connections
    - Handle timeouts
-   - Rate limit requests 
+   - Rate limit requests

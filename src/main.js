@@ -109,6 +109,15 @@ class MainProcess {
         throw error;
       }
     });
+
+    ipcMain.handle('add-image', async (event, entryId, buffer, filename) => {
+      try {
+        return await this.#db.addImage(entryId, Buffer.from(buffer), filename);
+      } catch (error) {
+        logger.error('Failed to add image', error);
+        throw error;
+      }
+    });
   }
 
   async #initializeServices() {

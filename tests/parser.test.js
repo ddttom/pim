@@ -298,3 +298,220 @@ describe('Parser Tests', () => {
         });
     });
 });
+
+describe('Parser', () => {
+  let parser;
+
+  beforeEach(() => {
+    parser = new Parser();
+  });
+
+  test('parses all facets correctly', () => {
+    const text = `Meet @john and @sarah about #project-alpha tomorrow at 2pm in conference room
+                 for 1 hour. High priority. Status: in-progress
+                 Links: https://example.com file://docs/spec.pdf
+                 #work #meeting`;
+
+    const result = parser.parse(text);
+
+    expect(result).toEqual({
+      raw_content: text,
+      markdown: text,
+      parsed: {
+        action: 'meet',
+        contact: 'john',
+        project: { project: 'project-alpha' },
+        final_deadline: expect.any(String), // tomorrow at 2pm
+        participants: ['john', 'sarah'],
+        tags: ['project-alpha', 'work', 'meeting'],
+        priority: 'high',
+        status: 'in-progress',
+        location: 'conference room',
+        duration: { hours: 1 },
+        recurrence: null,
+        contexts: ['work'],
+        categories: ['meeting'],
+        images: [],
+        links: [
+          'https://example.com',
+          'file://docs/spec.pdf'
+        ]
+      }
+    });
+  });
+
+  test('handles missing facets gracefully', () => {
+    const text = 'Simple note without any special attributes';
+    const result = parser.parse(text);
+
+    expect(result.parsed).toEqual({
+      action: null,
+      contact: null,
+      project: null,
+      final_deadline: null,
+      participants: [],
+      tags: [],
+      priority: 'normal',
+      status: 'pending',
+      location: null,
+      duration: null,
+      recurrence: null,
+      contexts: [],
+      categories: [],
+      images: [],
+      links: []
+    });
+  });
+});
+
+describe('Parser Facet Tests', () => {
+  let parser;
+
+  beforeEach(() => {
+    parser = new Parser();
+  });
+
+  describe('Links Parsing', () => {
+    test('parses web links', () => {
+      const text = 'Check https://example.com and http://test.org';
+      const result = parser.parse(text);
+      expect(result.parsed.links).toEqual([
+        'https://example.com',
+        'http://test.org'
+      ]);
+    });
+
+    test('parses file links', () => {
+      const text = 'See file://docs/report.pdf and file://images/diagram.png';
+      const result = parser.parse(text);
+      expect(result.parsed.links).toEqual([
+        'file://docs/report.pdf',
+        'file://images/diagram.png'
+      ]);
+    });
+  });
+
+  describe('Participants Parsing', () => {
+    test('extracts multiple participants', () => {
+      const text = 'Meeting with @john @sarah and @mike';
+      const result = parser.parse(text);
+      expect(result.parsed.participants).toEqual(['john', 'sarah', 'mike']);
+    });
+
+    test('handles duplicate participants', () => {
+      const text = 'Call @john and @john again';
+      const result = parser.parse(text);
+      expect(result.parsed.participants).toEqual(['john']);
+    });
+  });
+
+  describe('Location Parsing', () => {
+    test('parses "at" locations', () => {
+      const text = 'Meet at Coffee Shop';
+      const result = parser.parse(text);
+      expect(result.parsed.location).toEqual({
+        type: 'location',
+        value: 'Coffee Shop'
+      });
+    });
+
+    test('parses "in" locations', () => {
+      const text = 'Meeting in Conference Room B';
+      const result = parser.parse(text);
+      expect(result.parsed.location).toEqual({
+        type: 'location',
+        value: 'Conference Room B'
+      });
+    });
+
+    test('parses location with colon', () => {
+      const text = 'Team sync location: Main Office';
+      const result = parser.parse(text);
+      expect(result.parsed.location).toEqual({
+        type: 'location',
+        value: 'Main Office'
+      });
+    });
+  });
+
+  describe('Duration Parsing', () => {
+    test('parses hour durations', () => {
+      const text = 'Meeting for 2 hours';
+      const result = parser.parse(text);
+      expect(result.parsed.duration).toEqual({
+        minutes: 120,
+        formatted: '2h0m'
+      });
+    });
+
+    test('parses minute durations', () => {
+      const text = 'Call for 45 minutes';
+      const result = parser.parse(text);
+      expect(result.parsed.duration).toEqual({
+        minutes: 45,
+        formatted: '0h45m'
+      });
+    });
+
+    test('handles abbreviated units', () => {
+      const text = 'Meeting for 1 hr and call for 30 min';
+      const result = parser.parse(text);
+      expect(result.parsed.duration).toEqual({
+        minutes: 60,
+        formatted: '1h0m'
+      });
+    });
+  });
+
+  describe('Recurrence Parsing', () => {
+    test('parses daily recurrence', () => {
+      const text = 'Standup every day at 10am';
+      const result = parser.parse(text);
+      expect(result.parsed.recurrence).toEqual({
+        type: 'daily',
+        interval: 1
+      });
+    });
+
+    test('parses weekly recurrence', () => {
+      const text = 'Team sync every week';
+      const result = parser.parse(text);
+      expect(result.parsed.recurrence).toEqual({
+        type: 'weekly',
+        interval: 1
+      });
+    });
+
+    test('parses specific day recurrence', () => {
+      const text = 'Meeting every monday';
+      const result = parser.parse(text);
+      expect(result.parsed.recurrence).toEqual({
+        type: 'specific',
+        day: 'monday',
+        interval: 1
+      });
+    });
+  });
+
+  describe('Context Detection', () => {
+    test('detects work context', () => {
+      const text = 'Client meeting about project deadline';
+      const result = parser.parse(text);
+      expect(result.parsed.contexts).toContain('work');
+    });
+
+    test('detects personal context', () => {
+      const text = 'Family birthday party at home';
+      const result = parser.parse(text);
+      expect(result.parsed.contexts).toContain('personal');
+    });
+
+    test('detects multiple contexts', () => {
+      const text = 'Doctor appointment and client meeting';
+      const result = parser.parse(text);
+      expect(result.parsed.contexts).toEqual(
+        expect.arrayContaining(['health', 'work'])
+      );
+    });
+  });
+});

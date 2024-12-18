@@ -9,30 +9,48 @@ class Parser {
   parse(text) {
     this.logger.info('Parsing text:', { text });
 
-    const parsed = {
-      action: this.#extractAction(text),
-      contact: this.#extractContact(text),
-      project: this.#extractProject(text),
-      final_deadline: this.#extractDateTime(text),
-      participants: this.#extractParticipants(text),
-      tags: this.#extractTags(text),
-      priority: this.#extractPriority(text),
-      status: this.#determineStatus(text),
-      location: this.#extractLocation(text),
-      duration: this.#extractDuration(text),
-      recurrence: this.#extractRecurrence(text),
-      contexts: this.#extractContext(text),
-      categories: []
+    const result = {
+      raw_content: text,
+      markdown: text,
+      parsed: {
+        action: this.parseAction(text),
+        contact: this.parseContact(text),
+        project: this.parseProject(text),
+        final_deadline: this.parseDeadline(text),
+        participants: this.parseParticipants(text),
+        tags: this.parseTags(text),
+        priority: this.parsePriority(text),
+        status: this.parseStatus(text),
+        location: this.parseLocation(text),
+        duration: this.parseDuration(text),
+        recurrence: this.parseRecurrence(text),
+        contexts: this.parseContexts(text),
+        categories: this.parseCategories(text),
+        images: [],
+        links: this.parseLinks(text)
+      }
     };
 
-    return {
-      parsed,
-      raw_content: text,
-      plugins: {}
-    };
+    return result;
   }
 
-  #extractAction(text) {
+  parseLinks(text) {
+    const urlRegex = /(?:https?:\/\/|www\.)[^\s)]+/g;
+    const fileRegex = /file:\/\/[^\s)]+/g;
+    
+    const webLinks = text.match(urlRegex) || [];
+    const fileLinks = text.match(fileRegex) || [];
+    
+    return [...webLinks, ...fileLinks];
+  }
+
+  parseParticipants(text) {
+    const participantRegex = /@(\w+)/g;
+    const matches = text.match(participantRegex) || [];
+    return matches.map(m => m.substring(1));
+  }
+
+  parseAction(text) {
     const actionMap = {
       'call': ['call', 'phone', 'ring', 'dial'],
       'meet': ['meet', 'meeting', 'catch up', 'sync', 'catchup'],
@@ -50,7 +68,7 @@ class Parser {
     return null;
   }
 
-  #extractContact(text) {
+  parseContact(text) {
     const words = text.split(' ');
     const actionIndex = words.findIndex(w => 
       ['call', 'meet', 'email'].includes(w.toLowerCase())
@@ -60,12 +78,12 @@ class Parser {
       : null;
   }
 
-  #extractProject(text) {
+  parseProject(text) {
     const projectMatch = text.match(/re\s+Project\s+(\w+)/i);
     return projectMatch ? { project: projectMatch[1] } : null;
   }
 
-  #extractDate(text) {
+  parseDeadline(text) {
     // Month variations and misspellings
     const months = {
       // January variations
@@ -200,17 +218,12 @@ class Parser {
     return null;
   }
 
-  #extractParticipants(text) {
-    const matches = text.match(/@(\w+)/g) || [];
-    return matches.map(m => m.substring(1));
-  }
-
-  #extractTags(text) {
+  parseTags(text) {
     const matches = text.match(/#(\w+)/g) || [];
     return matches.map(m => m.substring(1));
   }
 
-  #extractPriority(text) {
+  parsePriority(text) {
     if (text.toLowerCase().includes('urgently') || 
         text.toLowerCase().includes('asap')) {
       return 'high';
@@ -218,7 +231,7 @@ class Parser {
     return 'normal';
   }
 
-  #determineStatus(text) {
+  parseStatus(text) {
     if (text.toLowerCase().includes('done') || 
         text.toLowerCase().includes('completed')) {
       return 'complete';
@@ -226,45 +239,7 @@ class Parser {
     return 'pending';
   }
 
-  #extractDateTime(text) {
-    const timePatterns = {
-      morning: '09:00',
-      noon: '12:00',
-      afternoon: '14:00',
-      evening: '18:00',
-      night: '20:00'
-    };
-
-    let date = this.#extractDate(text);
-    if (!date) return null;
-
-    // Try to find time references
-    const timeMatch = text.match(/at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
-    if (timeMatch) {
-      let [_, hours, minutes = '00', meridian] = timeMatch;
-      hours = parseInt(hours);
-      if (meridian?.toLowerCase() === 'pm' && hours < 12) hours += 12;
-      if (meridian?.toLowerCase() === 'am' && hours === 12) hours = 0;
-      
-      const dateObj = new Date(date);
-      dateObj.setHours(hours, parseInt(minutes));
-      return dateObj.toISOString();
-    }
-
-    // Check for time of day references
-    for (const [timeRef, defaultTime] of Object.entries(timePatterns)) {
-      if (text.toLowerCase().includes(timeRef)) {
-        const [hours, minutes] = defaultTime.split(':');
-        const dateObj = new Date(date);
-        dateObj.setHours(parseInt(hours), parseInt(minutes));
-        return dateObj.toISOString();
-      }
-    }
-
-    return date;
-  }
-
-  #extractLocation(text) {
+  parseLocation(text) {
     // Match common location patterns
     const patterns = [
       /at\s+([^,\.]+(?:(?:,\s*)[^,\.]+)*)/i,  // "at location"
@@ -284,7 +259,7 @@ class Parser {
     return null;
   }
 
-  #extractDuration(text) {
+  parseDuration(text) {
     const durationPattern = /for\s+(\d+)\s*(hour|hr|minute|min)s?/i;
     const match = text.match(durationPattern);
     
@@ -302,7 +277,7 @@ class Parser {
     return null;
   }
 
-  #extractRecurrence(text) {
+  parseRecurrence(text) {
     const patterns = {
       daily: /every\s+day/i,
       weekly: /every\s+week/i,
@@ -324,7 +299,7 @@ class Parser {
     return null;
   }
 
-  #extractContext(text) {
+  parseContexts(text) {
     const contexts = {
       work: ['meeting', 'project', 'deadline', 'client', 'report'],
       personal: ['family', 'home', 'shopping', 'birthday', 'holiday'],
@@ -342,6 +317,12 @@ class Parser {
     }
     
     return matches.size > 0 ? Array.from(matches) : null;
+  }
+
+  parseCategories(text) {
+    // Implementation for parsing categories
+    // This is a placeholder and should be implemented
+    return [];
   }
 }
 

@@ -2,95 +2,23 @@
 <html>
 <head>
     <title>PIM</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-buttons">
-                <button id="new-entry-btn" class="sidebar-btn">
-                    <i class="fas fa-plus"></i>
-                    New Entry
-                </button>
-                <button id="settings-btn" class="sidebar-btn">
-                    <i class="fas fa-cog"></i>
-                    Settings
-                </button>
-            </div>
-            <div class="filters">
-                <!-- Filter sections will be added dynamically -->
+    <div class="container">
+        <div id="editor-container">
+            <div id="editor"></div>
+            <div class="editor-controls">
+                <button id="save-btn">Save</button>
+                <input type="file" id="image-upload" accept="image/*" multiple style="display: none">
+                <button id="image-btn">Add Images</button>
             </div>
         </div>
-
-        <!-- Main Content -->
-        <div id="main-content">
-            <!-- Table View -->
-            <div id="table-view">
-                <table id="entries-table" class="entries-table">
-                    <thead>
-                        <tr>
-                            <th>Content</th>
-                            <th>Action</th>
-                            <th>Contact</th>
-                            <th>Project</th>
-                            <th>Deadline</th>
-                            <th>Priority</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-
-            <!-- Entry Form -->
-            <div id="entry-form" class="hidden">
-                <!-- Form content will be created dynamically -->
-                <button class="parse-button" id="parseButton">Parse</button>
-            </div>
-
-            <!-- Add the parser dialog -->
-            <div id="parser-dialog" class="dialog hidden">
-                <div class="dialog-content">
-                    <div class="dialog-header">
-                        <h2>Parser Results</h2>
-                        <button class="close-btn">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="dialog-body">
-                        <pre id="parser-results"></pre>
-                        <button id="copy-results" class="icon-btn">
-                            <i class="fas fa-copy"></i>
-                            Copy
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Single Settings Modal -->
-            <div id="settings-form" class="modal hidden">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h2>Settings</h2>
-                        <button class="close-btn" id="settings-close">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div id="settings-container">
-                        <!-- Settings content will be dynamically inserted here -->
-                    </div>
-                    <div class="modal-footer">
-                        <button class="cancel-btn" id="settings-cancel">Cancel</button>
-                        <button class="save-btn" id="settings-save">Save Changes</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div id="entries-list"></div>
     </div>
-
+    
+    <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
     <script src="renderer.js"></script>
 </body>
 </html>

@@ -9,10 +9,19 @@ A modern desktop application for managing personal information, tasks, and notes
 - Natural language input processing with fuzzy matching
 - Smart date/time parsing with misspelling support
 - Context-aware task categorization
+- Rich text editing with markdown support
+- Image attachment support
 - Multi-level priority system
 - Advanced filtering and sorting
 - Comprehensive settings management
 - Transaction-safe JSON storage
+- Intelligent facet detection:
+  - Actions (call, meet, email, etc.)
+  - Contacts and participants
+  - Projects and categories
+  - Locations and durations
+  - Recurrence patterns
+  - Links and attachments
 
 ### Natural Language Examples
 
@@ -47,6 +56,24 @@ Schedule doctor appointment #health
 # With Participants
 Project review with @sarah and @mike
 Team meeting with @dev-team
+```
+
+#### Rich Tasks
+
+```bash
+# Rich Tasks
+Meet @john and @sarah about #project-alpha
+Client meeting in conference room for 2 hours
+Weekly standup every Monday at 10am
+
+# With Context
+Doctor appointment next Tuesday #health
+Team sync with @dev-team about deployment
+Review specs at client office with attachments
+
+# With Links
+Review docs at file://specs/v1.pdf
+Check updates at https://project.dev/status
 ```
 
 ### Parser Features
@@ -92,7 +119,11 @@ Team meeting with @dev-team
   "id": "uuid",
   "created_at": "2024-12-16T18:45:43.824Z",
   "updated_at": "2024-12-16T18:45:43.824Z",
-  "raw_content": "Call John about project Cheesecake tomorrow morning",
+  "content": {
+    "raw": "Call John about project Cheesecake",
+    "markdown": "Call John about project Cheesecake",
+    "images": []
+  },
   "parsed": {
     "action": "call",
     "contact": "John",
@@ -108,7 +139,9 @@ Team meeting with @dev-team
     "duration": null,
     "recurrence": null,
     "contexts": [],
-    "categories": []
+    "categories": [],
+    "images": [],
+    "links": []
   },
   "plugins": {}
 }
@@ -162,7 +195,7 @@ npm run test:parser-persist  # Test parser-database integration
 ├── main
 ├── main.js
 ├── plugins
-│   ├── customPlugin.js
+│   ├���─ customPlugin.js
 │   ├── locationPlugin.js
 │   └── pluginManager.js
 ├── renderer

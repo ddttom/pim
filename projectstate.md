@@ -1,339 +1,169 @@
-# PIM (Personal Information Management System)
+# Project State
 
-## Project Overview
+## Implementation Status
 
-PIM is an Electron-based desktop application designed for personal information management. It provides a robust system for parsing, storing, and managing personal tasks, meetings, and other information using natural language processing.
+### Core Systems
 
-This project does not use typescript and does not want to use typescript.
+#### Parser Engine (90% Complete)
 
-Note: Whenever 'projectstate.md' is updated, also update 'readme.md' and 'usermanual.md'.
+- [x] Core parsing infrastructure
+- [x] Plugin architecture
+- [x] Error handling
+- [ ] Performance optimization
+- [ ] Advanced pattern matching
 
-## Dependencies
+#### Database Layer (95% Complete)
 
-### Core Dependencies
+- [x] JSON storage
+- [x] Transaction support
+- [x] Media handling
+- [x] Backup/restore
+- [ ] Query optimization
 
-- electron: ^24.3.0
-- chrono-node: ^2.6.3
-- marked: ^5.1.1
-- uuid: ^9.0.1
-- winston: ^3.10.0
+#### UI Components (85% Complete)
 
-### Development Dependencies
+- [x] Rich text editor
+- [x] Image handling
+- [x] Entry management
+- [ ] Advanced search UI
+- [ ] Calendar view
 
-- jest: ^29.7.0
+### Feature Implementation Details
 
-## System Architecture
+## Implemented Features
 
-### 1. Main Process (`src/main.js`)
+### Parser Facets
 
-- Handles application lifecycle
-- Manages window creation
-- Coordinates IPC communication
-- Implements menu functionality
-- Manages settings and configuration
-- Handles data persistence
+- [x] Action Recognition
+  - Basic actions implemented
+  - Variations and synonyms supported
+  - Context-aware detection
+  - Status: 95% Complete
+  - Implemented: Basic actions, variations, context detection
+  - Pending: Machine learning enhancements
+- [x] Contact Detection
+  - Single contact parsing
+  - Multiple participant support
+  - @mentions handling
+  - Status: 90% Complete
+  - Implemented: Contact parsing, mentions, basic role detection
+  - Pending: Advanced role inference, contact disambiguation
+- [x] Project Association
+  - Project name extraction
+  - Multiple project support
+  - Project references (#project)
+  - Status: 85% Complete
+  - Implemented: Basic project parsing, references
+  - Pending: Project hierarchy, cross-references
+- [x] Deadline Parsing
+  - Natural language dates
+  - Time specifications
+  - Recurring deadlines
+  - Common misspellings
+- [x] Participant Tracking
+  - @mention syntax
+  - Multiple participants
+  - Role detection
+- [x] Tag Support
+  - #tag syntax
+  - Multiple categories
+  - Nested tags
+- [x] Priority Levels
+  - High/Medium/Low
+  - Urgent/ASAP detection
+  - Priority inheritance
+- [x] Status Management
+  - Multiple states
+  - State transitions
+  - Status history
+- [x] Location Detection
+  - "at/in" locations
+  - Named locations
+  - Location types
+- [x] Duration Parsing
+  - Hours and minutes
+  - Formatted output
+  - Unit variations
+- [x] Recurrence Patterns
+  - Daily/Weekly/Monthly
+  - Specific days
+  - Interval support
+- [x] Context Detection
+  - Work/Personal/Health/Finance
+  - Multi-context support
+  - Context inheritance
+- [x] Category Management
+  - Hierarchical categories
+  - Auto-categorization
+  - Category rules
+- [x] Image Support
+  - File attachments
+  - Image metadata
+  - Gallery view
+- [x] Link Detection
+  - Web URLs
+  - File links
+  - Link validation
 
-### 2. Storage System
+### Rich Text Support
 
-#### Service Implementation (`src/services/json-database.js`)
+- [x] Markdown Formatting
+- [x] Image Attachments
+- [x] Link Management
+- [x] HTML Export
+- [x] Template System
 
-- JSON-based storage implementation
-- Direct parser output storage
-- Handles data persistence
-- Manages settings storage
-- Implements backup/restore functionality
-- Handles transaction-like operations
-- Manages data validation
+### Data Management
 
-#### Data Structure
+- [x] JSON Storage
+- [x] Media Management
+- [x] Backup/Restore
+- [x] Transaction Support
 
-```javascript
-{
-  "entries": [
-    {
-      "id": "uuid",
-      "created_at": "ISO string",
-      "updated_at": "ISO string",
-      "raw_content": "string",
-      "parsed": {
-        "action": "string",
-        "contact": "string",
-        "project": {
-          "project": "string"
-        },
-        "final_deadline": "ISO string",
-        "status": "string",
-        "categories": []
-      },
-      "plugins": {}
-    }
-  ],
-  "settings": {
-    "key": "value"
-  },
-  "meta": {
-    "version": "string",
-    "last_backup": "ISO string"
-  }
-}
-```
+## Pending Features
 
-#### Data Management Features
+- [ ] Advanced Search
+- [ ] Calendar Integration
+- [ ] Mobile Sync
+- [ ] Plugin System
+- [ ] Data Analytics
 
-- JSON Import/Export
-- Settings Backup/Restore
-- Transaction-like Operations
-- Data Validation
-- Error Recovery
-- Plugin Data Support
+## Known Issues
 
-### 3. Parser System (`src/services/parser/`)
+1. Date parsing edge cases with certain formats
 
-#### Core Functionality
+- Ambiguous date formats (MM/DD vs DD/MM)
+- Complex recurring patterns
+- Time zone handling
+- Priority: High
+- Impact: Medium
+- Planned Fix: v1.2.0
 
-- Natural language processing
-- Pattern-based text analysis
-- Multiple parsing strategies
-- Extensible parsing rules
-- Real-time parsing feedback
-- Common misspelling support
-- Context-aware parsing
+2. Complex recurrence patterns need refinement
 
-#### Supported Patterns
+- Multiple day combinations
+- Exception dates
+- End date handling
+- Priority: Medium
+- Impact: Low
+- Planned Fix: v1.3.0
 
-1. Actions
-   - Basic actions: call, meet, email, review, write
-   - Action variations and synonyms
-   - Context-aware action detection
-   - Fuzzy matching for variations
+## Next Steps
 
-2. Date and Time
-   - Multiple date formats
-   - Time of day references
-   - Relative dates ("next Wednesday")
-   - Time specifications
-   - Default time assignments
-   - Common misspellings support for:
-     - Days (wednsday, wensday, etc.)
-     - Months (janurary, feburary, etc.)
-   - Time period defaults:
-     - Morning: 9:00 AM
-     - Noon: 12:00 PM
-     - Afternoon: 2:00 PM
-     - Evening: 6:00 PM
-     - Night: 8:00 PM
+1. Improve parser accuracy
 
-3. Location
-   - Location prefixes (at, in)
-   - Location markers
-   - Multi-word locations
-   - Location type detection
-   - Structured location output
+- [ ] Enhanced natural language understanding
+- [ ] Better context detection
+- [ ] Smarter date parsing
 
-4. Duration
-   - Hour-based durations
-   - Minute-based durations
-   - Formatted output (1h30m)
-   - Unit variations (hour, hr, minute, min)
-   - Default durations
+2. Add new features
 
-5. Recurrence
-   - Daily patterns ("every day")
-   - Weekly patterns ("every week")
-   - Monthly patterns ("every month")
-   - Weekday-specific ("every Monday")
-   - Interval support
-   - Pattern variations
+- [ ] Advanced search capabilities
+- [ ] Calendar integration
+- [ ] Mobile synchronization
 
-6. Context Detection
-   - Work context: meeting, project, deadline, client, report
-   - Personal context: family, home, shopping, birthday, holiday
-   - Health context: doctor, dentist, gym, workout, medicine
-   - Finance context: bank, payment, invoice, budget, tax
-   - Multi-context support
+3. Enhance existing features
 
-7. Additional Features
-   - Priority detection (urgent, asap)
-   - Status tracking (pending, complete)
-   - Participant mentions (@person)
-   - Project references (Project Name)
-   - Tag support (#tag)
-   - Custom patterns
-   - Fuzzy matching
-
-#### Parser Output Structure
-
-```javascript
-{
-  "parsed": {
-    "action": "string",
-    "contact": "string",
-    "project": {
-      "project": "string"
-    },
-    "final_deadline": "ISO string",
-    "participants": ["string"],
-    "tags": ["string"],
-    "priority": "string",
-    "status": "string",
-    "location": {
-      "type": "string",
-      "value": "string"
-    },
-    "duration": {
-      "minutes": number,
-      "formatted": "string"
-    },
-    "recurrence": {
-      "type": "string",
-      "day": "string",
-      "interval": number
-    },
-    "contexts": ["string"],
-    "categories": []
-  },
-  "raw_content": "string",
-  "plugins": {}
-}
-```
-
-#### Parser Components
-
-1. Core Parser (`src/services/parser.js`)
-   - Main parsing logic
-   - Component coordination
-   - Output formatting
-
-2. Date Utilities
-   - Common misspelling handling
-   - Date format normalization
-   - Time period defaults
-   - Relative date calculation
-
-3. Pattern Matching
-   - Action detection
-   - Location extraction
-   - Duration parsing
-   - Recurrence patterns
-   - Context identification
-
-4. Validation
-   - Input sanitization
-   - Output validation
-   - Format verification
-   - Data consistency checks
-
-### 4. User Interface System (`src/renderer/`)
-
-#### Core Components
-
-- Modern responsive UI
-- Dynamic component rendering
-- Real-time updates
-- Modal system for forms
-- Settings management interface
-- Entry management interface
-
-#### Interface Features
-
-1. Main Application Window
-2. Settings Management
-   - Scrollable Settings Panel
-   - Real-time Validation
-   - Category Management
-   - Parser Configuration
-3. Entry Management
-   - Table View with Sorting
-   - Inline Editing
-   - Entry Details Expansion
-   - JSON Export
-4. Import/Export Functionality
-5. Menu System with Shortcuts
-6. Modal System
-   - Settings Form
-   - Entry Form
-   - Parser Results Dialog
-7. Notification System
-   - Success Messages
-   - Error Feedback
-   - Operation Status
-
-## Configuration System
-
-### Application Settings
-
-- Parser settings
-- Reminder configurations
-- UI preferences
-- Data management options
-- Time preferences
-- Default values
-
-## Core Features
-
-1. Natural Language Input Processing
-2. Task Management
-3. Contact Management
-4. Project Organization
-5. Category/Tag System
-6. Priority Management
-7. Location Tracking
-8. Time Management
-9. Status Tracking
-
-## Project Structure
-
-```bash
-/Users/tomcranstoun/Documents/GitHub/pim/src
-├── .DS_Store
-├── config
-│   ├── ConfigManager.js
-│   └── parser.config.js
-├── main.js
-├── plugins
-│   ├── customPlugin.js
-│   ├── locationPlugin.js
-│   └── pluginManager.js
-├── renderer
-│   ├── index.html
-│   ├── renderer.js
-│   └── styles.css
-├── services
-│   ├── config.js
-│   ├── json-database.js
-│   ├── entry-service.js
-│   ├── logger.js
-│   ├── parser
-│   │   ├── core.js
-│   │   ├── formatters
-│   │   │   └── emoji.js
-│   │   ├── index.js
-│   │   ├── parsers
-│   │   │   ├── action.js
-│   │   │   ├── attendees.js
-│   │   │   ├── categories.js
-│   │   │   ├── complexity.js
-│   │   │   ├── contact.js
-│   │   │   ├── date.js
-│   │   │   ├── dependencies.js
-│   │   │   ├── duration.js
-│   │   │   ├── links.js
-│   │   │   ├── location.js
-│   │   │   ├── priority.js
-│   │   │   ├── project.js
-│   │   │   ├── recurring.js
-│   │   │   ├── reminders.js
-│   │   │   ├── status.js
-│   │   │   ├── subject.js
-│   │   │   ├── time.js
-│   │   │   ├── timeOfDay.js
-│   │   │   └── urgency.js
-│   │   └── utils
-│   │       ├── dateUtils.js
-│   │       ├── patterns.js
-│   │       ├── timeUtils.js
-│   │       └── validation.js
-│   └── parser.js
-└── utils
-    ├── dateUtils.js
-    └── logger.js
+- [ ] More flexible recurrence patterns
+- [ ] Better handling of edge cases
+- [ ] Improved error reporting

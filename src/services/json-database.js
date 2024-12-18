@@ -7,6 +7,7 @@ class JsonDatabaseService {
   #dbPath;
   #data;
   #autoSave = true;
+  #mediaDir;
 
   constructor() {
     this.#data = {
@@ -20,14 +21,18 @@ class JsonDatabaseService {
 
   async initialize(dbPath) {
     this.#dbPath = dbPath;
+    this.#mediaDir = path.join(path.dirname(dbPath), 'media');
+    
     try {
+      // Ensure media directory exists
+      await fs.mkdir(this.#mediaDir, { recursive: true });
+
       const exists = await fs.access(dbPath).then(() => true).catch(() => false);
       if (exists) {
         const content = await fs.readFile(dbPath, 'utf8');
         this.#data = JSON.parse(content);
         logger.info('JSON database loaded successfully');
       } else {
-        // Create directory if it doesn't exist
         await fs.mkdir(path.dirname(dbPath), { recursive: true });
         await this.save();
         logger.info('New JSON database created successfully');
@@ -53,21 +58,68 @@ class JsonDatabaseService {
   }
 
   // Entry operations
-  async addEntry(parserOutput) {
-    const now = new Date().toISOString();
-    
-    // Create entry by adding database-specific fields to parser output
+  async addEntry(entry) {
     const newEntry = {
       id: uuidv4(),
-      content: parserOutput.raw_content,
-      created_at: now,
-      updated_at: now,
-      parsed: parserOutput.parsed
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      content: {
+        raw: entry.raw_content || '',
+        markdown: entry.markdown || '',
+        images: []
+      },
+      parsed: {
+        action: entry.parsed?.action || null,
+        contact: entry.parsed?.contact || null,
+        project: entry.parsed?.project || null,
+        final_deadline: entry.parsed?.final_deadline || null,
+        participants: entry.parsed?.participants || [],
+        tags: entry.parsed?.tags || [],
+        priority: entry.parsed?.priority || 'normal',
+        status: entry.parsed?.status || 'pending',
+        location: entry.parsed?.location || null,
+        duration: entry.parsed?.duration || null,
+        recurrence: entry.parsed?.recurrence || null,
+        contexts: entry.parsed?.contexts || [],
+        categories: entry.parsed?.categories || [],
+        images: [],
+        links: entry.parsed?.links || []
+      }
     };
 
     this.#data.entries.push(newEntry);
     if (this.#autoSave) await this.save();
     return newEntry.id;
+  }
+
+  async addImage(entryId, imageBuffer, filename) {
+    const entry = await this.getEntry(entryId);
+    if (!entry) {
+      throw new Error(`Entry with id ${entryId} not found`);
+    }
+
+    const imageId = uuidv4();
+    const ext = path.extname(filename);
+    const imagePath = path.join(this.#mediaDir, `${imageId}${ext}`);
+    const relativePath = path.relative(path.dirname(this.#dbPath), imagePath);
+
+    // Save image to filesystem
+    await fs.writeFile(imagePath, imageBuffer);
+
+    // Add image metadata to entry
+    const imageInfo = {
+      id: imageId,
+      filename,
+      path: relativePath,
+      added_at: new Date().toISOString()
+    };
+
+    entry.parsed.images.push(imageInfo);
+    entry.content.images.push(relativePath);
+    entry.content.markdown += `\n![${filename}](${relativePath})`;
+
+    if (this.#autoSave) await this.save();
+    return imageInfo;
   }
 
   async getEntries(filters = {}) {
@@ -124,13 +176,20 @@ class JsonDatabaseService {
       throw new Error(`Entry with id ${id} not found`);
     }
 
-    // Add small delay to ensure different timestamps
-    await new Promise(resolve => setTimeout(resolve, 1));
-
     const entry = this.#data.entries[index];
     const updated = {
       ...entry,
       ...updates,
+      content: {
+        ...entry.content,
+        ...(updates.content || {}),
+      },
+      parsed: {
+        ...entry.parsed,
+        ...(updates.parsed || {}),
+        links: updates.parsed?.links || entry.parsed.links || [],
+        images: entry.parsed.images  // Preserve image metadata
+      },
       id: entry.id,
       updated_at: new Date().toISOString(),
       created_at: entry.created_at
@@ -142,6 +201,18 @@ class JsonDatabaseService {
   }
 
   async deleteEntry(id) {
+    const entry = await this.getEntry(id);
+    if (entry) {
+      // Delete associated images
+      for (const image of entry.parsed.images) {
+        try {
+          await fs.unlink(path.join(path.dirname(this.#dbPath), image.path));
+        } catch (error) {
+          logger.warn(`Failed to delete image: ${image.path}`, error);
+        }
+      }
+    }
+
     const initialLength = this.#data.entries.length;
     this.#data.entries = this.#data.entries.filter(e => e.id !== id);
     if (this.#autoSave) await this.save();
@@ -150,7 +221,21 @@ class JsonDatabaseService {
 
   // Backup/Restore
   async backup(backupPath) {
+    // Backup database file
     await fs.copyFile(this.#dbPath, backupPath);
+    
+    // Backup media directory
+    const backupMediaDir = path.join(path.dirname(backupPath), 'media');
+    await fs.mkdir(backupMediaDir, { recursive: true });
+    
+    const files = await fs.readdir(this.#mediaDir);
+    for (const file of files) {
+      await fs.copyFile(
+        path.join(this.#mediaDir, file),
+        path.join(backupMediaDir, file)
+      );
+    }
+
     this.#data.meta.last_backup = new Date().toISOString();
     if (this.#autoSave) await this.save();
   }
