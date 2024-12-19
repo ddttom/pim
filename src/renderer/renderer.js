@@ -96,7 +96,7 @@ async function importModules() {
 
 function setupEventListeners(handlers) {
   // Clear existing event listeners first
-  ['new-entry-btn', 'save-btn', 'settings-btn', 'back-btn', 'sidebar-toggle'].forEach(id => {
+  ['new-entry-btn', 'save-btn', 'settings-btn', 'back-btn', 'sidebar-toggle', 'copy-db-btn'].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) {
       const newBtn = btn.cloneNode(true);
@@ -108,6 +108,20 @@ function setupEventListeners(handlers) {
   document.getElementById('new-entry-btn')?.addEventListener('click', handlers.createNewEntry);
   document.getElementById('settings-btn')?.addEventListener('click', handlers.showSettingsModal);
   document.getElementById('save-btn')?.addEventListener('click', () => handlers.saveEntry(window.api));
+  document.getElementById('copy-db-btn')?.addEventListener('click', async () => {
+    try {
+      const entries = await window.api.invoke('get-entries');
+      const success = await window.api.invoke('copy-to-clipboard', JSON.stringify(entries, null, 2));
+      if (success) {
+        handlers.showToast('Database copied to clipboard', 'success');
+      } else {
+        handlers.showToast('Failed to copy database', 'error');
+      }
+    } catch (error) {
+      console.error('Copy DB error:', error);
+      handlers.showToast('Failed to copy database', 'error');
+    }
+  });
   document.getElementById('back-btn')?.addEventListener('click', () => {
     document.getElementById('editor-container')?.classList.add('hidden');
     document.querySelector('.sidebar')?.classList.remove('hidden');
@@ -183,6 +197,18 @@ window.api.on('settings-loaded', (loadedSettings) => {
     const modal = document.getElementById('settings-modal');
     if (modal?.classList.contains('visible')) {
       modules.setupSettingsUI(settings, window.api);
+    }
+  }
+});
+
+// Listen for entries changes
+window.api.on('entries-changed', async () => {
+  try {
+    await modules.loadEntriesList(window.api, (id) => modules.loadEntry(id, window.api));
+  } catch (error) {
+    console.error('Failed to reload entries:', error);
+    if (modules?.showToast) {
+      modules.showToast('Failed to reload entries', 'error');
     }
   }
 });

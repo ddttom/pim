@@ -6,14 +6,40 @@ class DateParser {
         const now = new Date();
         const lowercaseText = text.toLowerCase();
         
-        // Handle "last Friday of the month"
-        if (lowercaseText.includes('last friday of the month')) {
-            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            let lastFriday = new Date(lastDay);
-            while (lastFriday.getDay() !== 5) {
-                lastFriday.setDate(lastFriday.getDate() - 1);
+        // Handle "last day of" expressions
+        const lastDayMatch = lowercaseText.match(/last (sunday|monday|tuesday|wednesday|thursday|friday|saturday) of (the )?(week|month|year)/i);
+        if (lastDayMatch) {
+            const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const targetDay = weekdays.indexOf(lastDayMatch[1].toLowerCase());
+            const period = lastDayMatch[3].toLowerCase();
+            
+            const date = new Date(now);
+            
+            if (period === 'week') {
+                // Move to end of current week (Saturday)
+                const daysToSaturday = 6 - now.getDay();
+                date.setDate(now.getDate() + daysToSaturday);
+                // Move backwards to target day
+                while (date.getDay() !== targetDay) {
+                    date.setDate(date.getDate() - 1);
+                }
+            } else if (period === 'month') {
+                // Move to last day of current month
+                date.setMonth(date.getMonth() + 1, 0);
+                // Move backwards to target day
+                while (date.getDay() !== targetDay) {
+                    date.setDate(date.getDate() - 1);
+                }
+            } else if (period === 'year') {
+                // Move to last day of year
+                date.setFullYear(date.getFullYear(), 11, 31);
+                // Move backwards to target day
+                while (date.getDay() !== targetDay) {
+                    date.setDate(date.getDate() - 1);
+                }
             }
-            return lastFriday;
+            
+            return date;
         }
 
         // Handle "last" expressions
@@ -87,9 +113,12 @@ class DateParser {
             if (mentionedDay) {
                 const targetDay = weekdays.indexOf(mentionedDay);
                 const date = new Date(now);
-                let diff = targetDay - now.getDay();
-                if (diff <= 0) diff += 7;
-                date.setDate(now.getDate() + diff + 7);
+                // First move to next week
+                date.setDate(now.getDate() + 7);
+                // Then calculate days until target day
+                let diff = targetDay - date.getDay();
+                if (diff < 0) diff += 7;
+                date.setDate(date.getDate() + diff);
                 return date;
             }
         }
@@ -120,4 +149,4 @@ module.exports = {
     name: 'date',
     parse: DateParser.parse.bind(DateParser),
     calculateRelativeDate: DateParser.calculateRelativeDate
-}; 
+};
