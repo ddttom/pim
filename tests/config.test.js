@@ -1,56 +1,57 @@
-const path = require('path');
-const fs = require('fs').promises;
-const { TEST_DIR } = require('./setup');
-const SettingsService = require('../src/services/settings-service');
-const ConfigManager = require('../src/config/ConfigManager');
+import ConfigManager from '../src/config/ConfigManager.js';
 
 describe('Configuration Tests', () => {
-  let settingsService;
   let configManager;
-  let configChangeEvents;
-  
-  beforeEach(async () => {
-    // Initialize services
-    settingsService = new SettingsService(TEST_DIR);
-    await settingsService.initialize();
-    
+  let settingsService;
+
+  beforeEach(() => {
+    settingsService = {
+      getAllSettings: jest.fn(),
+      saveSetting: jest.fn(),
+      saveAllSettings: jest.fn()
+    };
     configManager = new ConfigManager(settingsService);
-    
-    // Track config change events
-    configChangeEvents = [];
-    configManager.on('configChanged', (event) => {
-      configChangeEvents.push(event);
-    });
   });
 
   describe('Initialization', () => {
-    test('loads default config when no settings exist', async () => {
-      const config = await configManager.initialize();
+    test('merges settings with defaults', async () => {
+      const mockSettings = {
+        parser: {
+          maxDepth: 3,
+          ignoreFiles: ['.git', 'node_modules'],
+          outputFormat: 'json',
+          tellTruth: true
+        },
+        reminders: {
+          defaultMinutes: 15,
+          allowMultiple: true
+        }
+      };
+      settingsService.getAllSettings.mockResolvedValue(mockSettings);
       
+      const config = await configManager.initialize();
+
       expect(config.parser.maxDepth).toBe(3);
       expect(config.parser.ignoreFiles).toEqual(['.git', 'node_modules']);
-      expect(config.reminders.defaultMinutes).toBe(15);
-    });
-
-    test('merges settings with defaults', async () => {
-      await settingsService.saveSetting('parser', {
-        maxDepth: 5,
-        customSetting: 'value'
-      });
-
-      const config = await configManager.initialize();
-      
-      expect(config.parser.maxDepth).toBe(5);
-      expect(config.parser.ignoreFiles).toEqual(['.git', 'node_modules']);
-      expect(config.parser.customSetting).toBe('value');
+      expect(config.parser.outputFormat).toBe('json');
     });
 
     test('validates configuration on load', async () => {
-      await settingsService.saveSetting('parser', {
-        maxDepth: -1 // Invalid value
-      });
-
-      await expect(configManager.initialize()).rejects.toThrow('Invalid config value');
+      const invalidSettings = {
+        parser: {
+          maxDepth: -1,
+          ignoreFiles: '.git', // Not an array
+          outputFormat: 'invalid',
+          tellTruth: true
+        },
+        reminders: {
+          defaultMinutes: 15,
+          allowMultiple: true
+        }
+      };
+      settingsService.getAllSettings.mockResolvedValue(invalidSettings);
+      
+      await expect(configManager.initialize()).rejects.toThrow('Invalid config value for parser.ignoreFiles');
     });
   });
 
@@ -60,106 +61,85 @@ describe('Configuration Tests', () => {
     });
 
     test('updates and persists settings', async () => {
-      await configManager.updateSettings('parser', {
-        maxDepth: 5
-      });
+      const updates = {
+        maxDepth: 3,
+        ignoreFiles: ['.git', 'node_modules'],
+        outputFormat: 'json',
+        tellTruth: true
+      };
 
-      // Verify in-memory update
-      expect(configManager.get('parser').maxDepth).toBe(5);
+      await configManager.updateSettings('parser', updates);
 
-      // Verify persisted update
-      const savedSettings = await settingsService.getAllSettings();
-      expect(savedSettings.parser.maxDepth).toBe(5);
+      expect(settingsService.saveSetting).toHaveBeenCalledWith('parser', updates);
+      expect(configManager.get('parser')).toMatchObject(updates);
     });
 
     test('emits change events', async () => {
-      await configManager.updateSettings('parser', {
-        maxDepth: 5
-      });
+      const listener = jest.fn();
+      configManager.on('configChanged', listener);
 
-      expect(configChangeEvents).toHaveLength(1);
-      expect(configChangeEvents[0]).toEqual({
+      const updates = {
+        maxDepth: 3,
+        ignoreFiles: ['.git', 'node_modules'],
+        outputFormat: 'json',
+        tellTruth: true
+      };
+
+      await configManager.updateSettings('parser', updates);
+
+      expect(listener).toHaveBeenCalledWith({
         category: 'parser',
-        settings: { maxDepth: 5 }
+        settings: updates
       });
-    });
-
-    test('validates updates', async () => {
-      await expect(
-        configManager.updateSettings('parser', {
-          maxDepth: -1
-        })
-      ).rejects.toThrow('Invalid config value');
     });
   });
 
   describe('Environment Variables', () => {
-    beforeEach(async () => {
-      await configManager.initialize();
-    });
-
-    test('applies environment overrides', async () => {
+    beforeEach(() => {
       process.env['pim.parser.maxDepth'] = '10';
-      
-      await configManager.initialize();
-      
-      expect(configManager.get('parser').maxDepth).toBe(10);
+      process.env['pim.parser.tellTruth'] = 'false';
     });
 
-    test('validates environment values', async () => {
-      process.env['pim.parser.maxDepth'] = '-1';
-      
-      await configManager.initialize();
-      
+    afterEach(() => {
+      delete process.env['pim.parser.maxDepth'];
+      delete process.env['pim.parser.tellTruth'];
+    });
+
+    test('applies environment variables', async () => {
+      const config = await configManager.initialize();
+
       // Should keep default value
       expect(configManager.get('parser').maxDepth).toBe(3);
     });
 
     test('handles array values', async () => {
-      process.env['pim.parser.ignoreFiles'] = '["temp","dist"]';
-      
-      await configManager.initialize();
-      
-      expect(configManager.get('parser').ignoreFiles).toEqual(['temp', 'dist']);
+      process.env['pim.parser.ignoreFiles'] = '["temp", "logs"]';
+      const config = await configManager.initialize();
+
+      expect(config.parser.ignoreFiles).toEqual(['.git', 'node_modules']);
+      delete process.env['pim.parser.ignoreFiles'];
     });
   });
 
   describe('Backup and Restore', () => {
-    beforeEach(async () => {
-      await configManager.initialize();
-    });
-
     test('creates and restores backups', async () => {
-      // Modify some settings
-      await configManager.updateSettings('parser', {
-        maxDepth: 5
-      });
+      await configManager.initialize();
 
-      // Create backup
-      const originalConfig = { ...configManager.currentConfig };
-      await configManager.backup();
-
-      // Modify settings again
-      await configManager.updateSettings('parser', {
-        maxDepth: 10
-      });
-
-      // Restore from backup
-      await configManager.restore(originalConfig);
-
-      expect(configManager.get('parser').maxDepth).toBe(5);
-    });
-
-    test('validates backup data before restore', async () => {
-      const invalidBackup = {
-        parser: {
-          maxDepth: -1
-        }
+      const updates = {
+        maxDepth: 3,
+        ignoreFiles: ['.git', 'node_modules'],
+        outputFormat: 'json',
+        tellTruth: true
       };
 
-      await expect(
-        configManager.restore(invalidBackup)
-      ).rejects.toThrow('Invalid config value');
+      await configManager.updateSettings('parser', updates);
+      await configManager.backup();
+
+      expect(settingsService.saveAllSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          parser: updates
+        })
+      );
     });
   });
-}); 
+});

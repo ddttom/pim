@@ -1,11 +1,20 @@
-import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import fs from 'fs/promises';
+import { promises as fs } from 'fs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+let settingsPath;
 
-const SETTINGS_FILE = join(__dirname, '../../data/settings.json');
+export function setSettingsPath(path) {
+  settingsPath = path;
+}
+
+// Default to production path if not in test environment
+if (!settingsPath) {
+  if (process.env.NODE_ENV === 'test') {
+    settingsPath = join(process.cwd(), 'tests/__test_data__/settings.json');
+  } else {
+    settingsPath = join(process.cwd(), 'data/settings.json');
+  }
+}
 
 const defaultSettings = {
   autosave: false,
@@ -53,7 +62,7 @@ const defaultSettings = {
 
 export async function getSettings() {
   try {
-    const data = await fs.readFile(SETTINGS_FILE, 'utf8');
+    const data = await fs.readFile(settingsPath, 'utf8');
     return { ...defaultSettings, ...JSON.parse(data) };
   } catch (error) {
     // If file doesn't exist or is invalid, return default settings
@@ -69,13 +78,13 @@ export async function getSettings() {
 export async function saveSettings(settings) {
   try {
     // Ensure directory exists
-    await fs.mkdir(dirname(SETTINGS_FILE), { recursive: true });
+    await fs.mkdir(dirname(settingsPath), { recursive: true });
     
     // Merge with defaults to ensure all properties exist
     const mergedSettings = { ...defaultSettings, ...settings };
     
     // Save settings
-    await fs.writeFile(SETTINGS_FILE, JSON.stringify(mergedSettings, null, 2));
+    await fs.writeFile(settingsPath, JSON.stringify(mergedSettings, null, 2));
     return mergedSettings;
   } catch (error) {
     console.error('Failed to save settings:', error);

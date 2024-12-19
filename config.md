@@ -11,12 +11,27 @@ The application uses a multi-layered configuration system with clear priority le
 
 ## File Locations
 
-### pim.json
+### Project Structure
 
-- **Location**: `{userData}/pim.json`
-  - Windows: `%APPDATA%/pim/pim.json`
-  - macOS: `~/Library/Application Support/pim/pim.json`
-  - Linux: `~/.config/pim/pim.json`
+```bash
+config/                 # Configuration templates
+├── ...                # Configuration presets
+
+data/                  # Application data
+├── pim.db            # Main database
+└── settings.json     # User settings
+
+db/                    # Database configuration
+└── config.json       # Database settings
+
+src/config/           # Configuration management
+├── ConfigManager.js  # Core configuration logic
+└── parser.config.js  # Parser-specific config
+```
+
+### Database File
+
+- **Location**: `data/pim.db`
 - **Purpose**: Database file for entries only
 - **Managed by**: JsonDatabaseService
 - **Contains**:
@@ -31,9 +46,9 @@ The application uses a multi-layered configuration system with clear priority le
   }
   ```
 
-### settings.json
+### Settings File
 
-- **Location**: `{userData}/settings.json`
+- **Location**: `data/settings.json`
 - **Purpose**: Runtime settings and user preferences
 - **Managed by**: SettingsService
 - **Example**:
@@ -53,18 +68,28 @@ The application uses a multi-layered configuration system with clear priority le
   }
   ```
 
-### config.json
+### Database Config
 
-- **Location**: `{userData}/config.json`
+- **Location**: `db/config.json`
 - **Purpose**: Static configuration overrides
 - **Managed by**: ConfigManager
 - **Used for**: Initial/default configuration values
 
 ## Testing
 
+### Test Environment Setup
+
+The test environment is configured to:
+
+- Use jsdom for DOM manipulation tests
+- Create isolated test directories
+- Clean up test data automatically
+- Reset mocks between tests
+- Handle file system operations safely
+
 ### Test Files
 
-The application includes several test suites:
+The application includes comprehensive test suites:
 
 1. **Configuration Tests** (`tests/config.test.js`)
    - Tests settings management
@@ -106,12 +131,14 @@ The application includes several test suites:
    npm run test:parser-persist
    ```
 
-### Test Data Location
+### Test Data Management
 
 - Tests use isolated data directory: `tests/__test_data__/`
 - Each test run uses unique filenames with timestamps
 - Example: `pim.test.1234567890.json`
-- All test files are automatically cleaned up
+- Automatic directory creation and cleanup
+- Proper handling of test media files
+- Safe concurrent test execution
 
 ### Running Tests
 
@@ -120,9 +147,44 @@ The application includes several test suites:
 npm test
 
 # Run specific test suites
-npm run test:config
-npm run test:db
-npm run test:parser-persist
+npm run test:config      # Configuration tests
+npm run test:db         # Database operations
+npm run test:parser     # Parser functionality
+npm run test:renderer   # UI components
+npm run test:rich-text  # Editor features
+npm run test:plugins    # Plugin system
+```
+
+### Mock Implementation
+
+The test suite includes carefully crafted mocks for:
+
+- Editor functionality
+- File system operations
+- IPC communication
+- DOM manipulation
+- Plugin system
+- Configuration management
+
+Example mock for editor:
+
+```javascript
+jest.mock('../src/renderer/editor/editor.js', () => {
+  const mockEditor = {
+    root: { innerHTML: '' },
+    getSelection: jest.fn(() => ({ index: 0 })),
+    insertEmbed: jest.fn()
+  };
+  
+  return {
+    initializeEditor: jest.fn(() => mockEditor),
+    getEditor: jest.fn(() => mockEditor),
+    handleImageUpload: jest.fn(),
+    showEditor: jest.fn(),
+    clearEditor: jest.fn(),
+    getEditorContent: jest.fn()
+  };
+});
 ```
 
 ## Service Responsibilities

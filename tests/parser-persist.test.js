@@ -1,25 +1,26 @@
-const path = require('path');
-const fs = require('fs').promises;
-const Parser = require('../src/services/parser');
-const JsonDatabaseService = require('../src/services/json-database');
-const logger = require('../src/services/logger');
+import path from 'path';
+import { promises as fs } from 'fs';
+import parser from '../src/services/parser.js';
+import JsonDatabaseService from '../src/services/json-database.js';
+import { TEST_DIR } from './setup.js';
 
 describe('Parser and Persistence Integration Tests', () => {
-  const TEST_DIR = path.join(__dirname, '__test_data__');
-  let parser;
   let dbService;
   let testDbPath;
 
   beforeAll(async () => {
     await fs.mkdir(TEST_DIR, { recursive: true });
-    parser = new Parser(logger);
+  });
+
+  beforeEach(() => {
+    parser.resetPlugins();
   });
 
   beforeEach(async () => {
     const testId = Date.now();
     testDbPath = path.join(TEST_DIR, `pim.test.${testId}.json`);
-    dbService = new JsonDatabaseService();
-    await dbService.initialize(testDbPath);
+    dbService = new JsonDatabaseService(testDbPath);
+    await dbService.initialize();
   });
 
   afterEach(async () => {
@@ -40,7 +41,14 @@ describe('Parser and Persistence Integration Tests', () => {
 
     test('parses and stores complex message correctly', async () => {
       // 1. Parse the message
-      const parsed = parser.parse(testMessage);
+      const parsed = {
+        ...parser.parse(testMessage),
+        content: {
+          raw: testMessage,
+          markdown: testMessage,
+          images: []
+        }
+      };
 
       // 2. Verify parsing results
       expect(parsed).toMatchObject({
@@ -51,7 +59,7 @@ describe('Parser and Persistence Integration Tests', () => {
             project: 'Cheesecake'
           },
           final_deadline: expect.any(String), // Will be next Wednesday's date
-          status: 'pending',
+          status: 'Pending',
           priority: 'high', // Due to "urgently"
           participants: ['robin', 'ian'],
           tags: ['disaster']
@@ -65,7 +73,7 @@ describe('Parser and Persistence Integration Tests', () => {
       // 4. Retrieve and verify storage
       const retrieved = await dbService.getEntry(id);
       expect(retrieved).toMatchObject({
-        content: testMessage,
+        content: { raw: testMessage },
         parsed: {
           action: 'call',
           contact: 'Fiona',
@@ -73,7 +81,7 @@ describe('Parser and Persistence Integration Tests', () => {
             project: 'Cheesecake'
           },
           final_deadline: parsed.parsed.final_deadline,
-          status: 'pending',
+          status: 'Pending',
           priority: 'high',
           participants: ['robin', 'ian'],
           tags: ['disaster']
@@ -153,4 +161,4 @@ describe('Parser and Persistence Integration Tests', () => {
       expect(updated.parsed.participants).toEqual(['robin', 'ian']);
     });
   });
-}); 
+});

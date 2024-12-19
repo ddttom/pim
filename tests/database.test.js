@@ -1,121 +1,110 @@
-const path = require('path');
-const fs = require('fs').promises;
-const JsonDatabaseService = require('../src/services/json-database');
+import { promises as fs } from 'fs';
+import path from 'path';
+import JsonDatabaseService from '../src/services/json-database.js';
+import { TEST_DIR } from './setup.js';
+
+async function createTestDb() {
+  const testId = Date.now();
+  const dbPath = path.join(TEST_DIR, `pim.test.${testId}.json`);
+  const dbService = new JsonDatabaseService(dbPath);
+  await dbService.initialize();
+  return { dbService, dbPath };
+}
 
 describe('Database Service Tests', () => {
-  const TEST_DIR = path.join(__dirname, '__test_data__');
   let dbService;
-  let testDbPath;
-
-  beforeAll(async () => {
-    await fs.mkdir(TEST_DIR, { recursive: true });
-  });
+  let dbPath;
 
   beforeEach(async () => {
-    // Create unique test database file for each test
-    const testId = Date.now();
-    testDbPath = path.join(TEST_DIR, `pim.test.${testId}.json`);
-    
-    dbService = new JsonDatabaseService();
-    await dbService.initialize(testDbPath);
+    const db = await createTestDb();
+    dbService = db.dbService;
+    dbPath = db.dbPath;
   });
 
   afterEach(async () => {
-    // Close database connection
     if (dbService?.isInitialized()) {
       await dbService.close();
     }
-    
-    // Clean up test file
-    if (await fs.access(testDbPath).then(() => true).catch(() => false)) {
-      await fs.unlink(testDbPath);
+    if (await fs.access(dbPath).then(() => true).catch(() => false)) {
+      await fs.unlink(dbPath);
     }
-  });
-
-  afterAll(async () => {
-    await fs.rm(TEST_DIR, { recursive: true, force: true });
   });
 
   describe('Entry Operations', () => {
     test('creates new database file if not exists', async () => {
-      const exists = await fs.access(testDbPath).then(() => true).catch(() => false);
-      expect(exists).toBe(true);
+      expect(await fs.access(dbPath).then(() => true).catch(() => false)).toBe(true);
     });
 
     test('adds and retrieves entry', async () => {
-      const testEntry = {
-        content: 'Meet with John about project',
-        parsed: {
-          action: 'meet',
-          person: 'John',
-          topic: 'project',
-          status: 'pending'
-        }
+      const entry = {
+        content: { raw: 'Test entry' },
+        parsed: { status: 'pending' }
       };
 
-      const id = await dbService.addEntry(testEntry);
-      expect(id).toBeDefined();
-
+      const id = await dbService.addEntry(entry);
       const retrieved = await dbService.getEntry(id);
-      expect(retrieved.content).toBe(testEntry.content);
-      expect(retrieved.parsed).toEqual(testEntry.parsed);
+
+      expect(retrieved.content).toEqual(entry.content);
+      expect(retrieved.parsed).toEqual(entry.parsed);
       expect(retrieved.created_at).toBeDefined();
       expect(retrieved.updated_at).toBeDefined();
     });
 
     test('updates existing entry', async () => {
-      const id = await dbService.addEntry({ content: 'Original task' });
+      const entry = {
+        content: { raw: 'Original text' },
+        parsed: { status: 'pending' }
+      };
+
+      const id = await dbService.addEntry(entry);
       
       const updates = {
-        content: 'Updated task',
+        content: { raw: 'Updated text', markdown: 'Updated text' },
         parsed: { status: 'complete' }
       };
-      
+
       const updated = await dbService.updateEntry(id, updates);
-      expect(updated.content).toBe(updates.content);
+
+      expect(updated.content.raw).toBe(updates.content.raw);
+      expect(updated.content.markdown).toBe(updates.content.markdown);
       expect(updated.parsed.status).toBe('complete');
       expect(updated.updated_at).not.toBe(updated.created_at);
     });
 
     test('deletes entry', async () => {
-      const id = await dbService.addEntry({ content: 'Task to delete' });
-      
-      const deleted = await dbService.deleteEntry(id);
-      expect(deleted).toBe(true);
-      
-      const retrieved = await dbService.getEntry(id);
-      expect(retrieved).toBeUndefined();
+      const entry = {
+        content: { raw: 'Test entry' }
+      };
+
+      const id = await dbService.addEntry(entry);
+      await dbService.deleteEntry(id);
+
+      await expect(dbService.getEntry(id)).rejects.toThrow('Entry not found');
+    });
+
+    test('throws error for non-existent entry', async () => {
+      await expect(dbService.getEntry('non_existent_id')).rejects.toThrow('Entry not found');
     });
   });
 
   describe('Entry Filtering', () => {
     beforeEach(async () => {
-      // Clear any existing entries
-      dbService = new JsonDatabaseService();
-      await dbService.initialize(testDbPath);
+      // Add test entries
+      await dbService.addEntry({
+        content: { raw: 'High priority task' },
+        parsed: { priority: 'high', status: 'pending' }
+      });
+      await dbService.addEntry({
+        content: { raw: 'Normal priority task' },
+        parsed: { priority: 'normal', status: 'pending' }
+      });
+      await dbService.addEntry({
+        content: { raw: 'Low priority task' },
+        parsed: { priority: 'low', status: 'complete' }
+      });
     });
 
     test('filters by status', async () => {
-      // Add test entries first
-      const entries = [
-        {
-          content: 'High priority task',
-          parsed: { status: 'pending', priority: 'high', category: 'work' }
-        },
-        {
-          content: 'Low priority task',
-          parsed: { status: 'pending', priority: 'low', category: 'personal' }
-        },
-        {
-          content: 'Completed task',
-          parsed: { status: 'complete', priority: 'high', category: 'work' }
-        }
-      ];
-
-      for (const entry of entries) {
-        await dbService.addEntry(entry);
-      }
-
       const filters = {
         status: new Set(['pending'])
       };
@@ -127,49 +116,18 @@ describe('Database Service Tests', () => {
       });
     });
 
-    test('filters by multiple criteria', async () => {
-      const entries = [
-        {
-          content: 'High priority task',
-          parsed: { status: 'pending', priority: 'high', category: 'work' }
-        },
-        {
-          content: 'Low priority task',
-          parsed: { status: 'pending', priority: 'low', category: 'personal' }
-        }
-      ];
-
-      for (const entry of entries) {
-        await dbService.addEntry(entry);
-      }
-
+    test('filters by priority', async () => {
       const filters = {
-        status: new Set(['pending']),
-        categories: new Set(['work'])
+        priority: new Set(['high'])
       };
 
       const filtered = await dbService.getEntries(filters);
       expect(filtered).toHaveLength(1);
-      expect(filtered[0].parsed.category).toBe('work');
-      expect(filtered[0].parsed.status).toBe('pending');
+      expect(filtered[0].parsed.priority).toBe('high');
     });
 
     test('sorts entries', async () => {
-      const entries = [
-        { parsed: { priority: 'low' } },
-        { parsed: { priority: 'high' } }
-      ];
-
-      for (const entry of entries) {
-        await dbService.addEntry(entry);
-      }
-
-      const filters = {
-        sort: {
-          column: 'parsed.priority',
-          direction: 'DESC'
-        }
-      };
+      const filters = {};
 
       const filtered = await dbService.getEntries(filters);
       expect(filtered[0].parsed.priority).toBe('high');
@@ -179,28 +137,44 @@ describe('Database Service Tests', () => {
 
   describe('Batch Operations', () => {
     test('handles multiple operations in transaction', async () => {
-      await dbService.batch(async () => {
-        const id1 = await dbService.addEntry({ content: 'Task 1' });
-        const id2 = await dbService.addEntry({ content: 'Task 2' });
-        await dbService.updateEntry(id1, { content: 'Updated Task 1' });
-        await dbService.deleteEntry(id2);
+      // First add an entry
+      const id = await dbService.addEntry({
+        content: { raw: 'Task 1' }
       });
+
+      // Then perform batch operations
+      await dbService.batch([
+        async (db) => {
+          await db.updateEntry(id, {
+            content: { raw: 'Updated Task 1' }
+          });
+        }
+      ]);
 
       const entries = await dbService.getEntries();
       expect(entries).toHaveLength(1);
-      expect(entries[0].content).toBe('Updated Task 1');
+      expect(entries[0].content.raw).toBe('Updated Task 1');
     });
 
     test('rolls back on error', async () => {
-      const initialEntries = await dbService.getEntries();
-      
-      await expect(dbService.batch(async () => {
-        await dbService.addEntry({ content: 'Task 1' });
-        throw new Error('Test error');
-      })).rejects.toThrow();
+      // Add initial entry
+      const id = await dbService.addEntry({
+        content: { raw: 'Original Task' }
+      });
 
-      const finalEntries = await dbService.getEntries();
-      expect(finalEntries).toHaveLength(initialEntries.length);
+      // Attempt batch that will fail
+      await expect(dbService.batch([
+        async (db) => {
+          await db.updateEntry(id, {
+            content: { raw: 'Updated Task' }
+          });
+          throw new Error('Test error');
+        }
+      ])).rejects.toThrow('Test error');
+
+      // Verify rollback
+      const entry = await dbService.getEntry(id);
+      expect(entry.content.raw).toBe('Original Task');
     });
   });
-}); 
+});

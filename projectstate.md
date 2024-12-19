@@ -2,8 +2,22 @@
 
 PIM (Personal Information Manager) is designed to be a lightweight, fast, and efficient note-taking application. The focus is on simplicity and performance, using vanilla JavaScript without TypeScript or heavy frameworks. This approach ensures quick startup times and minimal resource usage.
 
+## Documentation
+
+- [User Manual](usermanual.md) - Guide for end users
+- [Project Status](projectstate.md) - Current state and roadmap
+- [Configuration](config.md) - Configuration system details
+- [Plugin System](docs/plugin.md) - Plugin development guide
+- [Testing](docs/test.md) - Test suite documentation
+- [Contributing](CONTRIBUTING.md) - Development guidelines
+
 ## Recently Completed
 
+- Improved test coverage and reliability  
+  - Added proper mock implementations
+  - Improved test directory management
+  - Enhanced image upload testing
+  - Fixed configuration test validation
 - Added collapsible sidebar with arrow toggle
 - Improved sidebar UI with immediate collapse/expand
 - Added settings modal with proper organization
@@ -112,7 +126,7 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
 
 ## Known Issues
 
-- Some settings may not persist after app restart
+- Plugin error handling needs improvement
 - Editor state management needs improvement
 - Filter dropdown positioning needs work
 - Mobile layout needs optimization
@@ -139,6 +153,7 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
 
 ## Technical Debt
 
+- Improve plugin error handling and logging
 - Need to refactor event listener management
 - Consider moving to a state management system
 - Improve error handling consistency

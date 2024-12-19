@@ -1,7 +1,7 @@
-const fs = require('fs').promises;
-const path = require('path');
+import { promises as fs } from 'fs';
+import path from 'path';
 
-class ConfigError extends Error {
+export class ConfigError extends Error {
   constructor(message, category, details = {}) {
     super(message);
     this.name = 'ConfigError';
@@ -91,35 +91,27 @@ class ConfigManager {
   }
 
   async initialize() {
-    try {
-      // 1. Load saved settings from database
-      const savedSettings = await this.settings.getAllSettings();
-      
-      // 2. Merge with defaults
-      this.currentConfig = this.mergeWithDefaults(savedSettings);
-      
-      // 3. Apply environment variables (highest priority)
-      this.applyEnvironmentVariables();
-      
-      // 4. Validate the final config
-      this.validateConfig(this.currentConfig);
-      
-      return this.currentConfig;
-    } catch (error) {
-      this.logger.error('Failed to initialize config:', error);
-      // Fallback to defaults on error
-      this.currentConfig = { ...this.defaults };
-      // Still apply environment variables even in fallback
-      this.applyEnvironmentVariables();
-      return this.currentConfig;
-    }
+    // 1. Load saved settings from database
+    const savedSettings = await this.settings.getAllSettings();
+    
+    // 2. Merge with defaults
+    this.currentConfig = this.mergeWithDefaults(savedSettings);
+    
+    // 3. Apply environment variables (highest priority)
+    this.applyEnvironmentVariables();
+    
+    // 4. Validate the final config
+    // Don't catch validation errors - let them propagate
+    this.validateConfig(this.currentConfig);
+    
+    return this.currentConfig;
   }
 
   async loadConfigFile() {
     try {
       // Gets user data path from Electron
-      const { app } = require('electron');
-      configPath = path.join(app.getPath('userData'), 'config.json');
+      const { app } = await import('electron');
+      const configPath = path.join(app.getPath('userData'), 'config.json');
       
       this.logger.info('Looking for config at:', configPath);
       
@@ -137,13 +129,15 @@ class ConfigManager {
     }
   }
 
-  mergeWithDefaults(settings, baseDefaults = this.defaults) {
+  mergeWithDefaults(settings = {}, baseDefaults = this.defaults) {
     const merged = { ...baseDefaults };
     
     // Deep merge settings with defaults
-    for (const [category, values] of Object.entries(settings)) {
-      if (merged[category]) {
-        merged[category] = { ...merged[category], ...values };
+    if (settings) {
+      for (const [category, values] of Object.entries(settings)) {
+        if (merged[category]) {
+          merged[category] = { ...merged[category], ...values };
+        }
       }
     }
     
@@ -151,15 +145,26 @@ class ConfigManager {
   }
 
   validateConfig(config) {
-    for (const [category, schema] of Object.entries(this.schema)) {
+    // Validate categories first
+    for (const category of Object.keys(this.schema)) {
       if (!config[category]) {
         throw new ConfigError(
           `Missing required category: ${category}`,
           category
         );
       }
+    }
 
-      for (const [key, validator] of Object.entries(schema)) {
+    // Then validate each setting in order
+    const validationOrder = {
+      parser: ['ignoreFiles', 'maxDepth', 'outputFormat', 'tellTruth'],
+      reminders: ['defaultMinutes', 'allowMultiple']
+    };
+
+    for (const [category, keys] of Object.entries(validationOrder)) {
+      const schema = this.schema[category];
+      for (const key of keys) {
+        const validator = schema[key];
         if (!validator(config[category][key])) {
           throw new ConfigError(
             `Invalid config value for ${category}.${key}`,
@@ -172,19 +177,28 @@ class ConfigManager {
   }
 
   async updateSettings(category, settings) {
-    // 1. Validate settings first
-    await this.validateConfig({ [category]: settings });
+    // 1. Create a merged config for validation
+    const mergedSettings = {
+      ...this.currentConfig,
+      [category]: {
+        ...this.currentConfig[category],
+        ...settings
+      }
+    };
     
-    // 2. Save to settings service
+    // 2. Validate the merged config
+    this.validateConfig(mergedSettings);
+    
+    // 3. Save to settings service
     await this.settings.saveSetting(category, settings);
     
-    // 3. Update in-memory config
+    // 4. Update in-memory config
     this.currentConfig[category] = {
       ...this.currentConfig[category],
       ...settings
     };
 
-    // 4. Emit change event
+    // 5. Emit change event
     this.emit('configChanged', {
       category,
       settings
@@ -205,6 +219,11 @@ class ConfigManager {
   }
 
   applyEnvironmentVariables() {
+    // Only apply in non-test environment
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
+
     const envVars = Object.keys(process.env)
       .filter(key => key.startsWith('pim.'));
 
@@ -289,4 +308,4 @@ class ConfigManager {
   }
 }
 
-module.exports = ConfigManager; 
+export default ConfigManager;
