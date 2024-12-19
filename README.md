@@ -5,6 +5,7 @@ A desktop application for managing personal information with rich text editing c
 ## Features
 
 - Rich text editor with markdown support
+- Multiple content types (Note, Document, Template, HTML)
 - Collapsible sidebar for better workspace management
 - Advanced settings management
 - Customizable themes
@@ -80,9 +81,20 @@ npm run dev
 
 - Use the sidebar toggle (←/→) to collapse/expand the sidebar
 - Create new entries with Ctrl+N or the New Entry button
-create - Save entries with Ctrl+S
+- Save entries with Ctrl+S
+- Save As to change entry type (Note/Document/Template/HTML)
 - Access settings via the gear icon or Ctrl+,
 - Use keyboard shortcuts for common actions
+
+## UI Features
+
+- Streamlined toolbar with icon-only buttons and tooltips
+- Content type badges showing current entry type
+- Consistent button sizes and spacing
+- Hover effects and visual feedback
+- Modal dialogs for settings and Save As
+- Proper z-index management for overlays
+- Theme-aware styling throughout
 
 ## Keyboard Shortcuts
 

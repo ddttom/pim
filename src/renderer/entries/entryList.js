@@ -90,59 +90,35 @@ export function sortEntries(entries) {
 }
 
 export function renderEntries(entries, onEntryClick) {
-  const entriesList = document.getElementById('entries-list');
-  if (!entriesList) return;
+  console.log('Rendering entries:', entries);
+  const tbody = document.querySelector('#entries-list tbody');
+  if (!tbody) return;
 
-  try {
-    console.log('Rendering entries:', entries);
-    const tbody = entriesList.querySelector('tbody');
-    if (!tbody) return;
+  tbody.innerHTML = entries.map(entry => {
+    // Handle dates properly
+    const dateStr = entry.updatedAt || entry.created_at || entry.updated_at;
+    const formattedDate = dateStr ? formatDate(dateStr) : '-';
 
-    tbody.innerHTML = entries.map(entry => {
-      const content = entry.raw || 'Untitled';
-      const truncatedContent = content.length > 13 ? content.slice(0, 13) + '...' : content;
-      const project = entry.parsed?.project?.project || '-';
-      const deadline = entry.parsed?.final_deadline ? formatDate(entry.parsed.final_deadline) : '-';
-      const priority = entry.parsed?.priority || 'normal';
-      const tags = entry.parsed?.tags || [];
-      const tagsHtml = tags.map(tag => `<span class="tag">${tag}</span>`).join('') || '-';
-      
-      return `
-        <tr data-id="${entry.id}">
-          <td class="content-cell" title="${content}">${truncatedContent}</td>
-          <td class="date-cell">${formatDate(entry.created_at)}</td>
-          <td class="project-cell">${project}</td>
-          <td class="priority-cell ${priority}">${priority}</td>
-          <td class="tags-cell">${tagsHtml}</td>
-          <td class="deadline-cell">${deadline}</td>
-        </tr>
-      `;
-    }).join('');
+    return `
+      <tr data-id="${entry.id}">
+        <td class="content-cell" title="${entry.raw || ''}">${(entry.raw || '').substring(0, 50)}...</td>
+        <td class="type-cell ${entry.type || 'note'}">${entry.type || 'note'}</td>
+        <td class="date-cell">${formattedDate}</td>
+        <td class="project-cell">${entry.parsed?.project?.project || '-'}</td>
+        <td class="priority-cell ${entry.parsed?.priority || 'normal'}">${entry.parsed?.priority || 'normal'}</td>
+        <td class="tags-cell">${entry.parsed?.tags?.join(', ') || '-'}</td>
+        <td class="deadline-cell">${entry.parsed?.final_deadline ? formatDate(entry.parsed.final_deadline) : '-'}</td>
+      </tr>
+    `;
+  }).join('');
 
-    // Add click handlers to rows
-    tbody.querySelectorAll('tr').forEach(item => {
-      item.addEventListener('click', () => {
-        const id = item.dataset.id;
-        if (id) onEntryClick(id);
-      });
+  // Add click handlers
+  tbody.querySelectorAll('tr').forEach(row => {
+    row.addEventListener('click', () => {
+      const id = row.getAttribute('data-id');
+      if (id && onEntryClick) onEntryClick(id);
     });
-
-    // Update sort icons
-    const [currentColumn, direction] = currentFilters.sort.split('-');
-    document.querySelectorAll('.entries-table th.sortable').forEach(header => {
-      const column = header.dataset.sort;
-      header.classList.remove('sort-asc', 'sort-desc');
-      header.querySelector('.sort-icon').textContent = '↕️';
-      
-      if (column === currentColumn) {
-        header.classList.add(direction === 'asc' ? 'sort-asc' : 'sort-desc');
-        header.querySelector('.sort-icon').textContent = direction === 'asc' ? '↑' : '↓';
-      }
-    });
-  } catch (error) {
-    console.error('Failed to render entries:', error);
-    showToast('Failed to display entries', 'error');
-  }
+  });
 }
 
 export async function loadEntriesList(ipcRenderer, onEntryClick) {
@@ -156,6 +132,21 @@ export async function loadEntriesList(ipcRenderer, onEntryClick) {
     console.log('Fetching entries...');
     const entries = await ipcRenderer.invoke('get-entries');
     console.log('Received entries:', entries);
+
+    // Update table header to include type column
+    const headerRow = entriesList.querySelector('thead tr');
+    if (headerRow && !headerRow.querySelector('[data-sort="type"]')) {
+      // Insert type column after content column
+      const typeHeader = document.createElement('th');
+      typeHeader.className = 'sortable';
+      typeHeader.setAttribute('data-sort', 'type');
+      typeHeader.innerHTML = 'Type <span class="sort-icon">↕️</span>';
+      
+      const contentColumn = headerRow.querySelector('[data-sort="content"]');
+      if (contentColumn) {
+        contentColumn.after(typeHeader);
+      }
+    }
 
     const filteredEntries = filterEntries(entries);
     console.log('Filtered entries:', filteredEntries);

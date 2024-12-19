@@ -23,6 +23,9 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
 - Uses JsonDatabaseService for persistent storage
 - Stores data in user's application data directory
 - Supports CRUD operations for entries
+- Supports multiple content types (Note, Document, Template, HTML)
+- Only Note type entries are parsed for metadata
+- Legacy entries without type are treated as Notes
 - Handles image attachments with media directory
 - Provides backup/restore functionality
 - Uses atomic operations with rollback support
@@ -32,6 +35,12 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
 
 ## Recently Completed
 
+- Added content type system
+  - Added support for Notes, Documents, Templates, and HTML types
+  - Implemented "Save As" functionality in editor
+  - Added type filtering in sidebar
+  - Only Notes are parsed for metadata
+  - Backward compatible with existing entries
 - Improved date parsing system
   - Added generic "last day of" expressions
   - Added support for week/month/year periods
@@ -86,6 +95,24 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
   - Added ConfigManager for centralized configuration
   - Improved test coverage for parser and database
   - Added proper error handling in services
+- Fixed z-index and tooltip issues
+  - Identified overlapping z-index problems with modals, tooltips and editor
+  - Standardized z-index hierarchy:
+    - Base editor components: z-index 1
+    - Tooltips: z-index 1000
+    - Modals backdrop: z-index 99999
+    - Modal content: z-index 100000
+    - Modal buttons: z-index 100001
+  - Fixed tooltip visibility issues
+    - Switched from custom data-tooltip to native title attribute
+    - Added proper arrow indicators
+    - Improved tooltip styling and positioning
+    - Made tooltips match app theme variables
+  - Improved button interactions
+    - Added hover states
+    - Increased touch targets to 40x40px
+    - Made icons more prominent
+    - Added consistent spacing
 
 ## In Progress
 

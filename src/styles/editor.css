@@ -1,0 +1,301 @@
+/* Save As button styling */
+#save-as-btn {
+    margin-left: 8px;
+    margin-right: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+#save-as-btn .btn-icon {
+    font-size: 14px;
+}
+
+/* Modal form styling */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.form-control {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+} 
+
+.editor-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.editor-actions button {
+    margin: 0; /* Reset any existing margins */
+}
+
+/* Modal styling */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999 !important;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: all 0.2s ease-in-out;
+}
+
+.modal.show {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.modal .modal-container {
+    background-color: var(--background-color, white) !important;
+    padding: 24px;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    transform: translateY(-20px);
+    transition: transform 0.2s ease-in-out;
+    z-index: 100000 !important;
+}
+
+.modal.show .modal-container {
+    transform: translateY(0);
+}
+
+.modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal .modal-header h2 {
+    margin: 0;
+    font-size: 1.5em;
+}
+
+.modal .close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    padding: 0;
+    color: #666;
+}
+
+.modal .modal-body {
+    margin-bottom: 20px;
+}
+
+.modal .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* Ensure modal buttons match app style */
+.modal button.primary-btn,
+.modal button.secondary-btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.modal button.primary-btn {
+    background-color: var(--primary-color, #007bff);
+    color: white;
+    border: none;
+}
+
+.modal button.secondary-btn {
+    background-color: transparent;
+    border: 1px solid var(--border-color, #ddd);
+    color: var(--text-color, #333);
+}
+
+/* Prevent body scrolling when modal is open */
+body.modal-open {
+    overflow: hidden;
+}
+
+/* Ensure modal is above Quill editor */
+.ql-toolbar,
+.ql-container {
+    z-index: 1 !important;
+}
+
+/* Ensure modal buttons are visible */
+.modal button {
+    position: relative;
+    z-index: 100001 !important;
+}
+
+/* Entry type styling */
+.type-cell {
+    text-transform: capitalize;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    text-align: center;
+}
+
+.type-cell.note {
+    background-color: var(--primary-color, #007bff);
+    color: white;
+}
+
+.type-cell.document {
+    background-color: var(--secondary-color, #6c757d);
+    color: white;
+}
+
+.type-cell.template {
+    background-color: var(--accent-color, #28a745);
+    color: white;
+}
+
+.type-cell.html {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* Adjust table layout */
+.entries-table th,
+.entries-table td {
+    padding: 8px 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.entries-table .content-cell {
+    max-width: 300px;
+}
+
+.entries-table .type-cell {
+    min-width: 80px;
+}
+
+/* Type badge in editor toolbar */
+.editor-type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 500;
+    margin-left: 16px;
+    text-transform: capitalize;
+}
+
+.editor-type-badge.note {
+    background-color: var(--primary-color, #007bff);
+    color: white;
+}
+
+.editor-type-badge.document {
+    background-color: var(--secondary-color, #6c757d);
+    color: white;
+}
+
+.editor-type-badge.template {
+    background-color: var(--accent-color, #28a745);
+    color: white;
+}
+
+.editor-type-badge.html {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* Editor toolbar buttons */
+.editor-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 6px;
+    position: relative;
+    transition: background-color 0.2s;
+}
+
+.editor-actions button:hover {
+    background-color: var(--hover-color, rgba(0, 0, 0, 0.05));
+}
+
+.editor-actions button .btn-icon {
+    font-size: 20px;
+}
+
+/* Custom tooltips */
+[title] {
+    position: relative;
+    cursor: pointer;
+}
+
+[title]:hover:after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--background-color, white);
+    color: var(--text-color, #333);
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    margin-bottom: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--border-color, #ddd);
+    font-weight: 500;
+    z-index: 1000;
+}
+
+[title]:hover:before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top: 6px solid var(--border-color, #ddd);
+    margin-bottom: 2px;
+    z-index: 1000;
+}
+
+/* Adjust spacing */
+.editor-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}

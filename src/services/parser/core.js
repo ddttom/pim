@@ -75,78 +75,38 @@ class NaturalLanguageParser {
         };
     }
 
-    parse(text) {
-        if (!text) return null;
+    parse(text, type = 'note') {
+        // Only parse if it's a note type
+        if (type !== 'note') {
+            return {
+                original: text,
+                parsed: {
+                    text,
+                    plugins: {}
+                }
+            };
+        }
 
+        // Existing parsing logic...
         const result = {
-            rawContent: text,
-            action: null,
-            contact: null,
-            datetime: null,
-            categories: [],
-            priority: 'None',
-            complexity: null,
-            location: null,
-            duration: null,
-            project: null,
-            recurringPattern: null,
-            dependencies: null,
-            dueDate: null,
-            timeOfDay: undefined,
-            reminders: undefined,
-            urgency: undefined,
-            subject: undefined,
-            attendees: undefined
+            original: text,
+            parsed: {
+                text,
+                plugins: {}
+            }
         };
 
+        // Only run plugins for notes
         try {
-            const { original, sanitized } = this.sanitizeInput(text);
-
-            // Extract action
-            const actionMatch = original.match(/\b(call|email|meet|text|review)\b/i);
-            if (actionMatch) {
-                result.action = actionMatch[1].toLowerCase();
-                if (result.action === 'text') {
-                    result.categories.push('calls');
-                }
-            } else if (original.toLowerCase().includes('meeting')) {
-                result.action = 'meet';
-            }
-
-            // Handle priority
-            if (original.toLowerCase().includes('urgent') || original.toLowerCase().includes('important')) {
-                result.priority = 'high';
-            } else {
-                const priorityMatch = original.match(/\b(high|medium|normal|low)\s+priority\b/i);
-                if (priorityMatch) {
-                    const priority = priorityMatch[1].toLowerCase();
-                    result.priority = priority === 'normal' ? 'medium' : priority;
-                }
-            }
-
-            // Run plugins with appropriate input
-            this.plugins.forEach(plugin => {
+            Object.entries(this.plugins).forEach(([name, plugin]) => {
                 try {
-                    // Use sanitized input for location, attendees, and project
-                    const input = ['location', 'attendees', 'project'].includes(plugin.name) 
-                        ? sanitized 
-                        : original;
-                    
-                    const pluginResult = plugin.parse(input, this.patterns);
-                    if (pluginResult) {
-                        // Always keep reminder arrays as arrays
-                        if (plugin.name === 'reminders' && pluginResult.reminders) {
-                            result.reminders = pluginResult.reminders;
-                        } else {
-                            Object.assign(result, pluginResult);
-                        }
-                    }
+                    result.parsed.plugins[name] = plugin.parse(text);
                 } catch (error) {
-                    logger.error(`[NaturalLanguageParser] Error in plugin ${plugin.name}:`, { error });
+                    console.error('Plugin error failed:', error);
                 }
             });
         } catch (error) {
-            logger.error('[NaturalLanguageParser] Error parsing text:', { error, text });
+            console.error('Error running plugins:', error);
         }
 
         return result;
