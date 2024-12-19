@@ -32,10 +32,16 @@ async function initializeApp() {
 
     // Show entries list and setup listeners
     document.querySelector('.sidebar')?.classList.remove('hidden');
-    modules.setupSortListener(window.api, (id) => modules.loadEntry(id, window.api));
-    modules.setupSearchListener(window.api, (id) => modules.loadEntry(id, window.api));
-    modules.setupNavigationListener(window.api, (id) => modules.loadEntry(id, window.api));
     await modules.loadEntriesList(window.api, (id) => modules.loadEntry(id, window.api));
+    if (typeof modules.setupSearchListener === 'function') {
+      modules.setupSearchListener(window.api, (id) => modules.loadEntry(id, window.api));
+    }
+    if (typeof modules.setupNavigationListener === 'function') {
+      modules.setupNavigationListener(window.api, (id) => modules.loadEntry(id, window.api));
+    }
+    if (typeof modules.setupSortListener === 'function') {
+      modules.setupSortListener(window.api, (id) => modules.loadEntry(id, window.api));
+    }
     modules.showEntriesList();
   } catch (error) {
     console.error('Initialization failed:', error);

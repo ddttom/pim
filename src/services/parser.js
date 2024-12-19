@@ -59,7 +59,7 @@ export class Parser {
       try {
         result.parsed.plugins[name] = plugin.parse(text);
       } catch (error) {
-        console.error(`Plugin ${name} failed:`, error);
+        console.error('Plugin error failed:', error);
       }
     }
 

@@ -7,6 +7,8 @@ describe('Plugin System', () => {
         parser.resetPlugins();
         // Reset mock logger
         jest.clearAllMocks();
+        // Mock console.error to avoid test output noise
+        console.error = jest.fn();
     });
 
     describe('Plugin Registration', () => {
@@ -75,10 +77,10 @@ describe('Plugin System', () => {
             parser.registerPlugin('error', errorPlugin);
             const result = parser.parse('test text');
             
+            // Verify plugins object is empty when error occurs
             expect(result.parsed.plugins).toEqual({});
             // Verify error was logged
-            // Just verify plugins is empty since error is handled
-            expect(result.parsed.plugins).toEqual({});
+            expect(console.error).toHaveBeenCalledWith('Plugin error failed:', expect.any(Error));
         });
     });
 });
