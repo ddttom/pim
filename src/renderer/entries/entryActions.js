@@ -1,6 +1,7 @@
 import { showToast } from '../utils/toast.js';
 import { getEditor, showEditor, clearEditor, getEditorContent } from '../editor/editor.js';
-import { loadEntriesList } from './entryList.js';
+import { loadEntriesList, showEntriesList } from './entryList.js';
+import parser from '../../services/parser.js';
 
 let currentEntryId = null;
 
@@ -22,7 +23,7 @@ export async function loadEntry(id, ipcRenderer) {
     if (!entry) throw new Error('Entry not found');
     
     const editor = getEditor();
-    editor.root.innerHTML = entry.content.markdown;
+    editor.root.innerHTML = entry.html || entry.raw;
     showEditor();
   } catch (error) {
     console.error('Failed to load entry:', error);
@@ -30,9 +31,24 @@ export async function loadEntry(id, ipcRenderer) {
   }
 }
 
+
 export async function saveEntry(ipcRenderer) {
   try {
-    const content = getEditorContent();
+    const editorContent = getEditorContent();
+    
+    // Check for blank content
+    if (!editorContent.raw.trim()) {
+      showToast('Cannot save blank entry', 'error');
+      return;
+    }
+
+    // Parse content and create entry object
+    const parsedContent = parser.parse(editorContent.raw);
+    const content = {
+      raw: editorContent.raw,
+      html: editorContent.html,
+      ...parsedContent
+    };
 
     if (currentEntryId) {
       await ipcRenderer.invoke('update-entry', currentEntryId, content);
@@ -42,6 +58,10 @@ export async function saveEntry(ipcRenderer) {
 
     showToast('Entry saved successfully');
     await loadEntriesList(ipcRenderer, (id) => loadEntry(id, ipcRenderer));
+    
+    // Return to table view after successful save
+    document.querySelector('.sidebar')?.classList.remove('hidden');
+    showEntriesList();
   } catch (error) {
     console.error('Failed to save entry:', error);
     showToast('Failed to save entry: ' + error.message, 'error');
@@ -68,7 +88,13 @@ export async function duplicateCurrentEntry(ipcRenderer) {
   }
 
   try {
-    const content = getEditorContent();
+    const editorContent = getEditorContent();
+    const parsedContent = parser.parse(editorContent.raw);
+    const content = {
+      raw: editorContent.raw,
+      html: editorContent.html,
+      ...parsedContent
+    };
     currentEntryId = await ipcRenderer.invoke('add-entry', content);
     showToast('Entry duplicated successfully');
     await loadEntriesList(ipcRenderer, (id) => loadEntry(id, ipcRenderer));

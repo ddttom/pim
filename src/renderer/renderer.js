@@ -12,29 +12,29 @@ async function initializeApp() {
     // Initialize settings with defaults
     settings = modules.defaultSettings;
 
-    // Initialize editor
-    editor = modules.initializeEditor(settings);
-
-    // Apply initial settings with defaults
-    modules.applySettings(settings, editor);
-
-    // Setup event listeners
-    setupEventListeners(modules);
-
-    // Then load settings from main process
+    // Load settings from main process
     const loadedSettings = await window.api.invoke('get-settings');
     if (loadedSettings) {
       settings = loadedSettings;
-      modules.applySettings(settings, editor);
     }
 
-    // Setup keyboard shortcuts with settings
-    modules.setupKeyboardShortcuts(settings, window.api);
+    // Initialize editor (hidden by default)
+    editor = modules.initializeEditor(settings);
+    document.getElementById('editor-container')?.classList.add('hidden');
 
-    // Setup auto sync if enabled
+    // Apply settings
+    modules.applySettings(settings, editor);
+
+    // Setup event listeners and features
+    setupEventListeners(modules);
+    modules.setupKeyboardShortcuts(settings, window.api);
     modules.setupAutoSync(settings, window.api);
 
-    // Finally load entries
+    // Show entries list and setup listeners
+    document.querySelector('.sidebar')?.classList.remove('hidden');
+    modules.setupSortListener(window.api, (id) => modules.loadEntry(id, window.api));
+    modules.setupSearchListener(window.api, (id) => modules.loadEntry(id, window.api));
+    modules.setupNavigationListener(window.api, (id) => modules.loadEntry(id, window.api));
     await modules.loadEntriesList(window.api, (id) => modules.loadEntry(id, window.api));
     modules.showEntriesList();
   } catch (error) {
@@ -50,7 +50,7 @@ async function importModules() {
     { showToast },
     { initializeEditor },
     { setupKeyboardShortcuts },
-    { loadEntriesList, showEntriesList, toggleFilters, toggleSortMenu },
+    { loadEntriesList, showEntriesList, setupSortListener, setupSearchListener, setupNavigationListener },
     { createNewEntry, loadEntry, saveEntry },
     { defaultSettings, applySettings, updateSidebarState },
     { showSettingsModal, closeSettingsModal, setupSettingsUI, saveSettings },
@@ -66,7 +66,8 @@ async function importModules() {
     import('./sync/sync.js')
   ]);
 
-  // Make functions available to HTML
+  // Make settings and functions available to HTML
+  window.settings = settings;
   window.closeSettingsModal = closeSettingsModal;
   window.saveSettings = () => saveSettings(settings, window.api);
 
@@ -76,8 +77,9 @@ async function importModules() {
     setupKeyboardShortcuts,
     loadEntriesList,
     showEntriesList,
-    toggleFilters,
-    toggleSortMenu,
+    setupSortListener,
+    setupSearchListener,
+    setupNavigationListener,
     createNewEntry,
     loadEntry,
     saveEntry,
@@ -94,7 +96,7 @@ async function importModules() {
 
 function setupEventListeners(handlers) {
   // Clear existing event listeners first
-  ['new-entry-btn', 'save-btn', 'settings-btn', 'filter-btn', 'sort-btn', 'back-btn', 'sidebar-toggle'].forEach(id => {
+  ['new-entry-btn', 'save-btn', 'settings-btn', 'back-btn', 'sidebar-toggle'].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) {
       const newBtn = btn.cloneNode(true);
@@ -106,10 +108,9 @@ function setupEventListeners(handlers) {
   document.getElementById('new-entry-btn')?.addEventListener('click', handlers.createNewEntry);
   document.getElementById('settings-btn')?.addEventListener('click', handlers.showSettingsModal);
   document.getElementById('save-btn')?.addEventListener('click', () => handlers.saveEntry(window.api));
-  document.getElementById('filter-btn')?.addEventListener('click', handlers.toggleFilters);
-  document.getElementById('sort-btn')?.addEventListener('click', handlers.toggleSortMenu);
   document.getElementById('back-btn')?.addEventListener('click', () => {
     document.getElementById('editor-container')?.classList.add('hidden');
+    document.querySelector('.sidebar')?.classList.remove('hidden');
     handlers.showEntriesList();
   });
 
@@ -154,11 +155,11 @@ function setupEventListeners(handlers) {
   // Settings modal handlers
   const settingsModal = document.getElementById('settings-modal');
   const closeBtn = settingsModal?.querySelector('.close-btn');
-  const overlay = settingsModal?.querySelector('.modal-overlay');
+  const cancelBtn = settingsModal?.querySelector('.modal-footer .secondary-btn');
   const saveBtn = settingsModal?.querySelector('.modal-footer .primary-btn');
 
   closeBtn?.addEventListener('click', handlers.closeSettingsModal);
-  overlay?.addEventListener('click', handlers.closeSettingsModal);
+  cancelBtn?.addEventListener('click', handlers.closeSettingsModal);
   
   saveBtn?.addEventListener('click', async () => {
     try {
@@ -175,8 +176,14 @@ function setupEventListeners(handlers) {
 window.api.on('settings-loaded', (loadedSettings) => {
   if (loadedSettings && modules) {
     settings = loadedSettings;
+    window.settings = loadedSettings;
     modules.applySettings(settings, editor);
-    modules.setupSettingsUI(settings, window.api); // Refresh settings UI with new values
+    
+    // Initialize settings UI if modal is visible
+    const modal = document.getElementById('settings-modal');
+    if (modal?.classList.contains('visible')) {
+      modules.setupSettingsUI(settings, window.api);
+    }
   }
 });
 

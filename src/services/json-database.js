@@ -160,34 +160,34 @@ export default class JsonDatabaseService {
 
     // Apply filters if provided
     if (filters.status) {
-      entries = entries.filter(entry => filters.status.has(entry.parsed.status));
+      entries = entries.filter(entry => entry.parsed?.status && filters.status.has(entry.parsed.status));
     }
     if (filters.priority) {
-      entries = entries.filter(entry => filters.priority.has(entry.parsed.priority));
+      entries = entries.filter(entry => entry.parsed?.priority && filters.priority.has(entry.parsed.priority));
     }
     if (filters.tags) {
       entries = entries.filter(entry => 
-        entry.parsed.tags?.some(tag => filters.tags.has(tag))
+        entry.parsed?.tags && entry.parsed.tags.some(tag => filters.tags.has(tag))
       );
     }
     if (filters.participants) {
       entries = entries.filter(entry =>
-        entry.parsed.participants?.some(p => filters.participants.has(p))
+        entry.parsed?.participants && entry.parsed.participants.some(p => filters.participants.has(p))
       );
     }
     if (filters.date) {
       entries = entries.filter(entry => {
-        if (!entry.parsed.final_deadline) return false;
+        if (!entry.parsed?.final_deadline) return false;
         const entryDate = entry.parsed.final_deadline.split('T')[0];
         return filters.date.has(entryDate);
       });
     }
 
-    // Sort by priority (high > normal > low)
+    // Sort by priority (high > normal > low) if parsed data exists
     const priorityOrder = { high: 0, normal: 1, low: 2 };
     entries.sort((a, b) => {
-      const priorityA = priorityOrder[a.parsed.priority] || 1;
-      const priorityB = priorityOrder[b.parsed.priority] || 1;
+      const priorityA = a.parsed?.priority ? priorityOrder[a.parsed.priority] : 1;
+      const priorityB = b.parsed?.priority ? priorityOrder[b.parsed.priority] : 1;
       return priorityA - priorityB;
     });
 

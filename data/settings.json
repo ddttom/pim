@@ -31,7 +31,7 @@
     "fontFamily": "system-ui",
     "borderRadius": "4px",
     "spacing": "comfortable",
-    "sidebarCollapsed": true
+    "sidebarCollapsed": false
   },
   "sync": {
     "enabled": false,

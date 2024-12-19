@@ -4,6 +4,21 @@ let editor;
 
 export function initializeEditor(settings) {
   try {
+    // Hide editor container and components by default
+    const editorContainer = document.getElementById('editor-container');
+    const editorToolbar = document.querySelector('.ql-toolbar');
+    const editorContent = document.querySelector('.ql-container');
+    
+    if (editorContainer) {
+      editorContainer.classList.add('hidden');
+    }
+    if (editorToolbar) {
+      editorToolbar.style.display = 'none';
+    }
+    if (editorContent) {
+      editorContent.style.display = 'none';
+    }
+    
     editor = new Quill('#editor', {
       theme: 'snow',
       modules: {
@@ -21,6 +36,12 @@ export function initializeEditor(settings) {
     if (settings) {
       editor.root.spellcheck = settings.spellcheck;
     }
+
+    // Hide Quill components after initialization
+    const toolbar = document.querySelector('.ql-toolbar');
+    const container = document.querySelector('.ql-container');
+    if (toolbar) toolbar.style.display = 'none';
+    if (container) container.style.display = 'none';
 
     return editor;
   } catch (error) {
@@ -48,9 +69,25 @@ export async function handleImageUpload(event, currentEntryId, ipcRenderer) {
 }
 
 export function showEditor() {
-  document.getElementById('editor-container').classList.remove('hidden');
-  document.getElementById('save-btn').classList.remove('hidden');
-  document.querySelector('.sidebar').classList.add('hidden');
+  const editorContainer = document.getElementById('editor-container');
+  const entriesContainer = document.getElementById('entries-container');
+  const sidebar = document.querySelector('.sidebar');
+  const editorToolbar = document.querySelector('.ql-toolbar');
+  const editorContent = document.querySelector('.ql-container');
+  
+  if (editorContainer && entriesContainer && sidebar) {
+    editorContainer.classList.remove('hidden');
+    entriesContainer.classList.add('hidden');
+    sidebar.classList.add('hidden');
+    
+    // Show Quill components
+    if (editorToolbar) {
+      editorToolbar.style.display = 'block';
+    }
+    if (editorContent) {
+      editorContent.style.display = 'block';
+    }
+  }
 }
 
 export function clearEditor() {

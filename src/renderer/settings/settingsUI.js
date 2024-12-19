@@ -4,6 +4,8 @@ export function showSettingsModal() {
   const modal = document.getElementById('settings-modal');
   if (!modal) return;
   
+  // Setup settings UI before showing modal
+  setupSettingsUI(window.settings, window.api);
   modal.classList.add('visible');
 }
 

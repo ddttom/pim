@@ -15,21 +15,9 @@
                 <span class="btn-icon">📝</span>
                 New Entry
             </button>
-            <button id="save-btn" class="ribbon-btn primary-btn" data-shortcut="Ctrl+S">
-                <span class="btn-icon">💾</span>
-                Save
-            </button>
         </div>
         <div class="ribbon-divider"></div>
         <div class="ribbon-section">
-            <button id="filter-btn" class="ribbon-btn secondary-btn" data-shortcut="Ctrl+F">
-                <span class="btn-icon">🔍</span>
-                Filter
-            </button>
-            <button id="sort-btn" class="ribbon-btn secondary-btn" data-shortcut="Alt+S">
-                <span class="btn-icon">↕️</span>
-                Sort
-            </button>
         </div>
         <div class="ribbon-divider"></div>
         <div class="ribbon-section">
@@ -46,31 +34,58 @@
                 <span class="toggle-icon expand-icon">→</span>
             </button>
             <div class="sidebar-content">
-                <div class="search-bar">
-                    <input type="text" id="search-input" placeholder="Search entries...">
-                </div>
-                <div class="filters">
-                    <div class="filter-group">
-                        <label>Sort by:</label>
-                        <select id="sort-select">
-                            <option value="date-desc">Newest first</option>
-                            <option value="date-asc">Oldest first</option>
-                            <option value="priority">Priority</option>
-                            <option value="deadline">Deadline</option>
-                        </select>
-                    </div>
-                </div>
-                <div id="entries-list" class="entries-list">
-                    <!-- Entries will be inserted here -->
+                <div class="navigation">
+                    <ul>
+                        <li><a href="#" class="nav-item active" data-filter="all">All Entries</a></li>
+                        <li><a href="#" class="nav-item" data-filter="overdue">Overdue</a></li>
+                        <li class="nav-header">Priority</li>
+                        <li><a href="#" class="nav-item" data-filter="priority-high">High Priority</a></li>
+                        <li><a href="#" class="nav-item" data-filter="priority-normal">Normal Priority</a></li>
+                        <li><a href="#" class="nav-item" data-filter="priority-low">Low Priority</a></li>
+                        <li class="nav-header">Categories</li>
+                        <li><a href="#" class="nav-item" data-filter="projects">Projects</a></li>
+                        <li><a href="#" class="nav-item" data-filter="tags">Tags</a></li>
+                    </ul>
                 </div>
             </div>
         </div>
-        <div class="main-content">
+        <div class="main-content" id="main-content">
+            <div id="entries-container">
+                <div class="entries-header">
+                    <div class="search-bar">
+                        <div class="search-input-container">
+                            <input type="text" id="search-input" placeholder="Search entries...">
+                            <button id="clear-search" class="clear-search-btn hidden">✕</button>
+                        </div>
+                    </div>
+                    <div class="filters"></div>
+                </div>
+                <div class="entries-table-container">
+                    <table id="entries-list" class="entries-table">
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-sort="content">Content <span class="sort-icon">↕️</span></th>
+                                <th class="sortable" data-sort="date">Date <span class="sort-icon">↕️</span></th>
+                                <th class="sortable" data-sort="project">Project <span class="sort-icon">↕️</span></th>
+                                <th class="sortable" data-sort="priority">Priority <span class="sort-icon">↕️</span></th>
+                                <th class="sortable" data-sort="tags">Tags <span class="sort-icon">↕️</span></th>
+                                <th class="sortable" data-sort="deadline">Deadline <span class="sort-icon">↕️</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Entries will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
             <div id="editor-container" class="hidden">
                 <div class="editor-header">
                     <button id="back-btn" class="secondary-btn">← Back to List</button>
                     <div class="editor-actions">
-                        <button id="save-btn" class="primary-btn" data-shortcut="Ctrl+S">Save</button>
+                        <button id="save-btn" class="primary-btn" data-shortcut="Ctrl+S">
+                        <span class="btn-icon">💾</span>
+                        Save
+                    </button>
                         <button id="image-btn" class="secondary-btn">Add Images</button>
                     </div>
                 </div>
@@ -86,14 +101,14 @@
         <div class="modal-container">
             <div class="modal-header">
                 <h2>Settings</h2>
-                <button class="close-btn" onclick="closeSettingsModal()">&times;</button>
+                <button class="close-btn">&times;</button>
             </div>
             <div class="modal-body">
                 <!-- Content will be inserted by setupSettingsUI -->
             </div>
             <div class="modal-footer">
-                <button class="secondary-btn" onclick="closeSettingsModal()">Cancel</button>
-                <button class="primary-btn" onclick="saveSettings()">Save Changes</button>
+                <button class="secondary-btn">Cancel</button>
+                <button class="primary-btn">Save Changes</button>
             </div>
         </div>
     </div>

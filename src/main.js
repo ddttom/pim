@@ -2,6 +2,9 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { getSettings, saveSettings } from './services/settings-service.js';
+import JsonDatabaseService from './services/json-database.js';
+
+let db;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -47,28 +50,74 @@ ipcMain.handle('update-settings', async (_, settings) => {
 });
 
 ipcMain.handle('get-entries', async () => {
-  // TODO: Implement entries retrieval
-  return [];
+  try {
+    if (!db || !db.isInitialized()) {
+      console.error('Database not initialized');
+      return [];
+    }
+    const entries = await db.getEntries();
+    console.log('Retrieved entries:', entries);
+    return entries;
+  } catch (error) {
+    console.error('Failed to get entries:', error);
+    return [];
+  }
 });
 
 ipcMain.handle('add-entry', async (_, content) => {
-  // TODO: Implement entry creation
-  return 'new-entry-id';
+  try {
+    if (!db || !db.isInitialized()) {
+      throw new Error('Database not initialized');
+    }
+    const id = await db.addEntry(content);
+    console.log('Added entry:', id);
+    return id;
+  } catch (error) {
+    console.error('Failed to add entry:', error);
+    throw error;
+  }
 });
 
 ipcMain.handle('update-entry', async (_, id, content) => {
-  // TODO: Implement entry update
-  return true;
+  try {
+    if (!db || !db.isInitialized()) {
+      throw new Error('Database not initialized');
+    }
+    const updated = await db.updateEntry(id, content);
+    console.log('Updated entry:', id);
+    return updated;
+  } catch (error) {
+    console.error('Failed to update entry:', error);
+    throw error;
+  }
 });
 
 ipcMain.handle('delete-entry', async (_, id) => {
-  // TODO: Implement entry deletion
-  return true;
+  try {
+    if (!db || !db.isInitialized()) {
+      throw new Error('Database not initialized');
+    }
+    await db.deleteEntry(id);
+    console.log('Deleted entry:', id);
+    return true;
+  } catch (error) {
+    console.error('Failed to delete entry:', error);
+    throw error;
+  }
 });
 
 ipcMain.handle('add-image', async (_, entryId, buffer, filename) => {
-  // TODO: Implement image addition
-  return { path: 'image-path' };
+  try {
+    if (!db || !db.isInitialized()) {
+      throw new Error('Database not initialized');
+    }
+    const imageInfo = await db.addImage(entryId, buffer, filename);
+    console.log('Added image:', imageInfo);
+    return imageInfo;
+  } catch (error) {
+    console.error('Failed to add image:', error);
+    throw error;
+  }
 });
 
 ipcMain.handle('create-backup', async () => {
@@ -88,14 +137,19 @@ ipcMain.handle('sync-data', async (_, provider) => {
 
 // App lifecycle events
 app.whenReady().then(async () => {
-  createWindow();
-  
-  // Load initial settings
   try {
+    // Initialize database
+    db = new JsonDatabaseService(join(app.getPath('userData'), 'pim.db'));
+    await db.initialize();
+    console.log('Database initialized');
+    
+    createWindow();
+    
+    // Load initial settings
     const settings = await getSettings();
     mainWindow?.webContents.send('settings-loaded', settings);
   } catch (error) {
-    console.error('Failed to load initial settings:', error);
+    console.error('Failed to initialize:', error);
   }
 });
 
