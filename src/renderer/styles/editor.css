@@ -1,4 +1,26 @@
 /* Editor Container */
+#editor-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  z-index: 2;
+}
+
+#editor-container.hidden {
+  display: none;
+}
+
+/* Hide filters button when editor is visible */
+#editor-container:not(.hidden) ~ #filters-btn {
+  display: none;
+}
+
+/* Editor */
 .editor-container {
   height: 100%;
   display: flex;
@@ -8,7 +30,6 @@
   box-shadow: none;
 }
 
-/* Editor Header */
 .editor-header {
   padding: 12px;
   border-bottom: 1px solid var(--border-color);
@@ -19,7 +40,6 @@
   height: 64px;
 }
 
-/* Editor Actions */
 .editor-actions {
   display: flex;
   gap: 12px;
@@ -31,7 +51,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 48px;
+  height: 40px;
   padding: 0 16px;
   border-radius: 6px;
   font-size: 14px;
@@ -49,8 +69,8 @@
 }
 
 .editor-actions button .btn-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
 }
 
 .editor-actions .primary-btn {
@@ -85,7 +105,6 @@
   color: var(--text-color);
 }
 
-/* Editor Content */
 #editor {
   flex: 1;
   overflow-y: auto;
@@ -93,7 +112,6 @@
   background-color: white;
 }
 
-/* Quill Editor */
 .ql-toolbar.ql-snow {
   border: none;
   border-bottom: 1px solid var(--border-color);

@@ -24,13 +24,13 @@ export async function loadEntry(id, ipcRenderer) {
     
     const editor = getEditor();
     editor.root.innerHTML = entry.html || entry.raw;
+    
     showEditor();
   } catch (error) {
     console.error('Failed to load entry:', error);
     showToast('Failed to load entry', 'error');
   }
 }
-
 
 export async function saveEntry(ipcRenderer) {
   try {
@@ -60,8 +60,15 @@ export async function saveEntry(ipcRenderer) {
     await loadEntriesList(ipcRenderer, (id) => loadEntry(id, ipcRenderer));
     
     // Return to table view after successful save
-    document.querySelector('.sidebar')?.classList.remove('hidden');
-    showEntriesList();
+    const editorContainer = document.getElementById('editor-container');
+    const entriesContainer = document.getElementById('entries-container');
+    
+    if (editorContainer) {
+      editorContainer.classList.add('hidden');
+    }
+    if (entriesContainer) {
+      entriesContainer.classList.remove('hidden');
+    }
   } catch (error) {
     console.error('Failed to save entry:', error);
     showToast('Failed to save entry: ' + error.message, 'error');
@@ -113,7 +120,7 @@ export async function archiveCurrentEntry(ipcRenderer) {
   try {
     await ipcRenderer.invoke('archive-entry', currentEntryId);
     showToast('Entry archived successfully');
-    await loadEntriesList(ipcRenderer, (id) => loadEntry(id, ipcRenderer));
+    await loadEntriesList(ipcRenderer, (id) => loadEntry(id, window.api));
   } catch (error) {
     console.error('Failed to archive entry:', error);
     showToast('Failed to archive entry', 'error');

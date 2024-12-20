@@ -1,6 +1,6 @@
 import { showToast } from '../utils/toast.js';
 import parser from '../../services/parser.js';
-import { loadEntriesList, showEntriesList } from '../entries/entryList.js';
+import { loadEntriesList } from '../entries/entryList.js';
 
 let editor;
 
@@ -58,7 +58,11 @@ function setupSaveAsButton() {
   // Update existing save button
   const saveBtn = editorActions.querySelector('#save-btn');
   if (saveBtn) {
-    saveBtn.innerHTML = '<span class="btn-icon">💾</span>';
+    saveBtn.innerHTML = `<span class="btn-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M17 3H5C3.89 3 3 3.9 3 5V19C3 20.1 3.89 21 5 21H19C20.1 21 21 20.1 21 19V7L17 3ZM19 19H5V5H16.17L19 7.83V19ZM12 12C10.34 12 9 13.34 9 15C9 16.66 10.34 18 12 18C13.66 18 15 16.66 15 15C15 13.34 13.66 12 12 12ZM6 6H15V10H6V6Z" fill="currentColor"/>
+      </svg>
+    </span>`;
     saveBtn.title = 'Save (Ctrl+S)';
   }
 
@@ -66,13 +70,21 @@ function setupSaveAsButton() {
   const saveAsBtn = document.createElement('button');
   saveAsBtn.id = 'save-as-btn';
   saveAsBtn.className = 'secondary-btn';
-  saveAsBtn.innerHTML = '<span class="btn-icon">📄</span>';
+  saveAsBtn.innerHTML = `<span class="btn-icon">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17 3H5C3.89 3 3 3.9 3 5V19C3 20.1 3.89 21 5 21H19C20.1 21 21 20.1 21 19V7L17 3ZM19 19H5V5H16.17L19 7.83V19ZM12 12C10.34 12 9 13.34 9 15C9 16.66 10.34 18 12 18C13.66 18 15 16.66 15 15C15 13.34 13.66 12 12 12ZM6 6H15V10H6V6Z" fill="currentColor"/>
+    </svg>
+  </span>`;
   saveAsBtn.title = 'Save As';
 
   // Create Image button
   const imageBtn = editorActions.querySelector('#image-btn');
   if (imageBtn) {
-    imageBtn.innerHTML = '<span class="btn-icon">🖼️</span>';
+    imageBtn.innerHTML = `<span class="btn-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M21 19V5C21 3.9 20.1 3 19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19ZM8.5 13.5L11 16.51L14.5 12L19 18H5L8.5 13.5Z" fill="currentColor"/>
+      </svg>
+    </span>`;
     imageBtn.title = 'Add Images';
   }
 
@@ -185,7 +197,7 @@ async function saveContent(type) {
 
     // Get current entry if editing
     let currentEntry;
-    const currentEntryId = window.currentEntryId; // Assuming this is set when loading an entry
+    const currentEntryId = window.currentEntryId;
     if (currentEntryId) {
       const entries = await window.api.invoke('get-entries', { id: currentEntryId });
       currentEntry = entries.find(e => e.id === currentEntryId);
@@ -231,8 +243,17 @@ async function saveContent(type) {
     
     // Refresh entries list and return to table view
     await loadEntriesList(window.api, (id) => loadEntry(id, window.api));
-    document.querySelector('.sidebar')?.classList.remove('hidden');
-    showEntriesList();
+    
+    // Show entries list but keep sidebar hidden
+    const editorContainer = document.getElementById('editor-container');
+    const entriesContainer = document.getElementById('entries-container');
+    
+    if (editorContainer) {
+      editorContainer.classList.add('hidden');
+    }
+    if (entriesContainer) {
+      entriesContainer.classList.remove('hidden');
+    }
   } catch (error) {
     console.error('Failed to save content:', error);
     showToast('Failed to save content: ' + error.message, 'error');
@@ -258,33 +279,44 @@ export async function handleImageUpload(event, currentEntryId, ipcRenderer) {
 }
 
 export function showEditor() {
+  // Get all relevant containers
   const editorContainer = document.getElementById('editor-container');
   const entriesContainer = document.getElementById('entries-container');
   const sidebar = document.querySelector('.sidebar');
   const editorToolbar = document.querySelector('.ql-toolbar');
   const editorContent = document.querySelector('.ql-container');
   
-  if (editorContainer && entriesContainer && sidebar) {
-    editorContainer.classList.remove('hidden');
+  // Hide entries list and sidebar
+  if (entriesContainer) {
     entriesContainer.classList.add('hidden');
+  }
+  if (sidebar) {
     sidebar.classList.add('hidden');
-    
-    // Show Quill components
-    if (editorToolbar) {
-      editorToolbar.style.display = 'block';
-    }
-    if (editorContent) {
-      editorContent.style.display = 'block';
-    }
+  }
+  
+  // Show editor and its components
+  if (editorContainer) {
+    editorContainer.classList.remove('hidden');
+  }
+  if (editorToolbar) {
+    editorToolbar.style.display = 'block';
+  }
+  if (editorContent) {
+    editorContent.style.display = 'block';
+  }
 
-    // Ensure Save As button is set up
-    setupSaveAsButton();
+  // Ensure Save As button is set up
+  setupSaveAsButton();
 
-    // Show type badge (get type from current entry or default to note)
-    const currentType = window.currentEntryId ? 
-      document.querySelector(`tr[data-id="${window.currentEntryId}"] .type-cell`)?.textContent || 'note' 
-      : 'note';
-    updateTypeBadge(currentType);
+  // Show type badge (get type from current entry or default to note)
+  const currentType = window.currentEntryId ? 
+    document.querySelector(`tr[data-id="${window.currentEntryId}"] .type-cell`)?.textContent || 'note' 
+    : 'note';
+  updateTypeBadge(currentType);
+
+  // Focus editor
+  if (editor) {
+    editor.focus();
   }
 }
 

@@ -1,3 +1,6 @@
+// Import styles
+import { initializeStyles } from './styles/index.js';
+
 // Global state and imported modules
 let settings;
 let editor;
@@ -6,7 +9,10 @@ let modules;
 // Initialize application
 async function initializeApp() {
   try {
-    // Import all modules first
+    // Initialize styles first
+    initializeStyles();
+
+    // Import all modules
     modules = await importModules();
 
     // Initialize settings with defaults
@@ -31,7 +37,7 @@ async function initializeApp() {
     modules.setupAutoSync(settings, window.api);
 
     // Show entries list and setup listeners
-    document.querySelector('.sidebar')?.classList.remove('hidden');
+    document.getElementById('entries-container')?.classList.remove('hidden');
     await modules.loadEntriesList(window.api, (id) => modules.loadEntry(id, window.api));
     if (typeof modules.setupSearchListener === 'function') {
       modules.setupSearchListener(window.api, (id) => modules.loadEntry(id, window.api));
@@ -42,7 +48,6 @@ async function initializeApp() {
     if (typeof modules.setupSortListener === 'function') {
       modules.setupSortListener(window.api, (id) => modules.loadEntry(id, window.api));
     }
-    modules.showEntriesList();
   } catch (error) {
     console.error('Initialization failed:', error);
     if (modules?.showToast) {
@@ -58,7 +63,7 @@ async function importModules() {
     { setupKeyboardShortcuts },
     { loadEntriesList, showEntriesList, setupSortListener, setupSearchListener, setupNavigationListener },
     { createNewEntry, loadEntry, saveEntry },
-    { defaultSettings, applySettings, updateSidebarState },
+    { defaultSettings, applySettings },
     { showSettingsModal, closeSettingsModal, setupSettingsUI, saveSettings },
     { setupAutoSync }
   ] = await Promise.all([
@@ -91,7 +96,6 @@ async function importModules() {
     saveEntry,
     defaultSettings,
     applySettings,
-    updateSidebarState,
     showSettingsModal,
     closeSettingsModal,
     setupSettingsUI,
@@ -102,7 +106,7 @@ async function importModules() {
 
 function setupEventListeners(handlers) {
   // Clear existing event listeners first
-  ['new-entry-btn', 'save-btn', 'settings-btn', 'back-btn', 'sidebar-toggle', 'copy-db-btn'].forEach(id => {
+  ['new-entry-btn', 'save-btn', 'settings-btn', 'back-btn', 'filters-btn', 'copy-db-btn'].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) {
       const newBtn = btn.cloneNode(true);
@@ -111,7 +115,11 @@ function setupEventListeners(handlers) {
   });
 
   // Re-add event listeners
-  document.getElementById('new-entry-btn')?.addEventListener('click', handlers.createNewEntry);
+  document.getElementById('new-entry-btn')?.addEventListener('click', () => {
+    document.getElementById('filters-btn')?.classList.add('hidden');
+    handlers.createNewEntry();
+  });
+  
   document.getElementById('settings-btn')?.addEventListener('click', handlers.showSettingsModal);
   document.getElementById('save-btn')?.addEventListener('click', () => handlers.saveEntry(window.api));
   document.getElementById('copy-db-btn')?.addEventListener('click', async () => {
@@ -128,48 +136,21 @@ function setupEventListeners(handlers) {
       handlers.showToast('Failed to copy database', 'error');
     }
   });
+  
   document.getElementById('back-btn')?.addEventListener('click', () => {
     document.getElementById('editor-container')?.classList.add('hidden');
-    document.querySelector('.sidebar')?.classList.remove('hidden');
-    handlers.showEntriesList();
+    document.getElementById('entries-container')?.classList.remove('hidden');
+    document.getElementById('filters-btn')?.classList.remove('hidden');
   });
 
-  // Add sidebar toggle functionality
+  // Add filters button functionality
+  const filtersBtn = document.getElementById('filters-btn');
   const sidebar = document.querySelector('.sidebar');
-  const sidebarToggle = document.getElementById('sidebar-toggle');
   
-  if (sidebar && sidebarToggle) {
-    sidebarToggle.addEventListener('click', async () => {
-      const isCollapsed = !sidebar.classList.contains('collapsed');
-      sidebar.classList.toggle('collapsed');
-      
-      try {
-        // Update settings with new sidebar state
-        settings = await handlers.updateSidebarState(isCollapsed, settings, window.api);
-        handlers.applySettings(settings, editor);
-
-        // Update toggle button position
-        if (isCollapsed) {
-          sidebarToggle.style.left = '0';
-          sidebarToggle.style.right = 'auto';
-        } else {
-          sidebarToggle.style.right = '0';
-          sidebarToggle.style.left = 'auto';
-        }
-      } catch (error) {
-        console.error('Failed to update sidebar state:', error);
-        // Revert UI state if settings update failed
-        sidebar.classList.toggle('collapsed');
-      }
+  if (filtersBtn && sidebar) {
+    filtersBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('hidden');
     });
-
-    // Restore sidebar state from settings
-    const isCollapsed = settings?.advanced?.sidebarCollapsed || false;
-    if (isCollapsed) {
-      sidebar.classList.add('collapsed');
-      sidebarToggle.style.left = '0';
-      sidebarToggle.style.right = 'auto';
-    }
   }
 
   // Settings modal handlers

@@ -162,20 +162,22 @@ export async function loadEntriesList(ipcRenderer, onEntryClick) {
 }
 
 export function showEntriesList() {
+  // Get all relevant containers
   const editorContainer = document.getElementById('editor-container');
   const entriesContainer = document.getElementById('entries-container');
-  const entriesList = document.getElementById('entries-list');
+  const sidebar = document.querySelector('.sidebar');
   
+  // Hide editor
   if (editorContainer) {
     editorContainer.classList.add('hidden');
   }
   
+  // Show entries list and sidebar
   if (entriesContainer) {
     entriesContainer.classList.remove('hidden');
   }
-  
-  if (entriesList) {
-    entriesList.parentElement.classList.remove('hidden');
+  if (sidebar) {
+    sidebar.classList.remove('hidden');
   }
 }
 

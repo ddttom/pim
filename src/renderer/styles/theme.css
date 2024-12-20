@@ -1,0 +1,47 @@
+/* Dark Theme */
+body.dark {
+  --background-color: #1a1a1a;
+  --text-color: #ffffff;
+  --border-color: #2d2d2d;
+}
+
+body.dark .sidebar,
+body.dark .editor-container,
+body.dark .entry-item,
+body.dark .modal-container,
+body.dark .ribbon {
+  background-color: #242424;
+}
+
+body.dark .entry-item:hover {
+  background-color: #2d2d2d;
+}
+
+body.dark .search-bar input,
+body.dark .filter-group select,
+body.dark .setting-item select {
+  background-color: #1a1a1a;
+  color: white;
+  border-color: #2d2d2d;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modal-container {
+    width: 95%;
+    margin: 20px auto;
+  }
+
+  .ribbon-btn {
+    padding: 0 8px;
+  }
+
+  .ribbon-section {
+    gap: 4px;
+  }
+
+  .sidebar {
+    position: absolute;
+    z-index: 100;
+  }
+}

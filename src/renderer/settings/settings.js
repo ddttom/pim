@@ -34,8 +34,7 @@ export const defaultSettings = {
     fontSize: '16px',
     fontFamily: 'system-ui',
     borderRadius: '4px',
-    spacing: 'comfortable',
-    sidebarCollapsed: false
+    spacing: 'comfortable'
   },
   sync: {
     enabled: false,
@@ -70,18 +69,6 @@ export function applySettings(settings = defaultSettings, editor = null) {
       customStyle.id = 'custom-style';
       customStyle.textContent = advanced.customCSS;
       document.head.appendChild(customStyle);
-    }
-
-    // Apply sidebar state if specified in settings
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar && advanced?.sidebarCollapsed !== undefined) {
-      sidebar.classList.toggle('collapsed', advanced.sidebarCollapsed);
-      
-      // Update toggle button icon
-      const toggleIcon = document.querySelector('.toggle-icon');
-      if (toggleIcon) {
-        toggleIcon.textContent = advanced.sidebarCollapsed ? '→' : '←';
-      }
     }
   } catch (error) {
     console.error('Failed to apply settings:', error);
@@ -122,24 +109,5 @@ export async function importSettings(file, api) {
     reader.readAsText(file);
   } catch (error) {
     showToast('Failed to import settings', 'error');
-  }
-}
-
-export async function updateSidebarState(isCollapsed, settings, api) {
-  try {
-    const updatedSettings = {
-      ...settings,
-      advanced: {
-        ...settings.advanced,
-        sidebarCollapsed: isCollapsed
-      }
-    };
-    
-    await api.invoke('update-settings', updatedSettings);
-    return updatedSettings;
-  } catch (error) {
-    console.error('Failed to update sidebar state:', error);
-    showToast('Failed to save sidebar state', 'error');
-    throw error;
   }
 }

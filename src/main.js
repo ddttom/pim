@@ -79,6 +79,16 @@ ipcMain.handle('get-settings', async () => {
   };
 });
 
+ipcMain.handle('update-settings', async (event, settings) => {
+  try {
+    // In a real app, save settings to storage here
+    return settings;
+  } catch (error) {
+    console.error('Failed to update settings:', error);
+    throw error;
+  }
+});
+
 ipcMain.handle('get-entries', async () => {
   try {
     return await db.getEntries();

@@ -36,6 +36,15 @@ src/
 │   ├── editor/      # Rich text editor
 │   ├── entries/     # Entry management
 │   ├── settings/    # Settings UI
+│   ├── styles/      # Component-specific styles
+│   │   ├── base.css     # Core variables and reset
+│   │   ├── ribbon.css   # Header styles
+│   │   ├── sidebar.css  # Navigation styles
+│   │   ├── entries.css  # Entry list styles
+│   │   ├── editor.css   # Editor styles
+│   │   ├── modals.css   # Modal and toast styles
+│   │   ├── theme.css    # Theme variables
+│   │   └── index.js     # Style loader
 │   ├── sync/        # Sync functionality
 │   └── utils/       # Utility functions
 ├── services/        # Core services
@@ -77,9 +86,18 @@ npm run build
 npm run dev
 ```
 
+### Styling
+
+The application uses a modular CSS system:
+- Each component has its own CSS file for better maintainability
+- Base variables and reset styles are centralized
+- Theme system supports light/dark modes
+- Dynamic style loading with smooth transitions
+- Proper z-index management for overlays
+
 ## Usage
 
-- Use the sidebar toggle (←/→) to collapse/expand the sidebar
+- Use the sidebar toggle (Filters button) to show/hide the sidebar
 - Create new entries with Ctrl+N or the New Entry button
 - Save entries with Ctrl+S
 - Save As to change entry type (Note/Document/Template/HTML)
@@ -95,6 +113,7 @@ npm run dev
 - Modal dialogs for settings and Save As
 - Proper z-index management for overlays
 - Theme-aware styling throughout
+- Smooth transitions for layout changes
 
 ## Keyboard Shortcuts
 
@@ -102,7 +121,6 @@ npm run dev
 - `Ctrl+S`: Save
 - `Ctrl+F`: Search
 - `Ctrl+,`: Settings
-- `Ctrl+\`: Toggle sidebar
 - `Ctrl+B`: Bold
 - `Ctrl+I`: Italic
 - `Ctrl+U`: Underline

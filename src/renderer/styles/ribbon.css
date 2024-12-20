@@ -1,0 +1,94 @@
+/* Ribbon */
+.ribbon {
+  height: var(--ribbon-height);
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 16px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 4;
+  position: relative;
+}
+
+.ribbon-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  padding: 0 8px;
+}
+
+.ribbon-section:last-child {
+  margin-left: auto;
+}
+
+.ribbon-divider {
+  width: 1px;
+  height: 32px;
+  background-color: var(--border-color);
+  margin: 0 8px;
+}
+
+/* Buttons */
+.ribbon-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.ribbon-btn .btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ribbon-btn .btn-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.primary-btn {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+}
+
+.primary-btn .btn-icon svg {
+  color: white;
+}
+
+.primary-btn:hover {
+  background-color: var(--accent-color);
+}
+
+.secondary-btn {
+  background-color: #ffffff;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.secondary-btn .btn-icon svg {
+  color: var(--icon-color);
+}
+
+.secondary-btn:hover {
+  background-color: var(--background-color);
+}
+
+.secondary-btn:hover .btn-icon svg {
+  color: var(--text-color);
+}

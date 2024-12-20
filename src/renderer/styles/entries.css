@@ -1,0 +1,191 @@
+/* Entries Container */
+#entries-container {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+/* When sidebar is visible, adjust entries container */
+.sidebar:not(.hidden) ~ .main-content #entries-container {
+  left: var(--sidebar-width);
+}
+
+/* Search Bar */
+.search-bar {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.search-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 8px 32px 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--secondary-color);
+  cursor: pointer;
+  padding: 4px;
+  font-size: 12px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.clear-search-btn:hover {
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.clear-search-btn.hidden {
+  display: none;
+}
+
+/* Entries Table */
+.entries-header {
+  padding: 16px;
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.entries-table-container {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  background-color: #ffffff;
+}
+
+.entries-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.entries-table th {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 2px solid var(--border-color);
+  font-weight: 600;
+  color: var(--text-color);
+  background-color: #ffffff;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.entries-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.entries-table th.sortable:hover {
+  background-color: var(--background-color);
+}
+
+.entries-table th .sort-icon {
+  opacity: 0.3;
+  margin-left: 4px;
+  font-size: 12px;
+}
+
+.entries-table th.sort-asc .sort-icon {
+  opacity: 1;
+}
+
+.entries-table th.sort-desc .sort-icon {
+  opacity: 1;
+}
+
+.entries-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+.entries-table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.entries-table tbody tr:hover {
+  background-color: var(--background-color);
+}
+
+.entries-table .content-cell {
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entries-table .date-cell {
+  white-space: nowrap;
+  color: var(--secondary-color);
+}
+
+.entries-table .project-cell {
+  white-space: nowrap;
+  color: var(--primary-color);
+}
+
+.entries-table .priority-cell {
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
+.entries-table .priority-cell.high {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+.entries-table .priority-cell.normal {
+  color: var(--secondary-color);
+}
+
+.entries-table .priority-cell.low {
+  color: var(--accent-color);
+}
+
+.entries-table .tags-cell {
+  white-space: nowrap;
+}
+
+.entries-table .tag {
+  display: inline-block;
+  padding: 2px 6px;
+  margin: 0 2px;
+  border-radius: 4px;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-size: 12px;
+}
+
+.entries-table .deadline-cell {
+  white-space: nowrap;
+  color: var(--accent-color);
+}
