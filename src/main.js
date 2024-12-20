@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, clipboard, dialog } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs/promises';
 import JsonDatabaseService from './services/json-database.js';
 import SyncService from './services/sync.js';
 import { getSettings, saveSettings } from './services/settings-service.js';
@@ -18,6 +19,14 @@ let syncService;
 async function initializeServices() {
   const dbPath = path.join(app.getPath('userData'), 'data', 'pim.db');
   const settingsPath = path.join(app.getPath('userData'), 'data', 'settings.json');
+  const imagesPath = path.join(app.getPath('userData'), 'data', 'images');
+  
+  // Ensure images directory exists
+  try {
+    await fs.mkdir(imagesPath, { recursive: true });
+  } catch (error) {
+    console.error('Failed to create images directory:', error);
+  }
   
   // Initialize database
   db = new JsonDatabaseService(dbPath);
@@ -205,6 +214,59 @@ ipcMain.handle('test-parser', async (event, text) => {
     return parser.parse(text);
   } catch (error) {
     console.error('Failed to parse text:', error);
+    throw error;
+  }
+});
+
+// Get user data path
+ipcMain.handle('get-user-data-path', () => {
+  console.log('[Main] Getting user data path');
+  const userDataPath = app.getPath('userData');
+  console.log('[Main] User data path:', userDataPath);
+  console.log('[Main] Images directory:', path.join(userDataPath, 'data', 'images'));
+  return userDataPath;
+});
+
+// Handle image uploads
+ipcMain.handle('add-image', async (event, entryId, buffer, filename) => {
+  console.log('[Main] Received image upload request:', {
+    entryId,
+    filename,
+    bufferSize: buffer?.byteLength
+  });
+
+  try {
+    // Create date-based directory structure
+    const now = new Date();
+    const dateDir = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const imagesPath = path.join(app.getPath('userData'), 'data', 'images', dateDir);
+    console.log('[Main] Images directory path:', imagesPath);
+    
+    // Ensure directory exists
+    await fs.mkdir(imagesPath, { recursive: true });
+    console.log('[Main] Images directory created/verified');
+    
+    // Generate unique filename
+    const ext = path.extname(filename);
+    const timestamp = now.getTime();
+    const uniqueFilename = `${timestamp}${ext}`;
+    const filePath = path.join(imagesPath, uniqueFilename);
+    console.log('[Main] Generated file path:', filePath);
+    
+    // Save the image
+    await fs.writeFile(filePath, Buffer.from(buffer));
+    console.log('[Main] Image file saved');
+    
+    // Return relative path for editor
+    const relativePath = path.join('images', dateDir, uniqueFilename);
+    console.log('[Main] Returning relative path:', relativePath);
+    return { path: relativePath };
+  } catch (error) {
+    console.error('Failed to save image:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack
+    });
     throw error;
   }
 });

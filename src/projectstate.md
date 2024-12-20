@@ -35,7 +35,10 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
   - Event - For calendar events
 - Only Note type entries are parsed for metadata
 - Legacy entries without type are treated as Notes
-- Handles image attachments with media directory
+- Handles image attachments:
+  - Date-based directory organization (YYYY-MM-DD)
+  - Preview links for staged images
+  - Automatic cleanup of temporary files
 - Provides backup/restore functionality
 - Uses atomic operations with rollback support
 - Maintains proper timestamps for entries
@@ -104,6 +107,11 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
   - Fixed module syntax inconsistencies
   - Improved error handling
   - Added proper async/await usage
+- Enhanced image handling
+  - Added date-based image storage organization
+  - Implemented image staging with preview links
+  - Added proper file cleanup and error handling
+  - Improved user feedback for image uploads
 
 ## In Progress
 

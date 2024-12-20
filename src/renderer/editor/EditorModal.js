@@ -1,5 +1,5 @@
 import { Modal } from '../utils/modal.js';
-import Editor from '../../components/Editor.js';
+import Editor from './editor.js';
 
 export class EditorModal {
     static currentEditor = null;
@@ -28,7 +28,9 @@ export class EditorModal {
         // Create save buttons
         const saveBtn = document.createElement('button');
         saveBtn.id = 'save-btn';
-        saveBtn.className = 'primary-btn ribbon-btn';
+        saveBtn.className = 'primary-btn ribbon-btn highlight';
+        saveBtn.style.backgroundColor = '#4CAF50';
+        saveBtn.style.color = 'white';
         saveBtn.setAttribute('data-shortcut', 'Ctrl+S');
         saveBtn.innerHTML = `
             <span class="btn-icon">
@@ -255,16 +257,17 @@ export class EditorModal {
                     });
                 }
 
-                if (imageBtn && imageUpload) {
+                // Set up image button to trigger Quill's image handler
+                if (imageBtn) {
                     imageBtn.addEventListener('click', () => {
-                        imageUpload.click();
-                    });
-
-                    imageUpload.addEventListener('change', async (e) => {
-                        const files = e.target.files;
-                        if (!files || files.length === 0) return;
-
-                        // TODO: Implement image upload functionality
+                        // Find and click Quill's image button
+                        const quillImageBtn = content.querySelector('.ql-image');
+                        if (quillImageBtn) {
+                            console.log('[EditorModal] Triggering Quill image button');
+                            quillImageBtn.click();
+                        } else {
+                            console.error('[EditorModal] Quill image button not found');
+                        }
                     });
                 }
 
