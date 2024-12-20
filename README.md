@@ -2,10 +2,24 @@
 
 A desktop application for managing personal information with rich text editing capabilities.
 
+## Screenshots
+
+### Main Interface
+
+![Main Interface](docs/images/main app screen.png)
+
+### Settings
+
+![Settings](docs/images/settings modal.png)
+
+### Sidebar Navigation
+
+![Sidebar](docs/images/sidebar showing on main.png)
+
 ## Features
 
 - Rich text editor with markdown support
-- Multiple content types (Note, Document, Template, HTML)
+- Multiple content types (Note, Document, Template, HTML, Record, Task, Event)
 - Collapsible sidebar for better workspace management
 - Advanced settings management
 - Customizable themes
@@ -89,6 +103,7 @@ npm run dev
 ### Styling
 
 The application uses a modular CSS system:
+
 - Each component has its own CSS file for better maintainability
 - Base variables and reset styles are centralized
 - Theme system supports light/dark modes
@@ -100,20 +115,37 @@ The application uses a modular CSS system:
 - Use the sidebar toggle (Filters button) to show/hide the sidebar
 - Create new entries with Ctrl+N or the New Entry button
 - Save entries with Ctrl+S
-- Save As to change entry type (Note/Document/Template/HTML)
+- Save As to change entry type (Note, Document, Template, HTML, Record, Task, Event)
 - Access settings via the gear icon or Ctrl+,
 - Use keyboard shortcuts for common actions
 
 ## UI Features
 
+The application features a modern, efficient interface:
+
+### Main Layout
+
 - Streamlined toolbar with icon-only buttons and tooltips
+- Collapsible sidebar for maximizing workspace
+- Clean, organized table view for entries
+- Search bar with real-time filtering
 - Content type badges showing current entry type
-- Consistent button sizes and spacing
+
+### Visual Design
+
+- Consistent button sizes (40x40px touch targets)
+- Proper spacing and alignment throughout
 - Hover effects and visual feedback
-- Modal dialogs for settings and Save As
-- Proper z-index management for overlays
-- Theme-aware styling throughout
+- Theme-aware styling with light/dark modes
 - Smooth transitions for layout changes
+
+### Components
+
+- Modal dialogs for settings and Save As
+- Toast notifications for user feedback
+- Proper z-index management for overlays
+- Tooltips with arrow indicators
+- Responsive layout adjustments
 
 ## Keyboard Shortcuts
 

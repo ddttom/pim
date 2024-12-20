@@ -9,8 +9,21 @@ let modules;
 // Initialize application
 async function initializeApp() {
   try {
+    // Add preload class to prevent transitions
+    document.body.classList.add('preload');
+
     // Initialize styles first
-    initializeStyles();
+    await initializeStyles();
+
+    // Add ready class to sidebar and remove preload class
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+      sidebar.classList.add('ready');
+      // Remove preload class after a small delay to ensure styles are applied
+      setTimeout(() => {
+        document.body.classList.remove('preload');
+      }, 100);
+    }
 
     // Import all modules
     modules = await importModules();

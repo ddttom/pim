@@ -14,16 +14,18 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
 ## Important Notes
 
 ### Module Syntax Requirements
+
 - Renderer process files (.js) use ES modules (import/export)
 - Preload scripts (.js) must use CommonJS (require/module.exports)
 - Main process files can use either syntax based on package.json "type"
 - Incorrect syntax in preload scripts will break IPC communication
 
 ### Data Persistence
+
 - Uses JsonDatabaseService for persistent storage
 - Stores data in user's application data directory
 - Supports CRUD operations for entries
-- Supports multiple content types (Note, Document, Template, HTML)
+- Supports multiple content types (Note, Document, Template, HTML, Record, Task, Event)
 - Only Note type entries are parsed for metadata
 - Legacy entries without type are treated as Notes
 - Handles image attachments with media directory
@@ -32,6 +34,103 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
 - Maintains proper timestamps for entries
 - Supports batch operations
 - Implements proper error handling
+
+## UI Design
+
+The application features a clean, modern interface designed for efficiency and ease of use:
+
+### Main Interface
+
+![Main Interface](docs/images/main app screen.png)
+
+The main window is organized into three primary sections:
+
+1. Top Ribbon
+   - PIM logo and branding in top-left
+   - Primary action buttons: "New Entry" and "Filters"
+   - Utility buttons in top-right: "Copy DB" and "Settings"
+   - Clean, minimal design with consistent spacing
+
+2. Left Sidebar
+   - Collapsible panel with smooth animation
+   - Filter sections:
+     - "All Entries" at the top
+     - "Overdue" with red highlight
+     - Priority filters (High/Normal/Low) with color coding
+     - Type filters for each content type (Note/Document/Template/HTML/Record/Task/Event)
+     - Categories section with Projects and Tags
+   - Subtle borders and consistent padding
+   - Clear visual hierarchy with section headers
+
+3. Main Content Area
+   - Search bar at the top with placeholder text
+   - Data table with columns:
+     - Content (expandable text)
+     - Type (Note/Document/Template/HTML/Record/Task/Event)
+     - Date (sortable)
+     - Project (optional)
+     - Priority (color-coded)
+     - Tags (comma-separated)
+     - Deadline (highlighted for urgency)
+   - Clean row styling with hover states
+   - Consistent typography and spacing
+
+### Settings Modal
+
+![Settings Modal](docs/images/settings modal.png)
+
+A comprehensive settings dialog with clear organization:
+
+1. Editor Section
+   - Auto-save toggle for entries
+   - Spell check enable/disable
+   - Clean checkbox styling
+
+2. Display Options
+   - Theme selector (Light/Dark)
+   - Font size slider with live preview
+   - Font family dropdown with system defaults
+   - Date format selector with examples
+   - Consistent form control styling
+
+3. Cloud Sync Configuration
+   - Enable/disable sync toggle
+   - Provider selection dropdown
+   - Auto sync toggle
+   - Sync interval selector
+   - Clear grouping and layout
+
+4. Backup Controls
+   - Create/Restore backup buttons
+   - Simple, action-focused layout
+   - Clear visual feedback
+
+### Theme Implementation
+
+![Sidebar View](docs/images/sidebar showing on main.png)
+
+Sophisticated theming system with attention to detail:
+
+1. Light Theme (Default)
+   - Clean white backgrounds
+   - Subtle gray accents
+   - High contrast for text
+   - Blue primary actions
+   - Consistent color palette
+
+2. Dark Theme
+   - Deep gray backgrounds
+   - Light gray accents
+   - Carefully chosen contrast ratios
+   - Adjusted color palette for readability
+   - Preserved visual hierarchy
+
+3. Common Features
+   - Smooth transitions between themes
+   - Consistent spacing and typography
+   - Proper contrast ratios for accessibility
+   - Unified color variables
+   - Coherent visual language
 
 ## Recently Completed
 
@@ -48,7 +147,7 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
   - Optimized z-index hierarchy
   - Fixed content overlap issues
 - Added content type system
-  - Added support for Notes, Documents, Templates, and HTML types
+  - Added support for Notes, Documents, Templates, HTML, Records, Tasks, and Event types
   - Implemented "Save As" functionality in editor
   - Added type filtering in sidebar
   - Only Notes are parsed for metadata

@@ -3,8 +3,13 @@
 ## Interface Overview
 
 ### Main View
+
+![Main Interface](docs/images/main app screen.png)
+
 The main view displays your entries in a table format with sortable columns:
+
 - **Content**: First part of the entry text (hover to see full content)
+- **Type**: Entry type (Note/Document/Template/HTML/Record/Task/Event)
 - **Date**: Creation date of the entry
 - **Project**: Associated project name
 - **Priority**: Entry priority level (high/normal/low)
@@ -14,13 +19,25 @@ The main view displays your entries in a table format with sortable columns:
 Click any column header to sort entries. Click again to reverse sort order.
 
 ### Sidebar Navigation
+
+![Sidebar](docs/images/sidebar showing on main.png)
+
 The sidebar provides quick access to filtered views:
+
 - **All Entries**: Show all entries
 - **Overdue**: Show entries past their deadline
 - **Priority**:
   - High Priority
   - Normal Priority
   - Low Priority
+- **Type**:
+  - Note
+  - Document
+  - Template
+  - HTML
+  - Record
+  - Task
+  - Event
 - **Categories**:
   - Projects: Show entries with projects
   - Tags: Show entries with tags
@@ -28,23 +45,29 @@ The sidebar provides quick access to filtered views:
 Use the arrow toggle (←/→) on the right edge to collapse/expand the sidebar.
 
 ### Toolbar
+
 - **New Entry**: Create a new document
 - **Copy DB**: Copy database contents to clipboard
 - **Settings**: Access application settings
 
 ### Search
+
 The search bar at the top allows you to:
+
 - Search across all fields (content, projects, tags, etc.)
 - Clear search with the (×) button or Escape key
 - See results update in real-time as you type
 
 ### Editor
+
 When creating or editing an entry:
+
 - **Back to List**: Return to the main view
 - **Save**: Save your changes (with save icon)
 - **Add Images**: Attach images to your entry
 
 The editor provides rich text formatting options:
+
 - Headers (H1, H2, H3)
 - Bold, italic, underline, strike-through
 - Links and blockquotes
@@ -52,6 +75,7 @@ The editor provides rich text formatting options:
 - Ordered and unordered lists
 
 ### Keyboard Shortcuts
+
 - `Ctrl+N`: New entry
 - `Ctrl+S`: Save current entry
 - `Ctrl+F`: Focus search
@@ -60,7 +84,11 @@ The editor provides rich text formatting options:
 - `Esc`: Clear search (when search is focused)
 
 ### Settings
+
+![Settings](docs/images/settings modal.png)
+
 Access settings through the gear icon to configure:
+
 - Editor preferences
 - Display options
 - Theme customization
@@ -68,6 +96,7 @@ Access settings through the gear icon to configure:
 - Keyboard shortcuts
 
 ## Tips & Tricks
+
 - Use the sidebar filters to quickly find entries
 - Sort columns to organize your view
 - Use tags to categorize entries
@@ -77,7 +106,9 @@ Access settings through the gear icon to configure:
 - Use Copy DB to backup or share your data
 
 ## Troubleshooting
+
 If you encounter issues:
+
 1. Check settings configuration
 2. Ensure entries are saved properly
 3. Verify search/filter combinations
@@ -86,6 +117,7 @@ If you encounter issues:
 6. Contact support with error details
 
 ## Data Management
+
 - Entries are saved automatically
 - Regular backups recommended (use Copy DB)
 - Use projects and tags for organization

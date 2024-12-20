@@ -5,6 +5,7 @@ let currentFilters = {
   search: '',
   status: new Set([]),
   priority: new Set([]),
+  type: new Set([]),
   sort: 'date-desc',
   overdue: false,
   showProjects: false,
@@ -35,6 +36,11 @@ export function filterEntries(entries) {
       if (!currentFilters.priority.has(entry.parsed.priority)) return false;
     }
 
+    // Type filter
+    if (currentFilters.type.size > 0) {
+      if (!currentFilters.type.has(entry.type || 'note')) return false;
+    }
+
     // Overdue filter
     if (currentFilters.overdue) {
       if (!entry.parsed?.final_deadline) return false;
@@ -62,6 +68,10 @@ export function sortEntries(entries) {
     const multiplier = direction === 'asc' ? 1 : -1;
 
     switch (column) {
+      case 'type':
+        const typeA = a.type || 'note';
+        const typeB = b.type || 'note';
+        return multiplier * typeA.localeCompare(typeB);
       case 'content':
         return multiplier * ((a.raw || '').localeCompare(b.raw || ''));
       case 'date':
@@ -228,11 +238,33 @@ export function setupNavigationListener(ipcRenderer, onEntryClick) {
       const filter = item.dataset.filter;
       currentFilters.status = new Set();
       currentFilters.priority = new Set();
+      currentFilters.type = new Set();
       currentFilters.overdue = false;
       currentFilters.showProjects = false;
       currentFilters.showTags = false;
       
       switch (filter) {
+        case 'type-note':
+          currentFilters.type = new Set(['note']);
+          break;
+        case 'type-document':
+          currentFilters.type = new Set(['document']);
+          break;
+        case 'type-template':
+          currentFilters.type = new Set(['template']);
+          break;
+        case 'type-html':
+          currentFilters.type = new Set(['html']);
+          break;
+        case 'type-record':
+          currentFilters.type = new Set(['record']);
+          break;
+        case 'type-task':
+          currentFilters.type = new Set(['task']);
+          break;
+        case 'type-event':
+          currentFilters.type = new Set(['event']);
+          break;
         case 'overdue':
           currentFilters.overdue = true;
           break;

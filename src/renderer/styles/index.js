@@ -1,13 +1,16 @@
 // Function to load CSS file
 function loadCSS(path) {
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = path;
-  document.head.appendChild(link);
+  return new Promise((resolve) => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = path;
+    link.onload = () => resolve();
+    document.head.appendChild(link);
+  });
 }
 
 // Load all CSS files
-export function initializeStyles() {
+export async function initializeStyles() {
   const styles = [
     'styles/base.css',
     'styles/ribbon.css',
@@ -18,7 +21,7 @@ export function initializeStyles() {
     'styles/theme.css'
   ];
 
-  styles.forEach(loadCSS);
+  await Promise.all(styles.map(loadCSS));
 
   // Apply theme based on system preference
   const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;

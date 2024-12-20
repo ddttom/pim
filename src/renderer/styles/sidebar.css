@@ -11,9 +11,18 @@
   flex-direction: column;
   flex-shrink: 0;
   overflow: hidden;
-  transition: transform 0.3s ease;
   z-index: 3;
+  visibility: hidden;
+}
+
+.sidebar.ready {
+  visibility: visible;
+  transition: transform 0.3s ease;
   transform: translateX(-100%);
+}
+
+.preload .sidebar {
+  transition: none !important;
 }
 
 .sidebar:not(.hidden) {
