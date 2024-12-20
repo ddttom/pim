@@ -1,16 +1,18 @@
-const { createLogger } = require('../../../utils/logger');
+import { createLogger } from '../../../utils/logger.js';
+
 const logger = createLogger('ProjectParser');
 
-module.exports = {
+export default {
     name: 'project',
     parse(text, patterns) {
         try {
             // Match Project Name with full capture including "Project"
-            const projectMatch = text.match(/Project\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*?)(?=\s*(?:,|\.|$|\s+(?:tomorrow|next|at|about)))/i);
+            const projectMatch = text.match(/Project\s+([A-Za-z][A-Za-z]+(?:\s*[A-Za-z][A-Za-z]+)*)/i);
             if (projectMatch) {
+                const projectName = projectMatch[1].replace(/\s+/g, ' ').trim();
                 return {
                     project: {
-                        project: `Project ${projectMatch[1].trim()}`
+                        project: `Project ${projectName}`
                     }
                 };
             }
@@ -31,4 +33,4 @@ module.exports = {
             return null;
         }
     }
-}; 
+};

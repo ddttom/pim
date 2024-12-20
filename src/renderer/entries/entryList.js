@@ -9,11 +9,16 @@ let currentFilters = {
   sort: 'date-desc',
   overdue: false,
   showProjects: false,
-  showTags: false
+  showTags: false,
+  showArchived: false
 };
 
 export function filterEntries(entries) {
   return entries.filter(entry => {
+    // Filter out archived entries unless explicitly showing them
+    if (!currentFilters.showArchived && entry.archived) {
+      return false;
+    }
     // Search filter
     if (currentFilters.search) {
       const searchTerm = currentFilters.search.toLowerCase();
@@ -110,7 +115,7 @@ export function renderEntries(entries, onEntryClick) {
     const formattedDate = dateStr ? formatDate(dateStr) : '-';
 
     return `
-      <tr data-id="${entry.id}">
+      <tr data-id="${entry.id}" class="${entry.archived ? 'archived' : ''}">
         <td class="content-cell" title="${entry.raw || ''}">${(entry.raw || '').substring(0, 50)}...</td>
         <td class="type-cell ${entry.type || 'note'}">${entry.type || 'note'}</td>
         <td class="date-cell">${formattedDate}</td>
@@ -282,6 +287,9 @@ export function setupNavigationListener(ipcRenderer, onEntryClick) {
           break;
         case 'tags':
           currentFilters.showTags = true;
+          break;
+        case 'archived':
+          currentFilters.showArchived = true;
           break;
       }
 

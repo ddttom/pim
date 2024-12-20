@@ -4,7 +4,7 @@
 class Logger {
   constructor(context) {
     this.context = context;
-    this.logLevel = process.env.LOG_LEVEL || 'info';
+    this.logLevel = 'info'; // Default log level for renderer process
     this.levels = {
       debug: 0,
       info: 1,
@@ -52,8 +52,6 @@ class Logger {
   }
 }
 
-function createLogger(context) {
+export function createLogger(context) {
   return new Logger(context);
 }
-
-module.exports = { createLogger }; 

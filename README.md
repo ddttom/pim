@@ -19,8 +19,25 @@ A desktop application for managing personal information with rich text editing c
 ## Features
 
 - Rich text editor with markdown support
-- Multiple content types (Note, Document, Template, HTML, Record, Task, Event)
-- Collapsible sidebar for better workspace management
+- Multiple content types:
+  - Note: General text entries
+  - Document: Formatted documents
+  - Template: Reusable templates
+  - HTML: Web content
+  - Record: Structured data entries
+  - Task: Action items or to-dos
+  - Event: Calendar events and meetings
+- Entry archiving system
+  - Archive old entries
+  - Separate archived view
+  - Visual distinction for archived items
+- Advanced modal system
+  - Dynamic creation and removal
+  - Context-aware positioning
+  - Full viewport editor
+  - Proper layering and scrolling
+  - Positioned modals for context actions
+  - Automatic scrollbars for overflow
 - Advanced settings management
 - Customizable themes
 - Keyboard shortcuts
@@ -112,10 +129,11 @@ The application uses a modular CSS system:
 
 ## Usage
 
-- Use the sidebar toggle (Filters button) to show/hide the sidebar
 - Create new entries with Ctrl+N or the New Entry button
 - Save entries with Ctrl+S
-- Save As to change entry type (Note, Document, Template, HTML, Record, Task, Event)
+- Save As to change entry type
+- Archive old entries to keep workspace clean
+- Filter by type or archived status
 - Access settings via the gear icon or Ctrl+,
 - Use keyboard shortcuts for common actions
 
@@ -141,7 +159,9 @@ The application features a modern, efficient interface:
 
 ### Components
 
-- Modal dialogs for settings and Save As
+- Dynamic modal system with context positioning
+- Full viewport editor for maximum workspace
+- Proper modal layering and scrolling
 - Toast notifications for user feedback
 - Proper z-index management for overlays
 - Tooltips with arrow indicators

@@ -94,3 +94,48 @@
 .navigation .nav-item[data-filter="priority-low"] {
   color: var(--accent-color);
 }
+
+/* Type filters */
+.navigation .nav-item[data-filter="type-note"] {
+  color: #4CAF50;
+}
+
+.navigation .nav-item[data-filter="type-document"] {
+  color: #2196F3;
+}
+
+.navigation .nav-item[data-filter="type-template"] {
+  color: #9C27B0;
+}
+
+.navigation .nav-item[data-filter="type-html"] {
+  color: #FF9800;
+}
+
+.navigation .nav-item[data-filter="type-record"] {
+  color: #795548;
+}
+
+.navigation .nav-item[data-filter="type-task"] {
+  color: #F44336;
+}
+
+.navigation .nav-item[data-filter="type-event"] {
+  color: #009688;
+}
+
+/* Status filters */
+.navigation .nav-item[data-filter="archived"] {
+  color: var(--secondary-color);
+  opacity: 0.8;
+}
+
+.navigation .nav-item[data-filter="archived"]:hover {
+  opacity: 1;
+}
+
+.navigation .nav-item[data-filter="archived"].active {
+  opacity: 1;
+  background-color: var(--secondary-color);
+  color: white;
+}

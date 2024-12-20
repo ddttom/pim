@@ -159,6 +159,9 @@ export default class JsonDatabaseService {
     }));
 
     // Apply filters if provided
+    if (filters.type) {
+      entries = entries.filter(entry => filters.type.has(entry.type || 'note'));
+    }
     if (filters.status) {
       entries = entries.filter(entry => entry.parsed?.status && filters.status.has(entry.parsed.status));
     }
@@ -181,6 +184,10 @@ export default class JsonDatabaseService {
         const entryDate = entry.parsed.final_deadline.split('T')[0];
         return filters.date.has(entryDate);
       });
+    }
+    // Filter archived entries unless explicitly showing them
+    if (!filters.showArchived) {
+      entries = entries.filter(entry => !entry.archived);
     }
 
     // Sort by priority (high > normal > low) if parsed data exists

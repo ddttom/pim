@@ -121,6 +121,93 @@ describe('Renderer', () => {
     );
   });
 
+  test('handles entry type selection', async () => {
+    // Import required modules
+    const editorModule = await import('../src/renderer/editor/editor.js');
+    
+    // Setup DOM with Save As dialog
+    document.body.innerHTML += `
+      <div class="editor-actions">
+        <button id="save-as-btn"></button>
+      </div>
+    `;
+
+    // Initialize editor
+    const editor = editorModule.initializeEditor();
+    editor.getText = jest.fn().mockReturnValue('Test content');
+    editor.root.innerHTML = '<p>Test content</p>';
+
+    // Setup responses
+    window.api.invoke.mockImplementation(async (channel, ...args) => {
+      if (channel === 'add-entry') {
+        return 'new-entry-id';
+      }
+      return null;
+    });
+
+    // Click Save As button
+    const saveAsBtn = document.getElementById('save-as-btn');
+    saveAsBtn.click();
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Get type select and change value
+    const typeSelect = document.querySelector('#content-type');
+    expect(typeSelect).toBeTruthy();
+    
+    // Select 'task' type
+    typeSelect.value = 'task';
+    
+    // Click Save button
+    const saveBtn = document.querySelector('.modal button.primary-btn');
+    await saveBtn.click();
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Verify entry was saved with correct type
+    expect(window.api.invoke).toHaveBeenCalledWith('add-entry', expect.objectContaining({
+      type: 'task',
+      raw: 'Test content',
+      html: '<p>Test content</p>'
+    }));
+
+    // Verify type badge was updated
+    const typeBadge = document.querySelector('.editor-type-badge');
+    expect(typeBadge).toBeTruthy();
+    expect(typeBadge.textContent).toBe('task');
+    expect(typeBadge.className).toContain('task');
+  });
+
+  test('handles archived entries', async () => {
+    // Import required modules
+    const { loadEntriesList } = await import('../src/renderer/entries/entryList.js');
+    
+    // Setup mock entries
+    const mockEntries = [
+      { id: '1', content: { raw: 'Active entry' }, archived: false },
+      { id: '2', content: { raw: 'Archived entry' }, archived: true }
+    ];
+
+    // Setup responses
+    window.api.invoke.mockImplementation(async (channel, ...args) => {
+      if (channel === 'get-entries') {
+        return mockEntries;
+      }
+      return null;
+    });
+
+    // Load entries without showing archived
+    await loadEntriesList(window.api);
+    let rows = document.querySelectorAll('tbody tr');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].className).not.toContain('archived');
+
+    // Load entries with showing archived
+    window.currentFilters = { showArchived: true };
+    await loadEntriesList(window.api);
+    rows = document.querySelectorAll('tbody tr');
+    expect(rows).toHaveLength(2);
+    expect(rows[1].className).toContain('archived');
+  });
+
   test('handles settings updates', async () => {
     const { applySettings } = await import('../src/renderer/settings/settings.js');
     

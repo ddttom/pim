@@ -1,7 +1,8 @@
-const { createLogger } = require('../../../utils/logger');
+import { createLogger } from '../../../utils/logger.js';
+
 const logger = createLogger('DependenciesParser');
 
-module.exports = {
+export default {
     name: 'dependencies',
     parse(text, patterns) {
         try {
@@ -40,4 +41,4 @@ module.exports = {
             return null;
         }
     }
-}; 
+};

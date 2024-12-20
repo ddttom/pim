@@ -54,6 +54,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.ribbon-btn:hover .btn-icon {
+  opacity: 1;
 }
 
 .ribbon-btn .btn-icon svg {
@@ -68,11 +74,15 @@
 }
 
 .primary-btn .btn-icon svg {
-  color: white;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .primary-btn:hover {
   background-color: var(--accent-color);
+}
+
+.primary-btn:hover .btn-icon svg {
+  color: white;
 }
 
 .secondary-btn {
@@ -82,7 +92,7 @@
 }
 
 .secondary-btn .btn-icon svg {
-  color: var(--icon-color);
+  color: var(--secondary-color);
 }
 
 .secondary-btn:hover {
@@ -91,4 +101,9 @@
 
 .secondary-btn:hover .btn-icon svg {
   color: var(--text-color);
+}
+
+/* Active state */
+.ribbon-btn:active {
+  transform: translateY(1px);
 }

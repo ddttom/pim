@@ -1,20 +1,16 @@
 /* Entries Container */
 #entries-container {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
   background-color: #ffffff;
   display: flex;
   flex-direction: column;
-  z-index: 1;
+  flex: 1;
+  height: 100%;
   transition: all 0.3s ease;
 }
 
 /* When sidebar is visible, adjust entries container */
-.sidebar:not(.hidden) ~ .main-content #entries-container {
-  left: var(--sidebar-width);
+.sidebar:not(.hidden) ~ .main-content {
+  margin-left: var(--sidebar-width);
 }
 
 /* Search Bar */
@@ -129,10 +125,20 @@
 
 .entries-table tbody tr {
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .entries-table tbody tr:hover {
+  background-color: var(--background-color);
+}
+
+.entries-table tbody tr.archived {
+  opacity: 0.6;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.entries-table tbody tr.archived:hover {
+  opacity: 0.8;
   background-color: var(--background-color);
 }
 
@@ -142,13 +148,49 @@
   font-weight: 500;
 }
 
-.entries-table .type-cell.note { color: #4CAF50; }
-.entries-table .type-cell.document { color: #2196F3; }
-.entries-table .type-cell.template { color: #9C27B0; }
-.entries-table .type-cell.html { color: #FF9800; }
-.entries-table .type-cell.record { color: #795548; }
-.entries-table .type-cell.task { color: #F44336; }
-.entries-table .type-cell.event { color: #009688; }
+/* Type cell colors */
+.entries-table .type-cell.note { 
+  color: #4CAF50;
+  background: rgba(76, 175, 80, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.entries-table .type-cell.document { 
+  color: #2196F3;
+  background: rgba(33, 150, 243, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.entries-table .type-cell.template { 
+  color: #9C27B0;
+  background: rgba(156, 39, 176, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.entries-table .type-cell.html { 
+  color: #FF9800;
+  background: rgba(255, 152, 0, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.entries-table .type-cell.record { 
+  color: #795548;
+  background: rgba(121, 85, 72, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.entries-table .type-cell.task { 
+  color: #F44336;
+  background: rgba(244, 67, 54, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.entries-table .type-cell.event { 
+  color: #009688;
+  background: rgba(0, 150, 136, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
 
 .entries-table .content-cell {
   max-width: 400px;

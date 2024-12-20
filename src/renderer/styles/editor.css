@@ -1,164 +1,128 @@
 /* Editor Container */
-#editor-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ffffff;
-  display: flex;
-  flex-direction: column;
-  z-index: 2;
-}
-
-#editor-container.hidden {
-  display: none;
-}
-
-/* Hide filters button when editor is visible */
-#editor-container:not(.hidden) ~ #filters-btn {
-  display: none;
-}
-
-/* Editor */
 .editor-container {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background-color: #ffffff;
-  border-radius: 0;
-  box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #ffffff;
 }
 
-.editor-header {
-  padding: 12px;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  background-color: var(--background-color);
-  height: 64px;
+/* Editor Ribbon */
+.editor-container .ribbon {
+    padding: 8px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--background-color);
 }
 
-.editor-actions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  width: 100%;
+.editor-container .ribbon-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.editor-actions button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 40px;
-  padding: 0 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
-  border: none;
-  cursor: pointer;
-  white-space: nowrap;
+.editor-container .ribbon-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
 }
 
-.editor-actions button .btn-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.editor-container .ribbon-btn .btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
 }
 
-.editor-actions button .btn-icon svg {
-  width: 20px;
-  height: 20px;
+.editor-container .ribbon-btn .btn-label {
+    font-size: 13px;
+    white-space: nowrap;
 }
 
-.editor-actions .primary-btn {
-  background-color: var(--primary-color);
-  color: white;
-  margin-left: auto;
-}
-
-.editor-actions .primary-btn:hover {
-  background-color: var(--accent-color);
-}
-
-.editor-actions .primary-btn .btn-icon svg {
-  color: white;
-}
-
-.editor-actions .secondary-btn {
-  background-color: white;
-  color: var(--text-color);
-  border: 1px solid var(--border-color);
-}
-
-.editor-actions .secondary-btn:hover {
-  background-color: var(--background-color);
-}
-
-.editor-actions .secondary-btn .btn-icon svg {
-  color: var(--icon-color);
-}
-
-.editor-actions .secondary-btn:hover .btn-icon svg {
-  color: var(--text-color);
-}
-
+/* Editor Content */
 #editor {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0;
-  background-color: white;
+    flex: 1;
+    overflow: auto;
+    padding: 20px;
+    background-color: #ffffff;
+    min-height: 400px;
 }
 
-.ql-toolbar.ql-snow {
-  border: none;
-  border-bottom: 1px solid var(--border-color);
-  padding: 12px;
-  background-color: white;
-}
-
-.ql-container.ql-snow {
-  border: none;
-  font-size: 16px;
-  line-height: 1.6;
-  height: calc(100% - 42px); /* 42px is toolbar height */
-}
-
-.ql-editor {
-  padding: 20px;
-  min-height: 100%;
-}
-
-/* Editor Type Badge */
+/* Type Badges */
 .editor-type-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 0.85em;
-  font-weight: 500;
-  margin-left: 16px;
-  text-transform: capitalize;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: capitalize;
+    margin-left: auto;
 }
 
 .editor-type-badge.note {
-  background-color: var(--primary-color);
-  color: white;
+    color: #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
 }
 
 .editor-type-badge.document {
-  background-color: var(--secondary-color);
-  color: white;
+    color: #2196F3;
+    background: rgba(33, 150, 243, 0.1);
 }
 
 .editor-type-badge.template {
-  background-color: var(--accent-color);
-  color: white;
+    color: #9C27B0;
+    background: rgba(156, 39, 176, 0.1);
 }
 
 .editor-type-badge.html {
-  background-color: #dc3545;
-  color: white;
+    color: #FF9800;
+    background: rgba(255, 152, 0, 0.1);
+}
+
+.editor-type-badge.record {
+    color: #795548;
+    background: rgba(121, 85, 72, 0.1);
+}
+
+.editor-type-badge.task {
+    color: #F44336;
+    background: rgba(244, 67, 54, 0.1);
+}
+
+.editor-type-badge.event {
+    color: #009688;
+    background: rgba(0, 150, 136, 0.1);
+}
+
+/* Quill Editor Overrides */
+.ql-toolbar.ql-snow {
+    border-color: var(--border-color);
+}
+
+.ql-container.ql-snow {
+    border-color: var(--border-color);
+    font-size: 16px;
+    font-family: var(--font-family);
+}
+
+.ql-editor {
+    min-height: 300px;
+    max-height: calc(80vh - 200px);
+}
+
+/* Modal-specific editor styles */
+.modal .editor-container {
+    height: calc(90vh - 100px);
+    max-width: 100%;
+    margin: 0;
+}
+
+.modal .ql-editor {
+    height: calc(90vh - 300px);
+    max-height: none;
+}
+
+.ql-editor p {
+    margin-bottom: 1em;
 }

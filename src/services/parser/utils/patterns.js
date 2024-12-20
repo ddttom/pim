@@ -1,4 +1,4 @@
-const { createLogger } = require('../../../utils/logger');
+import { createLogger } from '../../../utils/logger.js';
 
 const logger = createLogger('PatternUtils');
 
@@ -7,7 +7,7 @@ const logger = createLogger('PatternUtils');
  * @param {Object} patterns - Raw patterns object
  * @returns {Map} Compiled patterns
  */
-function compilePatterns(patterns) {
+export function compilePatterns(patterns) {
   try {
     // Return empty Map if patterns is invalid
     if (!patterns || typeof patterns !== 'object') {
@@ -37,11 +37,6 @@ function compilePatterns(patterns) {
  * @param {Object} match - RegExp match result
  * @returns {boolean} Is valid match
  */
-function validatePatternMatch(match) {
+export function validatePatternMatch(match) {
   return Boolean(match && match.length > 0);
 }
-
-module.exports = {
-  compilePatterns,
-  validatePatternMatch,
-}; 

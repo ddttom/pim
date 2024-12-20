@@ -1,26 +1,16 @@
-const logger = require('../../../utils/logger');
+import { createLogger } from '../../../utils/logger.js';
 
-// URL regex pattern
-const URL_PATTERN = /https?:\/\/[^\s]+/g;
+const logger = createLogger('LinksParser');
 
-class LinksParser {
+export default {
+  name: 'links',
   parse(text) {
     try {
-      if (!text || typeof text !== 'string') {
-        return [];
-      }
-
-      // Extract URLs from text
-      const matches = text.match(URL_PATTERN);
-      
-      // Return array of URLs or empty array if no matches
-      return matches || [];
-
+      const urlRegex = /(https?:\/\/[^\s]+|file:\/\/[^\s]+)/g;
+      return Array.from(text.matchAll(urlRegex), m => m[1]);
     } catch (error) {
       logger.error('Error in links parser:', { error });
       return [];
     }
   }
-}
-
-module.exports = new LinksParser(); 
+};

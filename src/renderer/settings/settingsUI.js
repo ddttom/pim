@@ -1,26 +1,9 @@
 import { showToast } from '../utils/toast.js';
 
-export function showSettingsModal() {
-  const modal = document.getElementById('settings-modal');
-  if (!modal) return;
-  
-  // Setup settings UI before showing modal
-  setupSettingsUI(window.settings, window.api);
-  modal.classList.add('visible');
-}
+export async function setupSettingsUI(container, settings, api) {
+  if (!container) return;
 
-export function closeSettingsModal() {
-  const modal = document.getElementById('settings-modal');
-  if (!modal) return;
-  
-  modal.classList.remove('visible');
-}
-
-export async function setupSettingsUI(settings, api) {
-  const modalBody = document.querySelector('#settings-modal .modal-body');
-  if (!modalBody) return;
-
-  modalBody.innerHTML = `
+  container.innerHTML = `
     <div class="settings-section">
       <h3>Editor</h3>
       <div class="setting-item">
@@ -181,7 +164,6 @@ export async function saveSettings(settings, api) {
     };
 
     await api.invoke('update-settings', updates);
-    closeSettingsModal();
     showToast('Settings saved successfully');
     return updates;
   } catch (error) {

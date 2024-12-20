@@ -31,18 +31,18 @@ The sidebar provides quick access to filtered views:
   - Normal Priority
   - Low Priority
 - **Type**:
-  - Note
-  - Document
-  - Template
-  - HTML
-  - Record
-  - Task
-  - Event
+  - Note: General text entries
+  - Document: Formatted documents
+  - Template: Reusable templates
+  - HTML: HTML content
+  - Record: Data records
+  - Task: Action items or to-dos
+  - Event: Calendar events or meetings
 - **Categories**:
   - Projects: Show entries with projects
   - Tags: Show entries with tags
-
-Use the arrow toggle (←/→) on the right edge to collapse/expand the sidebar.
+- **Status**:
+  - Archived: Show archived entries
 
 ### Toolbar
 
@@ -60,11 +60,25 @@ The search bar at the top allows you to:
 
 ### Editor
 
-When creating or editing an entry:
+The editor provides a full viewport workspace for creating and editing entries:
 
 - **Back to List**: Return to the main view
 - **Save**: Save your changes (with save icon)
+- **Save As**: Save entry as a different type (appears below button)
 - **Add Images**: Attach images to your entry
+- **Test Parser**: Test entry parsing (appears below button)
+- **Settings**: Configure application settings (appears below button)
+- **Archive**: Move entry to archive (appears in archived view)
+
+The entry type is shown as a colored badge in the editor toolbar. Use Save As to change an entry's type:
+
+- Note (Green): General text entries
+- Document (Blue): Formatted documents
+- Template (Purple): Reusable templates
+- HTML (Orange): HTML content
+- Record (Brown): Structured data entries
+- Task (Red): Action items or to-dos
+- Event (Teal): Calendar events and meetings
 
 The editor provides rich text formatting options:
 
@@ -73,6 +87,24 @@ The editor provides rich text formatting options:
 - Links and blockquotes
 - Code blocks
 - Ordered and unordered lists
+
+### Modal System
+
+The application uses a dynamic modal system:
+
+- **Editor Modal**: Uses full viewport for maximum workspace
+- **Settings Modal**: Appears below settings button with scrollable content
+- **Save As Modal**: Appears below Save As button for type selection
+- **Test Parser Modal**: Appears below Test Parser button with scrollable results
+- **Confirmation Modals**: Centered on screen for important actions
+
+All modals support:
+
+- Escape key to close
+- Click outside to dismiss
+- Proper layering with z-index management
+- Scrollbars for overflow content
+- Keyboard focus management
 
 ### Keyboard Shortcuts
 
@@ -104,6 +136,15 @@ Access settings through the gear icon to configure:
 - Use keyboard shortcuts for common actions
 - Collapse the sidebar to maximize workspace
 - Use Copy DB to backup or share your data
+- Archive old entries to keep your main view clean
+- Use appropriate entry types for better organization:
+  - Notes for general text and thoughts
+  - Documents for formatted content
+  - Templates for reusable structures
+  - HTML for web content
+  - Records for structured data
+  - Tasks for action items
+  - Events for calendar entries
 
 ## Troubleshooting
 

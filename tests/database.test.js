@@ -89,18 +89,32 @@ describe('Database Service Tests', () => {
 
   describe('Entry Filtering', () => {
     beforeEach(async () => {
-      // Add test entries
+      // Add test entries with different types and states
       await dbService.addEntry({
         content: { raw: 'High priority task' },
+        type: 'task',
         parsed: { priority: 'high', status: 'pending' }
       });
       await dbService.addEntry({
-        content: { raw: 'Normal priority task' },
+        content: { raw: 'Normal priority note' },
+        type: 'note',
         parsed: { priority: 'normal', status: 'pending' }
       });
       await dbService.addEntry({
-        content: { raw: 'Low priority task' },
+        content: { raw: 'Low priority record' },
+        type: 'record',
         parsed: { priority: 'low', status: 'complete' }
+      });
+      await dbService.addEntry({
+        content: { raw: 'Archived event' },
+        type: 'event',
+        archived: true,
+        parsed: { priority: 'normal' }
+      });
+      await dbService.addEntry({
+        content: { raw: 'HTML template' },
+        type: 'template',
+        parsed: { priority: 'normal' }
       });
     });
 
@@ -124,6 +138,38 @@ describe('Database Service Tests', () => {
       const filtered = await dbService.getEntries(filters);
       expect(filtered).toHaveLength(1);
       expect(filtered[0].parsed.priority).toBe('high');
+    });
+
+    test('filters by type', async () => {
+      const filters = {
+        type: new Set(['note', 'task'])
+      };
+
+      const filtered = await dbService.getEntries(filters);
+      expect(filtered).toHaveLength(2);
+      filtered.forEach(entry => {
+        expect(['note', 'task']).toContain(entry.type);
+      });
+    });
+
+    test('excludes archived entries by default', async () => {
+      const filters = {};
+      const filtered = await dbService.getEntries(filters);
+      
+      filtered.forEach(entry => {
+        expect(entry.archived).toBeFalsy();
+      });
+    });
+
+    test('includes archived entries when explicitly requested', async () => {
+      const filters = {
+        showArchived: true
+      };
+      const filtered = await dbService.getEntries(filters);
+      
+      const archivedEntries = filtered.filter(entry => entry.archived);
+      expect(archivedEntries).toHaveLength(1);
+      expect(archivedEntries[0].type).toBe('event');
     });
 
     test('sorts entries', async () => {

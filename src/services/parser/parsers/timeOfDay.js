@@ -1,7 +1,8 @@
-const { createLogger } = require('../../../utils/logger');
+import { createLogger } from '../../../utils/logger.js';
+
 const logger = createLogger('TimeOfDayParser');
 
-module.exports = {
+export default {
     name: 'timeOfDay',
     parse(text, patterns) {
         try {
@@ -38,4 +39,4 @@ module.exports = {
             return null;
         }
     }
-}; 
+};

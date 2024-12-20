@@ -45,7 +45,7 @@ export const defaultSettings = {
   }
 };
 
-export function applySettings(settings = defaultSettings, editor = null) {
+export function applySettings(settings = defaultSettings) {
   try {
     // Apply theme with fallback
     const themeName = settings?.theme?.name || 'light';
@@ -57,11 +57,6 @@ export function applySettings(settings = defaultSettings, editor = null) {
     document.documentElement.style.setProperty('--font-size', advanced.fontSize);
     document.documentElement.style.setProperty('--font-family', advanced.fontFamily);
     document.documentElement.style.setProperty('--border-radius', advanced.borderRadius);
-    
-    // Apply editor settings if editor exists
-    if (editor?.root) {
-      editor.root.spellcheck = settings?.spellcheck ?? defaultSettings.spellcheck;
-    }
     
     // Apply custom CSS if any
     if (advanced?.customCSS) {

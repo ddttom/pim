@@ -1,9 +1,8 @@
 import { showToast } from '../utils/toast.js';
 import { createNewEntry, saveEntry, duplicateCurrentEntry, archiveCurrentEntry } from '../entries/entryActions.js';
-import { showSettingsModal } from '../settings/settingsUI.js';
-import { editorActions } from './editor.js';
 import { createBackup } from '../sync/sync.js';
 import { defaultSettings } from '../settings/settings.js';
+import { EditorModal } from './EditorModal.js';
 
 function formatActionName(action) {
   return action
@@ -41,12 +40,27 @@ function executeAction(action, ipcRenderer) {
     newEntry: () => createNewEntry(),
     save: () => saveEntry(ipcRenderer),
     search: () => document.getElementById('search-input')?.focus(),
-    settings: showSettingsModal,
-    bold: editorActions.bold,
-    italic: editorActions.italic,
-    underline: editorActions.underline,
-    undo: editorActions.undo,
-    redo: editorActions.redo,
+    settings: () => document.getElementById('settings-btn').click(),
+    bold: () => {
+      const editor = EditorModal.getCurrentEditor();
+      if (editor) editor.editor.format('bold', true);
+    },
+    italic: () => {
+      const editor = EditorModal.getCurrentEditor();
+      if (editor) editor.editor.format('italic', true);
+    },
+    underline: () => {
+      const editor = EditorModal.getCurrentEditor();
+      if (editor) editor.editor.format('underline', true);
+    },
+    undo: () => {
+      const editor = EditorModal.getCurrentEditor();
+      if (editor) editor.editor.history.undo();
+    },
+    redo: () => {
+      const editor = EditorModal.getCurrentEditor();
+      if (editor) editor.editor.history.redo();
+    },
     backup: () => createBackup(ipcRenderer),
     escape: handleEscape,
     duplicate: () => duplicateCurrentEntry(ipcRenderer),
@@ -62,13 +76,21 @@ function executeAction(action, ipcRenderer) {
 }
 
 function handleEscape() {
-  const settingsModal = document.getElementById('settings-modal');
+  const modals = document.querySelectorAll('.modal');
   const editorContainer = document.getElementById('editor-container');
   const sidebar = document.querySelector('.sidebar');
 
-  if (settingsModal && !settingsModal.classList.contains('hidden')) {
-    settingsModal.classList.add('hidden');
-  } else if (editorContainer && !editorContainer.classList.contains('hidden')) {
+  // Close any open modal
+  if (modals.length > 0) {
+    modals.forEach(modal => {
+      if (modal.parentNode) {
+        modal.parentNode.removeChild(modal);
+      }
+    });
+    document.body.style.overflow = ''; // Restore scrolling
+  } 
+  // Or return to entries list
+  else if (editorContainer && !editorContainer.classList.contains('hidden')) {
     editorContainer.classList.add('hidden');
     sidebar?.classList.remove('hidden');
   }

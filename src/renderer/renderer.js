@@ -1,9 +1,10 @@
-// Import styles
+// Import styles and components
 import { initializeStyles } from './styles/index.js';
+import { Modal } from './utils/modal.js';
+import { EditorModal } from './editor/EditorModal.js';
 
 // Global state and imported modules
 let settings;
-let editor;
 let modules;
 
 // Initialize application
@@ -37,12 +38,15 @@ async function initializeApp() {
       settings = loadedSettings;
     }
 
-    // Initialize editor (hidden by default)
-    editor = modules.initializeEditor(settings);
-    document.getElementById('editor-container')?.classList.add('hidden');
+    // Ensure parser test modal is hidden
+    const parserModal = document.getElementById('parser-test-modal');
+    if (parserModal) {
+      parserModal.classList.remove('show');
+      document.body.classList.remove('modal-open');
+    }
 
     // Apply settings
-    modules.applySettings(settings, editor);
+    modules.applySettings(settings);
 
     // Setup event listeners and features
     setupEventListeners(modules);
@@ -72,7 +76,6 @@ async function initializeApp() {
 async function importModules() {
   const [
     { showToast },
-    { initializeEditor },
     { setupKeyboardShortcuts },
     { loadEntriesList, showEntriesList, setupSortListener, setupSearchListener, setupNavigationListener },
     { createNewEntry, loadEntry, saveEntry },
@@ -81,7 +84,6 @@ async function importModules() {
     { setupAutoSync }
   ] = await Promise.all([
     import('./utils/toast.js'),
-    import('./editor/editor.js'),
     import('./editor/shortcuts.js'),
     import('./entries/entryList.js'),
     import('./entries/entryActions.js'),
@@ -97,7 +99,6 @@ async function importModules() {
 
   return {
     showToast,
-    initializeEditor,
     setupKeyboardShortcuts,
     loadEntriesList,
     showEntriesList,
@@ -128,43 +129,48 @@ function setupEventListeners(handlers) {
   });
 
   // Re-add event listeners
-  document.getElementById('new-entry-btn')?.addEventListener('click', () => {
-    document.getElementById('filters-btn')?.classList.add('hidden');
-    handlers.createNewEntry();
-  });
-  
-  document.getElementById('settings-btn')?.addEventListener('click', handlers.showSettingsModal);
-  document.getElementById('save-btn')?.addEventListener('click', () => handlers.saveEntry(window.api));
-  document.getElementById('copy-db-btn')?.addEventListener('click', async () => {
-    try {
-      const entries = await window.api.invoke('get-entries');
-      const success = await window.api.invoke('copy-to-clipboard', JSON.stringify(entries, null, 2));
-      if (success) {
-        handlers.showToast('Database copied to clipboard', 'success');
-      } else {
+  const newEntryBtn = document.getElementById('new-entry-btn');
+  const copyDbBtn = document.getElementById('copy-db-btn');
+  const filtersBtn = document.getElementById('filters-btn');
+
+  if (newEntryBtn) {
+    newEntryBtn.addEventListener('click', () => {
+      handlers.createNewEntry(window.api);
+    });
+  }
+
+  if (copyDbBtn) {
+    copyDbBtn.addEventListener('click', async () => {
+      try {
+        const entries = await window.api.invoke('get-entries');
+        const success = await window.api.invoke('copy-to-clipboard', JSON.stringify(entries, null, 2));
+        if (success) {
+          handlers.showToast('Database copied to clipboard', 'success');
+        } else {
+          handlers.showToast('Failed to copy database', 'error');
+        }
+      } catch (error) {
+        console.error('Copy DB error:', error);
         handlers.showToast('Failed to copy database', 'error');
       }
-    } catch (error) {
-      console.error('Copy DB error:', error);
-      handlers.showToast('Failed to copy database', 'error');
-    }
-  });
+    });
+  }
+
+  if (filtersBtn) {
+    filtersBtn.addEventListener('click', () => {
+      const sidebar = document.querySelector('.sidebar');
+      if (sidebar) {
+        sidebar.classList.toggle('hidden');
+      }
+    });
+  }
   
   document.getElementById('back-btn')?.addEventListener('click', () => {
-    document.getElementById('editor-container')?.classList.add('hidden');
+    // Show entries container and filters
     document.getElementById('entries-container')?.classList.remove('hidden');
     document.getElementById('filters-btn')?.classList.remove('hidden');
   });
 
-  // Add filters button functionality
-  const filtersBtn = document.getElementById('filters-btn');
-  const sidebar = document.querySelector('.sidebar');
-  
-  if (filtersBtn && sidebar) {
-    filtersBtn.addEventListener('click', () => {
-      sidebar.classList.toggle('hidden');
-    });
-  }
 
   // Settings modal handlers
   const settingsModal = document.getElementById('settings-modal');
@@ -178,7 +184,7 @@ function setupEventListeners(handlers) {
   saveBtn?.addEventListener('click', async () => {
     try {
       settings = await handlers.saveSettings(settings, window.api);
-      handlers.applySettings(settings, editor);
+      handlers.applySettings(settings);
     } catch (error) {
       console.error('Failed to save settings:', error);
       handlers.showToast('Failed to save settings', 'error');
@@ -191,7 +197,7 @@ window.api.on('settings-loaded', (loadedSettings) => {
   if (loadedSettings && modules) {
     settings = loadedSettings;
     window.settings = loadedSettings;
-    modules.applySettings(settings, editor);
+    modules.applySettings(settings);
     
     // Initialize settings UI if modal is visible
     const modal = document.getElementById('settings-modal');

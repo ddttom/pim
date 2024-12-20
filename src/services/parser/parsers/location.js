@@ -1,7 +1,8 @@
-const { createLogger } = require('../../../utils/logger');
+import { createLogger } from '../../../utils/logger.js';
+
 const logger = createLogger('LocationParser');
 
-module.exports = {
+export default {
     name: 'location',
     parse(text, patterns) {
         try {
@@ -44,4 +45,4 @@ module.exports = {
             return null;
         }
     }
-}; 
+};

@@ -1,4 +1,5 @@
-const { createLogger } = require('../../../utils/logger');
+import { createLogger } from '../../../utils/logger.js';
+
 const logger = createLogger('DateParser');
 
 class DateParser {
@@ -113,12 +114,10 @@ class DateParser {
             if (mentionedDay) {
                 const targetDay = weekdays.indexOf(mentionedDay);
                 const date = new Date(now);
-                // First move to next week
-                date.setDate(now.getDate() + 7);
-                // Then calculate days until target day
-                let diff = targetDay - date.getDay();
-                if (diff < 0) diff += 7;
-                date.setDate(date.getDate() + diff);
+                // Calculate days until next occurrence
+                let diff = targetDay - now.getDay();
+                if (diff <= 0) diff += 7;  // If today or past, move to next week
+                date.setDate(now.getDate() + diff);
                 return date;
             }
         }
@@ -145,7 +144,7 @@ class DateParser {
     }
 }
 
-module.exports = {
+export default {
     name: 'date',
     parse: DateParser.parse.bind(DateParser),
     calculateRelativeDate: DateParser.calculateRelativeDate

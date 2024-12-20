@@ -89,18 +89,23 @@ describe('Parser Tests', () => {
 
     describe('Project Parsing', () => {
         test('should parse project from "about project" format', () => {
-            const result = parser.parse('Call John about project Cheesecake');
-            expect(result.parsed.project.project).toBe('Cheesecake');
+            const result = parser.parse('Call John about Project Cheesecake');
+            expect(result.parsed.project.project).toBe('Project Cheesecake');
         });
 
         test('should parse project from "Project X" format', () => {
             const result = parser.parse('Project Alpha meeting tomorrow');
-            expect(result.parsed.project.project).toBe('Alpha');
+            expect(result.parsed.project.project).toBe('Project Alpha');
         });
 
         test('should handle multi-word project names', () => {
-            const result = parser.parse('about project Big Launch');
-            expect(result.parsed.project.project).toBe('Big Launch');
+            const result = parser.parse('about Project Big Launch');
+            expect(result.parsed.project.project).toBe('Project Big Launch');
+        });
+
+        test('should handle project names with mixed case', () => {
+            const result = parser.parse('Call about Project CheeseCake');
+            expect(result.parsed.project.project).toBe('Project CheeseCake');
         });
     });
 
@@ -127,7 +132,7 @@ describe('Parser Tests', () => {
             
             expect(result.parsed.action).toBe('call');
             expect(result.parsed.contact).toBe('John');
-            expect(result.parsed.project.project).toBe('Cheesecake');
+            expect(result.parsed.project.project).toBe('Project Cheesecake');
             expect(result.parsed.status).toBe('Started');
             expect(result.parsed.final_deadline).toBe('2024-01-08T09:00:00.000Z');
         });

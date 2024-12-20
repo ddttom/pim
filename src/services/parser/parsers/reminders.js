@@ -1,7 +1,8 @@
-const { createLogger } = require('../../../utils/logger');
+import { createLogger } from '../../../utils/logger.js';
+
 const logger = createLogger('RemindersParser');
 
-module.exports = {
+export default {
     name: 'reminders',
     parse(text, patterns) {
         try {
@@ -67,4 +68,4 @@ module.exports = {
             return null;
         }
     }
-}; 
+};

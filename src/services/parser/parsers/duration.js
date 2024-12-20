@@ -1,7 +1,8 @@
-const { createLogger } = require('../../../utils/logger');
+import { createLogger } from '../../../utils/logger.js';
+
 const logger = createLogger('DurationParser');
 
-module.exports = {
+export default {
     name: 'duration',
     parse(text, patterns) {
         try {
@@ -21,4 +22,4 @@ module.exports = {
             return null;
         }
     }
-}; 
+};
