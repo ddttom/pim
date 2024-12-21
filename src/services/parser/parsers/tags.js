@@ -8,10 +8,14 @@ export default {
     try {
       const tagRegex = /#(\w+(?:-\w+)*)/g;
       const matches = Array.from(text.matchAll(tagRegex), m => m[1]);
-      return matches.length > 0 ? matches : [];
+      return {
+        tags: matches
+      };
     } catch (error) {
       logger.error('Error in tags parser:', { error });
-      return [];
+      return {
+        tags: []
+      };
     }
   }
 };

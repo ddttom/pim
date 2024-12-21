@@ -4,32 +4,26 @@ const logger = createLogger('ProjectParser');
 
 export default {
     name: 'project',
-    parse(text, patterns) {
+    parse(text) {
         try {
-            // Match Project Name with full capture including "Project"
-            const projectMatch = text.match(/Project\s+([A-Za-z][A-Za-z]+(?:\s*[A-Za-z][A-Za-z]+)*)/i);
-            if (projectMatch) {
-                const projectName = projectMatch[1].replace(/\s+/g, ' ').trim();
-                return {
-                    project: {
-                        project: `Project ${projectName}`
-                    }
-                };
-            }
+            const projectPattern = /\bProject\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+)*)/;
+            const aboutProjectPattern = /\babout\s+Project\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+)*)/;
+            const reProjectPattern = /\bre\s+Project\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+)*)/;
 
-            // Match Context Tags
-            const contextMatches = Array.from(text.matchAll(/\$(\w+)/g));
-            if (contextMatches.length > 0) {
+            let match = projectPattern.exec(text) || 
+                       aboutProjectPattern.exec(text) || 
+                       reProjectPattern.exec(text);
+
+            if (match) {
                 return {
-                    project: {
-                        contexts: contextMatches.map(match => match[1])
-                    }
+                    type: 'project',
+                    value: `Project ${match[1]}`
                 };
             }
 
             return null;
         } catch (error) {
-            logger.error('Error in project parser:', { error });
+            logger.error('Error in project parser:', { error: error.message, stack: error.stack });
             return null;
         }
     }

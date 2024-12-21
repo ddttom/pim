@@ -4,22 +4,21 @@ const logger = createLogger('CategoriesParser');
 
 export default {
     name: 'categories',
-    parse(text, patterns) {
+    parse(text) {
         try {
-            const categories = new Set();
-            
-            // Add 'calls' category for text messages
-            if (text.toLowerCase().match(/\b(text|call)\b/)) {
-                categories.add('calls');
+            const hashtagPattern = /#([a-zA-Z]\w+)/g;
+            const matches = [...text.matchAll(hashtagPattern)].map(match => match[1].toLowerCase());
+
+            if (matches.length > 0) {
+                return {
+                    type: 'categories',
+                    value: matches
+                };
             }
 
-            // Add categories from hashtags
-            const hashtagMatches = Array.from(text.matchAll(/#(\w+)/g));
-            hashtagMatches.forEach(match => categories.add(match[1]));
-
-            return categories.size > 0 ? { categories: Array.from(categories) } : null;
+            return null;
         } catch (error) {
-            logger.error('Error in categories parser:', { error });
+            logger.error('Error in categories parser:', { error: error.message, stack: error.stack });
             return null;
         }
     }

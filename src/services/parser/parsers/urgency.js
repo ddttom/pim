@@ -2,26 +2,31 @@ import { createLogger } from '../../../utils/logger.js';
 
 const logger = createLogger('UrgencyParser');
 
+const URGENCY_LEVELS = {
+    'asap': 'high',
+    'urgent': 'high',
+    'soon': 'medium',
+    'whenever': 'low',
+    'eventually': 'low'
+};
+
 export default {
     name: 'urgency',
-    parse(text, patterns) {
+    parse(text) {
         try {
-            const urgencyMatch = text.match(/\b(asap|urgent|end of day|soon)\b/i);
-            if (urgencyMatch) {
-                const level = urgencyMatch[1].toLowerCase();
-                switch (level) {
-                    case 'asap':
-                    case 'urgent':
-                        return { urgency: { level: 'immediate' } };
-                    case 'end of day':
-                        return { urgency: { level: 'today' } };
-                    case 'soon':
-                        return { urgency: { level: 'soon' } };
-                }
+            const urgencyPattern = new RegExp(`\\b(${Object.keys(URGENCY_LEVELS).join('|')})\\b`, 'i');
+            const match = text.match(urgencyPattern);
+
+            if (match) {
+                return {
+                    type: 'urgency',
+                    value: URGENCY_LEVELS[match[1].toLowerCase()]
+                };
             }
+
             return null;
         } catch (error) {
-            logger.error('Error in urgency parser:', { error });
+            logger.error('Error in urgency parser:', { error: error.message, stack: error.stack });
             return null;
         }
     }

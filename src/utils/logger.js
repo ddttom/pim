@@ -20,7 +20,7 @@ class Logger {
   formatMessage(level, message, data) {
     const timestamp = new Date().toISOString();
     const dataString = data ? JSON.stringify(data, null, 2) : '';
-    return `[${timestamp}] [${level.toUpperCase()}] [${this.context}] ${message} ${dataString}`;
+    return `[${timestamp}] [${level.toUpperCase()}] [${this.context}] ${message} ${dataString}`.trim();
   }
 
   error(message, error, data = {}) {

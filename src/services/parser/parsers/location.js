@@ -4,44 +4,29 @@ const logger = createLogger('LocationParser');
 
 export default {
     name: 'location',
-    parse(text, patterns) {
+    parse(text) {
         try {
-            // Check for Zoom meetings first
-            if (text.toLowerCase().includes('zoom')) {
-                const zoomLink = text.match(/https:\/\/zoom\.us\/j\/\d+/);
-                return {
-                    location: {
-                        type: 'online',
-                        value: 'zoom',
-                        ...(zoomLink && { link: zoomLink[0] })
-                    }
-                };
-            }
+            const atPattern = /\bat\s+([A-Za-z][a-zA-Z0-9\s]+(?:\s+[A-Za-z][a-zA-Z0-9\s]*)*)/i;
+            const inPattern = /\bin\s+([A-Za-z][a-zA-Z0-9\s]+(?:\s+[A-Za-z][a-zA-Z0-9\s]*)*)/i;
+            const colonPattern = /location:\s+([A-Za-z][a-zA-Z0-9\s]+(?:\s+[A-Za-z][a-zA-Z0-9\s]*)*)/i;
 
-            // Check for office locations
-            const officeMatch = text.match(/\b(?:in|at)\s+(?:the\s+)?office\b/i);
-            if (officeMatch) {
-                return {
-                    location: {
-                        type: 'office',
-                        value: 'office'
-                    }
-                };
-            }
+            let match = atPattern.exec(text) || 
+                       inPattern.exec(text) || 
+                       colonPattern.exec(text);
 
-            // Check for other locations
-            const locationMatch = text.match(/(?:in|at)\s+(?:the\s+)?([^,\.]+?)(?=\s*(?:,|\.|$|\s+(?:for|about|tomorrow|next)))/i);
-            if (locationMatch) {
-                const location = locationMatch[1].trim();
-                if (location.toLowerCase() === 'office') {
-                    return { location: { type: 'office', value: 'office' } };
+            if (match) {
+                const location = match[1].trim();
+                if (location.length > 2 && !/^(the|a|an)$/i.test(location)) {
+                    return {
+                        type: 'location',
+                        value: location
+                    };
                 }
-                return { location: { type: 'travel', value: location } };
             }
 
             return null;
         } catch (error) {
-            logger.error('Error in location parser:', { error });
+            logger.error('Error in location parser:', { error: error.message, stack: error.stack });
             return null;
         }
     }

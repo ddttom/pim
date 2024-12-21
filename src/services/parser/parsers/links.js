@@ -6,11 +6,16 @@ export default {
   name: 'links',
   parse(text) {
     try {
-      const urlRegex = /(https?:\/\/[^\s]+|file:\/\/[^\s]+)/g;
-      return Array.from(text.matchAll(urlRegex), m => m[1]);
+      const urlPattern = /(https?:\/\/[^\s]+|file:\/\/[^\s]+)/g;
+      const matches = text.match(urlPattern) || [];
+      
+      return {
+        type: 'links',
+        value: matches
+      };
     } catch (error) {
-      logger.error('Error in links parser:', { error });
-      return [];
+      logger.error('Error in links parser:', { error: error.message, stack: error.stack });
+      return null;
     }
   }
 };

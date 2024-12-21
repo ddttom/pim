@@ -21,20 +21,37 @@ jest.mock('electron', () => ({
 }));
 
 async function cleanTestDirectories() {
+  // Remove existing test directory if it exists
   try {
-    // Remove existing test directory if it exists
-    await fs.rm(TEST_DIR, { recursive: true, force: true }).catch(() => {});
+    await fs.rm(TEST_DIR, { recursive: true, force: true });
+  } catch (err) {
+    // Ignore errors if directory doesn't exist
+  }
     
-    // Create fresh test directory and media subdirectory
-    await fs.mkdir(TEST_DIR, { recursive: true });
-    await fs.mkdir(path.join(TEST_DIR, 'media'), { recursive: true });
-    
-    // Create any other required subdirectories
-    await fs.mkdir(path.join(TEST_DIR, 'backup'), { recursive: true });
-    await fs.mkdir(path.join(TEST_DIR, 'backup/media'), { recursive: true });
+  // Create test directories sequentially to ensure parent dirs exist
+  const directories = [
+    TEST_DIR,
+    path.join(TEST_DIR, 'media'),
+    path.join(TEST_DIR, 'backup'),
+    path.join(TEST_DIR, 'backup/media')
+  ];
+
+  for (const dir of directories) {
+    try {
+      await fs.mkdir(dir, { recursive: true });
+    } catch (error) {
+      console.error(`Failed to create directory ${dir}:`, error);
+      throw error; // Fail test setup if directories can't be created
+    }
+  }
+
+  // Create empty test database file
+  const dbPath = path.join(TEST_DIR, 'pim.test.json');
+  try {
+    await fs.writeFile(dbPath, '{}');
   } catch (error) {
-    console.error('Test directory setup error:', error);
-    throw error; // Re-throw to fail tests if setup fails
+    console.error('Failed to create test database:', error);
+    throw error;
   }
 }
 
@@ -52,8 +69,18 @@ beforeAll(async () => {
     }
   };
 
-  // Set up jsdom mocks when not in jsdom environment
-  if (!global.document) {
+  // Set up jsdom mocks
+  if (typeof document !== 'undefined') {
+    // In jsdom environment
+    document.body.innerHTML = ''; // Clear any existing content
+    
+    // Mock CSS loading
+    const head = document.getElementsByTagName('head')[0];
+    const style = document.createElement('style');
+    style.type = 'text/css';
+    head.appendChild(style);
+  } else {
+    // In node environment
     global.document = {
       getElementById: jest.fn(),
       createElement: jest.fn(() => ({
@@ -63,7 +90,9 @@ beforeAll(async () => {
           remove: jest.fn(),
           toggle: jest.fn()
         }
-      }))
+      })),
+      getElementsByTagName: jest.fn(() => []),
+      body: { innerHTML: '' }
     };
   }
 });

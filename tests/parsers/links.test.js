@@ -1,9 +1,10 @@
-const MockLogger = require('../__mocks__/logger');
-const linksParser = require('../../src/services/parser/parsers/links');
+import MockLogger from '../__mocks__/logger';
+import linksParser from '../../src/services/parser/parsers/links.js';
 
-jest.mock('../../src/utils/logger', () => {
-  const logger = new MockLogger();
-  return logger;
+jest.mock('../../src/utils/logger.js', () => {
+  return {
+    createLogger: () => new MockLogger()
+  };
 });
 
 describe('Links Parser', () => {
@@ -32,4 +33,4 @@ describe('Links Parser', () => {
       expect(result).toEqual(expected);
     });
   });
-}); 
+});
