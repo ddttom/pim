@@ -96,6 +96,10 @@ async function importModules() {
   window.settings = settings;
   window.closeSettingsModal = closeSettingsModal;
   window.saveSettings = () => saveSettings(settings, window.api);
+  window.applySettings = (newSettings) => {
+    settings = newSettings;
+    modules.applySettings(newSettings);
+  };
 
   return {
     showToast,
@@ -158,10 +162,82 @@ function setupEventListeners(handlers) {
 
   if (filtersBtn) {
     filtersBtn.addEventListener('click', () => {
+      Modal.closeAll(); // Close any open modals first
       const sidebar = document.querySelector('.sidebar');
       if (sidebar) {
         sidebar.classList.toggle('hidden');
       }
+    });
+  }
+
+  const settingsBtn = document.getElementById('settings-btn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', async () => {
+      const buttonRect = settingsBtn.getBoundingClientRect();
+      const modalWidth = 800; // Width of the modal
+      
+      const modal = new Modal({
+        title: 'Settings',
+        titleExtra: `
+          <button id="copy-settings-btn" class="header-btn" title="Copy settings to clipboard">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z" fill="currentColor"/>
+            </svg>
+          </button>
+        `,
+        content: document.createElement('div'),
+        width: modalWidth + 'px',
+        position: {
+          top: buttonRect.bottom + 'px',
+          right: (window.innerWidth - buttonRect.right) + 'px'
+        },
+        buttons: [
+          {
+            text: 'Cancel',
+            onClick: () => modal.close()
+          },
+          {
+            text: 'Save Changes',
+            primary: true,
+            onClick: async () => {
+              try {
+                const updatedSettings = await handlers.saveSettings(settings, window.api);
+                await window.api.invoke('update-settings', updatedSettings);
+                modal.close();
+              } catch (error) {
+                console.error('Failed to save settings:', error);
+                handlers.showToast('Failed to save settings', 'error');
+              }
+            }
+          }
+        ]
+      });
+      modal.show();
+
+      // Add copy settings button handler
+      const copySettingsBtn = modal.element.querySelector('#copy-settings-btn');
+      if (copySettingsBtn) {
+        copySettingsBtn.addEventListener('click', async () => {
+          try {
+            const currentSettings = await window.api.invoke('get-settings');
+            await window.api.invoke('copy-to-clipboard', JSON.stringify(currentSettings, null, 2));
+            handlers.showToast('Settings copied to clipboard');
+          } catch (error) {
+            console.error('Failed to copy settings:', error);
+            handlers.showToast('Failed to copy settings', 'error');
+          }
+        });
+      }
+
+      // Update data path display
+      const dataPath = await window.api.invoke('get-data-path');
+      const dataPathElement = modal.element.querySelector('.current-path');
+      if (dataPathElement) {
+        dataPathElement.textContent = `Current path: ${dataPath}`;
+      }
+      
+      // Initialize settings UI in the modal
+      handlers.setupSettingsUI(modal.element.querySelector('.modal-body'), settings, window.api);
     });
   }
   

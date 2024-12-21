@@ -19,6 +19,12 @@ A desktop application for managing personal information with rich text editing c
 ## Features
 
 - Rich text editor with markdown support
+- Advanced configuration system:
+  - Configurable data storage location
+  - Two-tier configuration (app config and user settings)
+  - Settings export functionality
+  - European date formats with locale support
+  - Automatic settings migration
 - Multiple content types:
   - Note: General text entries
   - Document: Formatted documents
@@ -62,6 +68,8 @@ npm start
 ```bash
 src/
 ├── config/           # Configuration management
+│   ├── ConfigManager.js  # App-level configuration
+│   └── settings/        # User settings management
 ├── plugins/          # Plugin system
 ├── renderer/         # Frontend UI components
 │   ├── editor/      # Rich text editor
@@ -87,6 +95,29 @@ tests/
 ├── parsers/         # Parser-specific tests
 └── setup.js         # Test environment setup
 ```
+
+## Configuration
+
+The application uses a two-tier configuration system:
+
+### Application Config
+- Stored in user data directory
+- Manages core app settings:
+  - Data storage location
+  - System-level preferences
+- Always in user data folder for consistency
+- Handles data path changes and migrations
+
+### User Settings
+- Stored in configured data directory
+- Manages user preferences:
+  - Theme and appearance
+  - Editor preferences
+  - Date formats (US/EU/ISO)
+  - Keyboard shortcuts
+  - Sync settings
+- Migrates automatically when changing data path
+- Can be exported to clipboard for backup/sharing
 
 ## Development
 

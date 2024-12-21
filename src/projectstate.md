@@ -23,7 +23,12 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
 ### Data Persistence
 
 - Uses JsonDatabaseService for persistent storage
-- Stores data in user's application data directory
+- Configurable data storage location:
+  - Default: user's application data directory
+  - Custom: user-selected directory
+  - Automatic migration of settings
+  - Separate config and data files
+  - Config file always in user data folder
 - Supports CRUD operations for entries
 - Supports multiple content types:
   - Note (default) - For general note-taking
@@ -69,7 +74,28 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
   - Full viewport editor modal
   - Automatic scrollbars for overflow content
 
+### Configuration System
+
+- Two-tier configuration:
+  - Config file: Stores application-level settings (data path)
+  - Settings file: Stores user preferences
+- Config file always in user data directory
+- Settings file in configured data directory
+- Automatic defaults for fresh installations
+- Settings migration during data path changes
+- Copy settings to clipboard functionality
+- European date format support
+- System locale-based defaults
+
 ## Recently Completed
+
+- Enhanced settings management
+  - Added data path configuration
+  - Added settings export functionality
+  - Added European date formats
+  - Added system locale defaults
+  - Improved settings persistence
+  - Added settings migration support
 
 - Added entry archiving system
   - Archive/unarchive functionality

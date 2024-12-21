@@ -2,6 +2,19 @@
  * Dynamic modal system
  */
 export class Modal {
+  static closeAll() {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+      const modalInstance = modal._modalInstance;
+      if (modalInstance) {
+        modalInstance.close();
+      } else {
+        modal.remove();
+        document.body.classList.remove('modal-open');
+      }
+    });
+  }
+
   constructor(options = {}) {
     this.options = {
       title: options.title || '',
@@ -12,7 +25,8 @@ export class Modal {
       height: options.height || 'auto',
       className: options.className || '',
       modalClassName: options.modalClassName || '',
-      position: options.position || null
+      position: options.position || null,
+      titleExtra: options.titleExtra || ''
     };
     
     this.element = null;
@@ -43,14 +57,32 @@ export class Modal {
     // Create header
     const header = document.createElement('div');
     header.className = 'modal-header';
-    header.innerHTML = `
-      <h2>${this.options.title}</h2>
-      <button class="close-btn">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" fill="currentColor"/>
-        </svg>
-      </button>
+    
+    // Add title
+    const title = document.createElement('h2');
+    title.textContent = this.options.title;
+    header.appendChild(title);
+    
+    // Add header buttons container
+    const headerButtons = document.createElement('div');
+    headerButtons.className = 'header-buttons';
+    
+    // Add extra header content if provided
+    if (this.options.titleExtra) {
+      headerButtons.insertAdjacentHTML('beforeend', this.options.titleExtra);
+    }
+    
+    // Add close button
+    const closeButton = document.createElement('button');
+    closeButton.className = 'header-btn';
+    closeButton.title = 'Close';
+    closeButton.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" fill="currentColor"/>
+      </svg>
     `;
+    headerButtons.appendChild(closeButton);
+    header.appendChild(headerButtons);
     
     // Create body
     const body = document.createElement('div');
@@ -84,14 +116,20 @@ export class Modal {
     this.element.appendChild(modalContainer);
     
     // Add event listeners
-    header.querySelector('.close-btn').onclick = () => this.close();
+    const closeBtn = headerButtons.querySelector('button:last-child');
+    closeBtn.onclick = () => this.close();
     this.element.onclick = (e) => {
       if (e.target === this.element) this.close();
     };
   }
 
   show() {
+    // Close any open modals first
+    Modal.closeAll();
+    
     document.body.appendChild(this.element);
+    // Store reference to this instance on the DOM element
+    this.element._modalInstance = this;
     // Prevent scrolling of background content
     document.body.classList.add('modal-open');
     // Add show class after a small delay to trigger transition

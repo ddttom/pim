@@ -4,8 +4,9 @@ import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import JsonDatabaseService from './services/json-database.js';
 import SyncService from './services/sync.js';
-import { getSettings, saveSettings } from './services/settings-service.js';
+import { getSettings, saveSettings, setSettingsPath } from './services/settings-service.js';
 import parser from './services/parser.js';
+import { ConfigManager } from './services/config-manager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,19 +15,31 @@ const isDev = process.env.NODE_ENV === 'development';
 let mainWindow;
 let db;
 let syncService;
+let configManager;
 
 // Initialize services
 async function initializeServices() {
-  const dbPath = path.join(app.getPath('userData'), 'data', 'pim.db');
-  const settingsPath = path.join(app.getPath('userData'), 'data', 'settings.json');
-  const imagesPath = path.join(app.getPath('userData'), 'data', 'images');
+  // Initialize config manager first
+  configManager = new ConfigManager(app.getPath('userData'));
+  await configManager.initialize();
+
+  // Get data path from config
+  const dataPath = await configManager.getDataPath();
   
-  // Ensure images directory exists
+  const dbPath = path.join(dataPath, 'pim.db');
+  const settingsPath = path.join(dataPath, 'settings.json');
+  const imagesPath = path.join(dataPath, 'images');
+  
+  // Ensure data directories exist
   try {
+    await fs.mkdir(dataPath, { recursive: true });
     await fs.mkdir(imagesPath, { recursive: true });
   } catch (error) {
-    console.error('Failed to create images directory:', error);
+    console.error('Failed to create data directories:', error);
   }
+  
+  // Set settings path before any service initialization
+  setSettingsPath(settingsPath);
   
   // Initialize database
   db = new JsonDatabaseService(dbPath);
@@ -34,9 +47,17 @@ async function initializeServices() {
   
   // Initialize sync service
   syncService = new SyncService(dbPath, settingsPath);
+  
+  // Load initial settings
+  try {
+    const settings = await getSettings();
+    console.log('Initial settings loaded:', settings);
+  } catch (error) {
+    console.error('Failed to load initial settings:', error);
+  }
 }
 
-function createWindow() {
+async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -47,7 +68,13 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
+  // Load initial settings before loading the window
+  const settings = await getSettings();
+  
+  await mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
+  
+  // Send settings to renderer after window is loaded
+  mainWindow.webContents.send('settings-loaded', settings);
 
   if (isDev) {
     mainWindow.webContents.openDevTools();
@@ -56,7 +83,7 @@ function createWindow() {
 
 app.whenReady().then(async () => {
   await initializeServices();
-  createWindow();
+  await createWindow();
 });
 
 app.on('window-all-closed', () => {
@@ -68,6 +95,28 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
+  }
+});
+
+// Data path IPC handlers
+ipcMain.handle('get-data-path', async () => {
+  return await configManager.getDataPath();
+});
+
+ipcMain.handle('change-data-path', async (event, newPath) => {
+  try {
+    const oldPath = await configManager.getDataPath();
+    
+    // Migrate data to new location
+    await configManager.migrateData(oldPath, newPath);
+    
+    // Update config with new path
+    await configManager.setDataPath(newPath);
+    
+    return true;
+  } catch (error) {
+    console.error('Failed to change data path:', error);
+    throw error;
   }
 });
 
@@ -83,7 +132,10 @@ ipcMain.handle('get-settings', async () => {
 
 ipcMain.handle('update-settings', async (event, settings) => {
   try {
-    return await saveSettings(settings);
+    const savedSettings = await saveSettings(settings);
+    // Notify renderer of settings update
+    mainWindow.webContents.send('settings-loaded', savedSettings);
+    return savedSettings;
   } catch (error) {
     console.error('Failed to update settings:', error);
     throw error;

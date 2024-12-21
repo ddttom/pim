@@ -119,13 +119,38 @@ All modals support:
 
 ![Settings](docs/images/settings modal.png)
 
-Access settings through the gear icon to configure:
+Access settings through the gear icon in the main toolbar. The settings modal is organized into sections:
 
+#### Editor Settings
+- Auto-save entries
+- Spell check
 - Editor preferences
-- Display options
-- Theme customization
-- Backup/restore options
-- Keyboard shortcuts
+
+#### Appearance Settings
+- Theme selection (Light/Dark/System)
+- Font size and family
+- Visual customization
+
+#### Sync & Backup Settings
+- Cloud sync configuration
+- Backup and restore options
+- Sync intervals and providers
+
+#### Advanced Settings
+- Data Storage Location:
+  - View current data path
+  - Change data storage location
+  - Settings migrate automatically
+- Date Format Options:
+  - System Default (based on locale)
+  - US Formats (MM/DD/YY, MMM DD, YYYY)
+  - EU Formats (DD/MM/YY, DD MMM YYYY)
+  - ISO Format (YYYY-MM-DD)
+- Export Settings:
+  - Copy settings to clipboard
+  - Useful for backup/sharing
+
+Note: Changing the data storage location requires an application restart to take effect. Your settings will be automatically migrated to the new location.
 
 ## Tips & Tricks
 

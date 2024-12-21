@@ -7,16 +7,8 @@ export function setSettingsPath(path) {
   settingsPath = path;
 }
 
-// Default to production path if not in test environment
-if (!settingsPath) {
-  if (process.env.NODE_ENV === 'test') {
-    settingsPath = join(process.cwd(), 'tests/__test_data__/settings.json');
-  } else {
-    settingsPath = join(process.cwd(), 'data/settings.json');
-  }
-}
-
-const defaultSettings = {
+export const defaultSettings = {
+  dataPath: null, // Will be set by ConfigManager
   autosave: false,
   spellcheck: true,
   theme: {
@@ -29,7 +21,7 @@ const defaultSettings = {
       accent: '#2ecc71'
     }
   },
-  dateFormat: 'medium',
+  dateFormat: 'system',
   shortcuts: {
     enabled: true,
     custom: {
@@ -63,7 +55,12 @@ const defaultSettings = {
 export async function getSettings() {
   try {
     const data = await fs.readFile(settingsPath, 'utf8');
-    return { ...defaultSettings, ...JSON.parse(data) };
+    const settings = { ...defaultSettings, ...JSON.parse(data) };
+    
+    // Don't override dataPath from settings file
+    delete settings.dataPath;
+    
+    return settings;
   } catch (error) {
     // If file doesn't exist or is invalid, return default settings
     if (error.code === 'ENOENT' || error instanceof SyntaxError) {
@@ -81,7 +78,18 @@ export async function saveSettings(settings) {
     await fs.mkdir(dirname(settingsPath), { recursive: true });
     
     // Merge with defaults to ensure all properties exist
-    const mergedSettings = { ...defaultSettings, ...settings };
+    const mergedSettings = {
+      ...defaultSettings,
+      ...settings,
+      // Ensure nested objects are properly merged
+      theme: { ...defaultSettings.theme, ...settings.theme },
+      shortcuts: { ...defaultSettings.shortcuts, ...settings.shortcuts },
+      advanced: { ...defaultSettings.advanced, ...settings.advanced },
+      sync: { ...defaultSettings.sync, ...settings.sync }
+    };
+    
+    // Don't save dataPath in settings file
+    delete mergedSettings.dataPath;
     
     // Save settings
     await fs.writeFile(settingsPath, JSON.stringify(mergedSettings, null, 2));
@@ -91,5 +99,3 @@ export async function saveSettings(settings) {
     throw error;
   }
 }
-
-export { defaultSettings };
