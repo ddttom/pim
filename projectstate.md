@@ -421,7 +421,21 @@ null
 
 ### Parser Test Standards
 
-1. Test File Organization
+1. Test File Naming Standards
+
+- Test files must match their source file name exactly, with `.test.js` appended
+- Use camelCase to match source files (e.g., `timeOfDay.test.js` for `timeOfDay.js`)
+- Do not include additional descriptors like "-parser" in the filename
+- Always use `.test.js` extension (not `.tests.js`)
+
+Example:
+
+```bash
+Source file: timeOfDay.js
+Test file: timeOfDay.test.js
+```
+
+2. Test File Organization
 
 ```javascript
 import { name, parse } from '../../src/services/parser/parsers/parser.js';
