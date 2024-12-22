@@ -33,6 +33,14 @@ A desktop application for managing personal information with rich text editing c
   - Record: Structured data entries
   - Task: Action items or to-dos
   - Event: Calendar events and meetings
+- Advanced parser system:
+  - Standardized parser template with base.js
+  - Consistent error handling and logging
+  - Pattern validation and confidence scoring
+  - Performance-optimized pattern matching
+  - Detailed metadata generation
+  - Comprehensive test coverage
+  - Modular parser architecture
 - Entry archiving system
   - Archive old entries
   - Separate archived view
@@ -101,6 +109,7 @@ tests/
 The application uses a two-tier configuration system:
 
 ### Application Config
+
 - Stored in user data directory
 - Manages core app settings:
   - Data storage location
@@ -109,6 +118,7 @@ The application uses a two-tier configuration system:
 - Handles data path changes and migrations
 
 ### User Settings
+
 - Stored in configured data directory
 - Manages user preferences:
   - Theme and appearance

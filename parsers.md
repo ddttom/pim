@@ -27,35 +27,134 @@ The parser system breaks down natural language text input into structured data u
     └── utils/
         └── patterns.js
 
-## Standard Parser Structure
+## Standard Parser Template
 
-Each parser follows this consistent pattern:
+All parsers must follow the standardized template (base.js) to ensure consistency and maintainability:
 
-    import { createLogger } from '../../../utils/logger.js';
+```javascript
+import { createLogger } from '../../../utils/logger.js';
+import { validatePatternMatch } from '../utils/patterns.js';
 
-    const logger = createLogger('ParserName');
+const logger = createLogger('ParserName');
 
-    export default {
-        name: 'parser_name',
-        parse(text) {
-            try {
-                // Parsing logic
-                if (match) {
+// Define patterns at module level for performance
+const PATTERNS = {
+    // Primary patterns
+    main: /your-main-pattern-here/i,
+    alternative: /alternative-pattern/i,
+    
+    // Support patterns
+    auxiliary: /support-pattern/i
+};
+
+export default {
+    name: 'parser_name',
+    
+    parse(text) {
+        // Input validation
+        if (!text || typeof text !== 'string') {
+            logger.warn('Invalid input:', { text });
+            return {
+                type: 'error',
+                error: 'INVALID_INPUT',
+                message: 'Input must be a non-empty string'
+            };
+        }
+
+        try {
+            // Check each pattern in order of preference
+            for (const [patternName, pattern] of Object.entries(PATTERNS)) {
+                const match = text.match(pattern);
+                
+                if (validatePatternMatch(match)) {
+                    const value = this.extractValue(match);
+                    const confidence = this.calculateConfidence(match[0], text);
+                    
+                    logger.debug('Pattern match found:', {
+                        pattern: patternName,
+                        match: match[0],
+                        value,
+                        confidence
+                    });
+
                     return {
-                        type: 'parser_name',
-                        value: parsedValue
+                        type: this.name,
+                        value,
+                        metadata: {
+                            pattern: patternName,
+                            confidence,
+                            originalMatch: match[0]
+                        }
                     };
                 }
-                return null;
-            } catch (error) {
-                logger.error(`Error in ${this.name} parser:`, {
-                    error: error.message,
-                    stack: error.stack
-                });
-                return null;
             }
+
+            logger.debug('No pattern matches found');
+            return null;
+
+        } catch (error) {
+            logger.error('Parser error:', {
+                error: error.message,
+                stack: error.stack,
+                input: text
+            });
+            
+            return {
+                type: 'error',
+                error: 'PARSER_ERROR',
+                message: error.message
+            };
         }
-    };
+    },
+
+    extractValue(match) {
+        // Extract and transform the matched value
+        return match[1]?.trim();
+    },
+
+    calculateConfidence(match, fullText) {
+        let confidence = 0.5; // Base confidence
+        
+        // Common confidence factors:
+        // - Pattern specificity
+        // - Match position
+        // - Supporting context
+        // - Quality indicators
+        
+        return Math.min(1, confidence);
+    }
+};
+```
+
+### Key Components
+
+1. **Pattern Management**
+   - Patterns defined at module level for performance
+   - Organized by primary and support patterns
+   - Pattern prioritization through ordering
+
+2. **Error Handling**
+   - Structured error objects with type and message
+   - Input validation at entry point
+   - Detailed error logging with context
+   - Graceful handling of edge cases
+
+3. **Metadata Generation**
+   - Pattern identification
+   - Confidence scoring
+   - Original match preservation
+   - Pattern-specific information
+
+4. **Required Methods**
+   - parse(text): Main entry point with validation
+   - extractValue(match): Transform matched content
+   - calculateConfidence(match, fullText): Score quality
+
+5. **Logging**
+   - Consistent logger naming
+   - Debug logs for pattern matches
+   - Warning logs for invalid input
+   - Error logs with stack traces
 
 ## Available Parsers
 

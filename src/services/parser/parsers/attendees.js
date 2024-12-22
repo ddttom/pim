@@ -102,7 +102,7 @@ export default {
                         // Skip invalid names
                         if (!this.validateName(name)) {
                             logger.debug('Invalid name skipped:', { name });
-                            continue;
+                            return; // Changed continue to return since we can't jump across function boundary
                         }
 
                         // Calculate confidence
