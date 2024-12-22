@@ -277,6 +277,34 @@ Q4 2024:
 - File extensions (.js/.cjs) are required in all imports
 - Preload scripts must use .cjs extension
 
+Import/Export Standards:
+
+- Use named exports instead of default exports
+- Include .js extension in all import paths
+- Use import aliases for clarity (e.g., `import { DEFAULT_CONFIG as CONFIG }`)
+- Group multiple exports at the end of the file:
+
+```javascript
+export {
+    function1,
+    function2,
+    constant1,
+    // ...
+};
+```
+
+CommonJS Usage:
+
+- Limited to specific cases (preload scripts, certain Node.js modules)
+- Must use .cjs extension to indicate CommonJS usage
+- Example:
+
+```javascript
+// file: script.cjs
+const { something } = require('./other.cjs');
+module.exports = { /* exports */ };
+```
+
 ### Data Persistence
 
 - Uses JsonDatabaseService for storage
@@ -332,12 +360,13 @@ Q4 2024:
 
 ### Parser Implementation Standards
 
-1. File Structure
+1. File Structure and Module System
 
 ```javascript
-// Required imports
+// Required imports (must include .js extension)
 import { createLogger } from '../../../utils/logger.js';
 import { validatePatternMatch, calculateBaseConfidence } from '../utils/patterns.js';
+import { DEFAULT_CONFIG as CONFIG } from '../../../config/parser.config.js';
 
 // Logger initialization
 const logger = createLogger('ParserName');
@@ -349,9 +378,16 @@ const PATTERNS = {
     // ...
 };
 
-// Required exports
+// Required exports (use named exports)
 export const name = 'parsername';
 export async function parse(text) { /* ... */ }
+
+// For multiple exports, use export statement at end
+export {
+    helperFunction1,
+    helperFunction2,
+    // ...
+};
 
 // Helper functions
 async function extractValue() { /* ... */ }

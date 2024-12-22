@@ -1,5 +1,5 @@
-const CONFIG = require('../../../config/parser.config');
-const { createLogger } = require('../../../utils/logger');
+import { DEFAULT_CONFIG as CONFIG } from '../../../config/parser.config.js';
+import { createLogger } from '../../../utils/logger.js';
 
 const logger = createLogger('EmojiFormatter');
 
@@ -64,7 +64,7 @@ function formatTaskWithAllEmojis(task) {
   }
 }
 
-module.exports = {
+export {
   formatTaskWithEmojis,
   formatTaskWithAllEmojis,
-}; 
+};

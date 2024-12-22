@@ -1,4 +1,4 @@
-const DEFAULT_CONFIG = {
+export const DEFAULT_CONFIG = {
   maxDepth: 3,
   ignoreFiles: ['.git', 'node_modules'],
   outputFormat: 'json',
@@ -14,6 +14,3 @@ const DEFAULT_CONFIG = {
     }
   }
 };
-
-// Config gets exported directly
-module.exports = DEFAULT_CONFIG; 

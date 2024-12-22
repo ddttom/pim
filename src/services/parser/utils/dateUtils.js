@@ -1,5 +1,5 @@
-const CONFIG = require('../../../config/parser.config');
-const { createLogger } = require('../../../utils/logger');
+import { DEFAULT_CONFIG as CONFIG } from '../../../config/parser.config.js';
+import { createLogger } from '../../../utils/logger.js';
 
 const logger = createLogger('DateUtils');
 
@@ -299,7 +299,7 @@ function findLastOccurrence(now, targetDay, timeframe) {
   }
 }
 
-module.exports = {
+export {
   calculateWeekdayDate,
   calculateWeekDate,
   calculateMonthDate,
@@ -308,4 +308,4 @@ module.exports = {
   findLastOccurrence,
   findLastWeekdayInMonth,
   calculateWeekendDate,
-}; 
+};

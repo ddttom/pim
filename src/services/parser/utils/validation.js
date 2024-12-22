@@ -1,6 +1,6 @@
-const CONFIG = require('../../../config/parser.config');
-const { createLogger } = require('../../../utils/logger');
-const { validateTime } = require('./timeUtils');
+import { DEFAULT_CONFIG as CONFIG } from '../../../config/parser.config.js';
+import { createLogger } from '../../../utils/logger.js';
+import { validateTime } from './timeUtils.js';
 
 const logger = createLogger('ValidationUtils');
 
@@ -235,9 +235,9 @@ function sanitizeEntry(entry) {
     return sanitized;
 }
 
-module.exports = {
+export {
   validateAndSetDefaults,
   validateResult,
   validateEntry,
   sanitizeEntry
-}; 
+};
