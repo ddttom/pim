@@ -1,6 +1,6 @@
 import { createLogger } from '../../../utils/logger.js';
 import { validatePatternMatch, calculateBaseConfidence } from '../utils/patterns.js';
-import { timeToMinutes } from '../utils/timeUtils.js';
+import { timeToMinutes, validateTime } from '../utils/timeUtils.js';
 
 const logger = createLogger('RecurringParser');
 
@@ -27,32 +27,25 @@ const PATTERNS = {
         confidence: 0.9
     },
 
-    // Specific weekdays
-    weekday: {
-        pattern: /\b(?:every|each)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
-        interval: 'weekday',
-        confidence: 0.9
-    },
-
-    // Multiple occurrences
-    multiple: {
+    // Multiple intervals
+    multipleInterval: {
         pattern: /\b(?:every|each)\s+(\d+)\s+(days?|weeks?|months?|years?)\b/i,
         interval: 'multiple',
         confidence: 0.85
     },
 
-    // Time-based recurrence
-    timeInterval: {
-        pattern: /\b(?:every|each)\s+(\d+)\s+(hours?|minutes?)\b/i,
-        interval: 'time',
+    // Specific weekdays
+    weekday: {
+        pattern: /\b(?:every|each)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
+        interval: 'weekday',
         confidence: 0.85
     },
 
-    // Ordinal occurrences
-    ordinal: {
+    // Ordinal weekdays (first Monday, last Friday, etc.)
+    ordinalWeekday: {
         pattern: /\b(?:every|each)\s+(first|second|third|fourth|last)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(?:of|in)\s+(?:the\s+)?(?:month|week)\b/i,
         interval: 'ordinal',
-        confidence: 0.8
+        confidence: 0.9
     },
 
     // Business days
@@ -60,10 +53,17 @@ const PATTERNS = {
         pattern: /\b(?:every|each)\s+(?:business|working|week)\s*day\b/i,
         interval: 'business',
         confidence: 0.85
+    },
+
+    // Time-based intervals
+    timeInterval: {
+        pattern: /\b(?:every|each)\s+(\d+)\s+(hours?|minutes?)\b/i,
+        interval: 'time',
+        confidence: 0.8
     }
 };
 
-// Map weekday names to numbers (0 = Sunday)
+// Maps weekday names to numbers (0 = Sunday)
 const WEEKDAYS = {
     sunday: 0,
     monday: 1,
@@ -74,7 +74,7 @@ const WEEKDAYS = {
     saturday: 6
 };
 
-// Map ordinal words to numbers
+// Maps ordinal words to numbers
 const ORDINALS = {
     first: 1,
     second: 2,
@@ -98,12 +98,19 @@ export default {
 
         try {
             // Check each pattern type
-            for (const [patternType, config] of Object.entries(PATTERNS)) {
+            for (const [patternName, config] of Object.entries(PATTERNS)) {
                 const match = text.match(config.pattern);
                 
                 if (validatePatternMatch(match)) {
-                    const recurrence = this.buildRecurrence(patternType, match, config);
+                    const recurrence = this.buildRecurrence(patternName, match, config);
                     if (!recurrence) continue;
+
+                    // Validate the recurrence
+                    const validationResult = this.validateRecurrence(recurrence);
+                    if (!validationResult.isValid) {
+                        logger.debug('Invalid recurrence:', validationResult.error);
+                        continue;
+                    }
 
                     // Look for end conditions
                     const endCondition = this.findEndCondition(text);
@@ -120,7 +127,7 @@ export default {
                     );
 
                     logger.debug('Recurring pattern found:', {
-                        type: patternType,
+                        type: patternName,
                         recurrence,
                         confidence
                     });
@@ -129,7 +136,7 @@ export default {
                         type: 'recurring',
                         value: recurrence,
                         metadata: {
-                            pattern: patternType,
+                            pattern: patternName,
                             confidence,
                             originalMatch: match[0],
                             includesEndCondition: Boolean(endCondition)
@@ -156,7 +163,7 @@ export default {
         }
     },
 
-    buildRecurrence(type, match, config) {
+    buildRecurrence(patternName, match, config) {
         switch (config.interval) {
             case 'day':
             case 'week':
@@ -167,7 +174,15 @@ export default {
                     interval: 1
                 };
 
-            case 'weekday':
+            case 'multiple': {
+                const [_, count, unit] = match;
+                return {
+                    type: unit.toLowerCase().replace(/s$/, ''),
+                    interval: parseInt(count, 10)
+                };
+            }
+
+            case 'weekday': {
                 const day = match[1].toLowerCase();
                 return {
                     type: 'specific',
@@ -175,29 +190,17 @@ export default {
                     dayIndex: WEEKDAYS[day],
                     interval: 1
                 };
+            }
 
-            case 'multiple':
-                const [_, count, unit] = match;
-                return {
-                    type: unit.toLowerCase().replace(/s$/, ''),
-                    interval: parseInt(count, 10)
-                };
-
-            case 'time':
-                const [__, amount, unit] = match;
-                return {
-                    type: 'time',
-                    minutes: timeToMinutes(parseInt(amount, 10), unit)
-                };
-
-            case 'ordinal':
-                const [___, ordinal, weekday] = match;
+            case 'ordinal': {
+                const [_, ordinal, weekday] = match;
                 return {
                     type: 'ordinal',
                     ordinal: ORDINALS[ordinal.toLowerCase()],
                     weekday: weekday.toLowerCase(),
                     weekdayIndex: WEEKDAYS[weekday.toLowerCase()]
                 };
+            }
 
             case 'business':
                 return {
@@ -206,10 +209,51 @@ export default {
                     excludeWeekends: true
                 };
 
+            case 'time': {
+                const [_, amount, unit] = match;
+                return {
+                    type: 'time',
+                    minutes: timeToMinutes(parseInt(amount, 10), unit)
+                };
+            }
+
             default:
-                logger.warn('Unknown interval type:', type);
                 return null;
         }
+    },
+
+    validateRecurrence(recurrence) {
+        switch (recurrence.type) {
+            case 'time':
+                if (!recurrence.minutes || recurrence.minutes <= 0) {
+                    return {
+                        isValid: false,
+                        error: 'Invalid time interval'
+                    };
+                }
+                break;
+
+            case 'specific':
+            case 'ordinal':
+                if (recurrence.dayIndex === undefined || 
+                    !WEEKDAYS[recurrence.day || recurrence.weekday]) {
+                    return {
+                        isValid: false,
+                        error: 'Invalid weekday'
+                    };
+                }
+                break;
+
+            default:
+                if (recurrence.interval && recurrence.interval <= 0) {
+                    return {
+                        isValid: false,
+                        error: 'Invalid interval'
+                    };
+                }
+        }
+
+        return { isValid: true };
     },
 
     findEndCondition(text) {
@@ -225,7 +269,6 @@ export default {
         // Check for date-based end
         const untilMatch = text.match(/\buntil\s+([^,\.]+)/i);
         if (untilMatch) {
-            // Note: This would ideally use the date parser to parse the end date
             return {
                 type: 'until',
                 value: untilMatch[1].trim()
@@ -238,25 +281,28 @@ export default {
     calculateConfidence(match, fullText, baseConfidence, recurrence) {
         let confidence = baseConfidence;
 
-        // Adjust based on presence of end condition
-        if (this.findEndCondition(fullText)) {
-            confidence += 0.1;
+        // Adjust based on pattern specificity
+        if (recurrence.type === 'ordinal' || recurrence.type === 'specific') {
+            confidence += 0.05; // More specific patterns
         }
 
-        // Adjust based on interval specificity
-        if (recurrence.type === 'specific' || recurrence.type === 'ordinal') {
-            confidence += 0.05;
-        }
-
-        // Adjust based on time precision
+        // Adjust for time precision
         if (recurrence.type === 'time' && recurrence.minutes < 60) {
-            confidence += 0.05;
+            confidence += 0.05; // Minute-level precision
         }
 
         // Consider position in text
         const position = fullText.toLowerCase().indexOf(match.toLowerCase());
-        const isNearStart = position < fullText.length * 0.2;
-        if (isNearStart) confidence += 0.05;
+        if (position < fullText.length * 0.2) {
+            confidence += 0.05; // Recurring patterns often at start
+        }
+
+        // Adjust for business context
+        if (recurrence.type === 'business') {
+            if (/\b(?:meeting|call|review)\b/i.test(fullText)) {
+                confidence += 0.05;
+            }
+        }
 
         return Math.min(1, confidence);
     }
