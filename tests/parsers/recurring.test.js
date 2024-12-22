@@ -1,159 +1,9 @@
-import recurringParser from '../../src/services/parser/parsers/recurring.js';
+import { name, parse } from '../../src/services/parser/parsers/recurring.js';
 
 describe('Recurring Parser', () => {
     describe('Input Validation', () => {
-        test('handles null input', () => {
-            const result = recurringParser.parse(null);
-            expect(confidences[1]).toBeGreaterThan(confidences[0]); // specific > basic
-            expect(confidences[0]).toBeGreaterThan(confidences[2]); // basic > time
-            expect(confidences[3]).toBeGreaterThan(confidences[2]); // business > time
-        });
-
-        test('increases confidence with end conditions', () => {
-            const results = [
-                recurringParser.parse('Task every day'),
-                recurringParser.parse('Task every day for 5 times'),
-                recurringParser.parse('Task every day until next month')
-            ];
-
-            const confidences = results.map(r => r.metadata.confidence);
-            expect(confidences[1]).toBeGreaterThan(confidences[0]);
-            expect(confidences[2]).toBeGreaterThan(confidences[0]);
-        });
-
-        test('adjusts confidence based on position', () => {
-            const results = [
-                recurringParser.parse('Every day do task'),           // start
-                recurringParser.parse('Task that happens every day'), // middle
-                recurringParser.parse('Task every day')               // near start
-            ];
-
-            const confidences = results.map(r => r.metadata.confidence);
-            expect(confidences[0]).toBeGreaterThan(confidences[1]);
-            expect(confidences[2]).toBeGreaterThan(confidences[1]);
-        });
-    });
-
-    describe('Pattern Validation', () => {
-        test('validates interval numbers', () => {
-            const result = recurringParser.parse('Task every 0 days');
-            expect(result).toBeNull();
-        });
-
-        test('validates ordinal values', () => {
-            const validResult = recurringParser.parse('Meeting every first Monday');
-            const invalidResult = recurringParser.parse('Meeting every zeroth Monday');
-            
-            expect(validResult).not.toBeNull();
-            expect(invalidResult).toBeNull();
-        });
-
-        test('validates weekday names', () => {
-            const validResult = recurringParser.parse('Meeting every Monday');
-            const invalidResult = recurringParser.parse('Meeting every Someday');
-            
-            expect(validResult).not.toBeNull();
-            expect(invalidResult).toBeNull();
-        });
-    });
-
-    describe('Error Handling', () => {
-        test('handles invalid pattern gracefully', () => {
-            // Mock a pattern that would cause regex error
-            const originalPatterns = { ...recurringParser.PATTERNS };
-            recurringParser.PATTERNS = {
-                invalid: {
-                    pattern: /(?<!x)/,  // Invalid negative lookbehind
-                    interval: 'day',
-                    confidence: 0.9
-                }
-            };
-
-            const result = recurringParser.parse('Task every day');
-            expect(result).toEqual({
-                type: 'error',
-                error: 'PARSER_ERROR',
-                message: expect.any(String)
-            });
-
-            // Restore original patterns
-            recurringParser.PATTERNS = originalPatterns;
-        });
-
-        test('handles buildRecurrence errors', () => {
-            // Mock buildRecurrence to throw
-            const originalBuild = recurringParser.buildRecurrence;
-            recurringParser.buildRecurrence = () => {
-                throw new Error('Build error');
-            };
-
-            const result = recurringParser.parse('Task every day');
-            expect(result).toEqual({
-                type: 'error',
-                error: 'PARSER_ERROR',
-                message: 'Build error'
-            });
-
-            // Restore original function
-            recurringParser.buildRecurrence = originalBuild;
-        });
-
-        test('handles invalid interval types', () => {
-            const result = recurringParser.parse('Task every invalid');
-            expect(result).toBeNull();
-        });
-    });
-
-    describe('Integration Cases', () => {
-        test('handles complex recurring patterns', () => {
-            const result = recurringParser.parse(
-                'Team meeting every second Tuesday until end of year'
-            );
-            expect(result).toEqual({
-                type: 'recurring',
-                value: {
-                    type: 'ordinal',
-                    ordinal: 2,
-                    weekday: 'tuesday',
-                    weekdayIndex: 2,
-                    end: {
-                        type: 'until',
-                        value: 'end of year'
-                    }
-                },
-                metadata: {
-                    pattern: 'ordinal',
-                    confidence: expect.any(Number),
-                    originalMatch: expect.any(String),
-                    includesEndCondition: true
-                }
-            });
-        });
-
-        test('handles multiple recurrence indicators', () => {
-            const result = recurringParser.parse(
-                'Stand-up every business day at 10am for 30 times'
-            );
-            expect(result.value).toEqual({
-                type: 'business',
-                interval: 1,
-                excludeWeekends: true,
-                end: {
-                    type: 'count',
-                    value: 30
-                }
-            });
-        });
-    });
-});result).toEqual({
-                type: 'error',
-                error: 'INVALID_INPUT',
-                message: 'Input must be a non-empty string'
-            });
-        });
-
-        test('handles empty string', () => {
-            const result = recurringParser.parse('');
+        test('handles null input', async () => {
+            const result = await parse(null);
             expect(result).toEqual({
                 type: 'error',
                 error: 'INVALID_INPUT',
@@ -161,20 +11,30 @@ describe('Recurring Parser', () => {
             });
         });
 
-        test('returns null for non-recurring text', () => {
-            const result = recurringParser.parse('Regular non-recurring task');
+        test('handles empty string', async () => {
+            const result = await parse('');
+            expect(result).toEqual({
+                type: 'error',
+                error: 'INVALID_INPUT',
+                message: 'Input must be a non-empty string'
+            });
+        });
+
+        test('returns null for non-recurring text', async () => {
+            const result = await parse('Regular non-recurring task');
             expect(result).toBeNull();
         });
     });
 
     describe('Basic Intervals', () => {
-        test('parses daily recurrence', () => {
-            const result = recurringParser.parse('Task occurs every day');
+        test('parses daily recurrence', async () => {
+            const result = await parse('Task every day');
             expect(result).toEqual({
                 type: 'recurring',
                 value: {
                     type: 'day',
-                    interval: 1
+                    interval: 1,
+                    end: null
                 },
                 metadata: {
                     pattern: 'daily',
@@ -185,131 +45,75 @@ describe('Recurring Parser', () => {
             });
         });
 
-        test('parses weekly recurrence', () => {
-            const result = recurringParser.parse('Task occurs every week');
+        test('parses weekly recurrence', async () => {
+            const result = await parse('Task every week');
             expect(result.value).toEqual({
                 type: 'week',
-                interval: 1
+                interval: 1,
+                end: null
             });
         });
 
-        test('parses monthly recurrence', () => {
-            const result = recurringParser.parse('Task occurs every month');
+        test('parses monthly recurrence', async () => {
+            const result = await parse('Task every month');
             expect(result.value).toEqual({
                 type: 'month',
-                interval: 1
-            });
-        });
-
-        test('parses yearly recurrence', () => {
-            const result = recurringParser.parse('Task occurs every year');
-            expect(result.value).toEqual({
-                type: 'year',
-                interval: 1
+                interval: 1,
+                end: null
             });
         });
     });
 
-    describe('Weekday Recurrence', () => {
-        test('parses specific weekdays', () => {
-            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    describe('Specific Days', () => {
+        test('parses weekday recurrence', async () => {
+            const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
             
-            days.forEach((day, index) => {
-                const result = recurringParser.parse(`Meeting every ${day}`);
+            for (const [index, day] of weekdays.entries()) {
+                const result = await parse(`Task every ${day}`);
                 expect(result.value).toEqual({
                     type: 'specific',
                     day: day.toLowerCase(),
-                    dayIndex: index === 6 ? 0 : index + 1, // Sunday is 0
-                    interval: 1
+                    dayIndex: index === 6 ? 0 : index + 1,
+                    interval: 1,
+                    end: null
                 });
-            });
+            }
         });
 
-        test('handles business days', () => {
-            const result = recurringParser.parse('Meeting every business day');
+        test('parses business days', async () => {
+            const result = await parse('Task every business day');
             expect(result.value).toEqual({
                 type: 'business',
                 interval: 1,
-                excludeWeekends: true
+                excludeWeekends: true,
+                end: null
             });
         });
     });
 
-    describe('Multiple Intervals', () => {
-        test('parses multiple days', () => {
-            const result = recurringParser.parse('Task every 3 days');
-            expect(result.value).toEqual({
-                type: 'day',
-                interval: 3
-            });
-        });
-
-        test('parses multiple weeks', () => {
-            const result = recurringParser.parse('Task every 2 weeks');
+    describe('Custom Intervals', () => {
+        test('parses numeric intervals', async () => {
+            const result = await parse('Task every 2 weeks');
             expect(result.value).toEqual({
                 type: 'week',
-                interval: 2
+                interval: 2,
+                end: null
             });
         });
 
-        test('handles singular and plural units', () => {
-            const tests = [
-                ['Task every 1 day', 1],
-                ['Task every 1 week', 1],
-                ['Task every 2 days', 2],
-                ['Task every 2 weeks', 2]
-            ];
-
-            tests.forEach(([input, expected]) => {
-                const result = recurringParser.parse(input);
-                expect(result.value.interval).toBe(expected);
-            });
-        });
-    });
-
-    describe('Time-based Recurrence', () => {
-        test('parses hourly intervals', () => {
-            const result = recurringParser.parse('Task every 2 hours');
-            expect(result.value).toEqual({
-                type: 'time',
-                minutes: 120
-            });
-        });
-
-        test('parses minute intervals', () => {
-            const result = recurringParser.parse('Task every 30 minutes');
-            expect(result.value).toEqual({
-                type: 'time',
-                minutes: 30
-            });
-        });
-    });
-
-    describe('Ordinal Recurrence', () => {
-        test('parses ordinal weekdays', () => {
-            const result = recurringParser.parse('Meeting every first Monday of the month');
-            expect(result.value).toEqual({
-                type: 'ordinal',
-                ordinal: 1,
-                weekday: 'monday',
-                weekdayIndex: 1
-            });
-        });
-
-        test('handles last weekday', () => {
-            const result = recurringParser.parse('Meeting every last Friday of month');
-            expect(result.value).toEqual({
-                type: 'ordinal',
-                ordinal: -1,
-                weekday: 'friday',
-                weekdayIndex: 5
+        test('handles invalid intervals', async () => {
+            const result = await parse('Task every 0 days');
+            expect(result).toEqual({
+                type: 'error',
+                error: 'PARSER_ERROR',
+                message: 'Invalid interval value'
             });
         });
     });
 
     describe('End Conditions', () => {
-        test('parses count-based end', () => {
-            const result = recurringParser.parse('Task every day for 5 times');
+        test('parses count-based end', async () => {
+            const result = await parse('Task every day for 5 times');
             expect(result.value.end).toEqual({
                 type: 'count',
                 value: 5
@@ -317,8 +121,8 @@ describe('Recurring Parser', () => {
             expect(result.metadata.includesEndCondition).toBe(true);
         });
 
-        test('parses date-based end', () => {
-            const result = recurringParser.parse('Task every week until next month');
+        test('parses date-based end', async () => {
+            const result = await parse('Task every week until next month');
             expect(result.value.end).toEqual({
                 type: 'until',
                 value: 'next month'
@@ -328,13 +132,47 @@ describe('Recurring Parser', () => {
     });
 
     describe('Confidence Scoring', () => {
-        test('assigns higher confidence for specific patterns', () => {
+        test('assigns higher confidence to specific patterns', async () => {
             const results = [
-                recurringParser.parse('Task every day'),            // basic
-                recurringParser.parse('Task every Monday'),         // specific
-                recurringParser.parse('Task every 2 hours'),        // time
-                recurringParser.parse('Task every business day')    // business
+                await parse('Task every day'),
+                await parse('Task every Monday'),
+                await parse('Task every 2 hours'),
+                await parse('Task every business day')
             ];
 
             const confidences = results.map(r => r.metadata.confidence);
-            expect(
+            expect(confidences[1]).toBeGreaterThan(confidences[0]);
+            expect(confidences[3]).toBeGreaterThan(confidences[2]);
+        });
+
+        test('increases confidence with end conditions', async () => {
+            const withEnd = await parse('Task every day for 5 times');
+            const withoutEnd = await parse('Task every day');
+            expect(withEnd.metadata.confidence)
+                .toBeGreaterThan(withoutEnd.metadata.confidence);
+        });
+
+        test('adjusts confidence based on position', async () => {
+            const atStart = await parse('Every day do task');
+            const inMiddle = await parse('Task happens every day');
+            expect(atStart.metadata.confidence)
+                .toBeGreaterThan(inMiddle.metadata.confidence);
+        });
+    });
+
+    describe('Error Handling', () => {
+        test('handles invalid patterns gracefully', async () => {
+            const result = await parse('Task every invalid time');
+            expect(result).toBeNull();
+        });
+
+        test('handles parser errors', async () => {
+            const result = await parse('Task every -1 days');
+            expect(result).toEqual({
+                type: 'error',
+                error: 'PARSER_ERROR',
+                message: expect.any(String)
+            });
+        });
+    });
+});

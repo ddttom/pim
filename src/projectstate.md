@@ -24,13 +24,12 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
 
 ```bash
 .
-├── data/           # Application data and user settings
+���������── data/           # Application data and user settings
 ├── db/            # Database configuration and models
 ├── docs/          # Plugin and testing documentation
 ├── src/           # Application source code
 │   ├── components/    # Reusable UI components
 │   ├── config/       # Application configuration
-│   ├── plugins/      # Plugin system and custom plugins
 │   ├── renderer/     # Renderer process
 │   │   ├── editor/      # Editor components and logic
 │   │   ├── entries/     # Entry management
@@ -75,12 +74,44 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
   - Sync functionality
   - Utility functions
 - Services
-  - Parser system with specialized parsers
+  - Parser System
+    - Core Parser Service (index.js)
+    - Standardized Parsers
+      - Text Analysis
+        - Subject Parser (subject.js)
+        - Tags Parser (tags.js)
+        - Categories Parser (categories.js)
+      - Time & Scheduling
+        - Date Parser (date.js)
+        - Time Parser (time.js)
+        - Duration Parser (duration.js)
+        - Recurring Parser (recurring.js)
+        - TimeOfDay Parser (timeOfDay.js)
+      - Task Management
+        - Priority Parser (priority.js)
+        - Status Parser (status.js)
+        - Complexity Parser (complexity.js)
+      - People & Communication
+        - Attendees Parser (attendees.js)
+        - Participants Parser (participants.js)
+        - Contact Parser (contact.js)
+      - Project Organization
+        - Project Parser (project.js)
+        - Dependencies Parser (dependencies.js)
+        - Links Parser (links.js)
+        - Location Parser (location.js)
+      - Notifications & Reminders
+        - Reminders Parser (reminders.js)
+        - Urgency Parser (urgency.js)
+      - Context & Metadata
+        - Contexts Parser (contexts.js)
+    - Parser Infrastructure
+      - Base Parser Template (base.js)
+      - Pattern Utilities (utils.js)
+      - Shared Patterns (patterns.js)
   - Database and configuration management
   - Entry and settings services
   - Logging and utilities
-- Plugins system
-  - Custom plugin support
 
 ### Data and Configuration
 
@@ -262,7 +293,6 @@ Note: When creating new parsers or updating existing ones, always use this templ
 - Entry categorization system
 - Advanced search capabilities
 - Performance optimization
-- Plugin system enhancements
 - Testing coverage expansion
 - Documentation improvements
 - Error handling refinements
@@ -283,16 +313,6 @@ Note: When creating new parsers or updating existing ones, always use this templ
 - Search improvements
 - Performance optimizations
 - Offline support
-- Plugin system enhancements
-- Keyboard shortcut customization
-- Advanced entry filtering
-- Tag system implementation
-- Multi-device sync
-- Cloud backup integration
-- Advanced theme editor
-- Import/export system
-- External service integration
-- Advanced plugin API
 - Mobile app development
 - Desktop app improvements
 - Security enhancements
@@ -324,7 +344,6 @@ Note: When creating new parsers or updating existing ones, always use this templ
 - Search performance needs improvement
 - Memory usage optimization needed
 - Some UI elements need better accessibility
-- Plugin system needs better error handling
 - Sync conflicts need better resolution
 - Some keyboard shortcuts conflict
 - Theme transitions need smoothing
@@ -351,7 +370,6 @@ Note: When creating new parsers or updating existing ones, always use this templ
 - Add comprehensive testing
 - Document component architecture
 - Refactor parser system
-- Improve plugin architecture
 - Enhance state management
 - Optimize database queries
 - Improve file handling

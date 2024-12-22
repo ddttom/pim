@@ -1,9 +1,9 @@
-import remindersParser from '../../src/services/parser/parsers/reminders.js';
+import { name, parse } from '../../src/services/parser/parsers/reminders.js';
 
 describe('Reminders Parser', () => {
     describe('Input Validation', () => {
-        test('handles null input', () => {
-            const result = remindersParser.parse(null);
+        test('handles null input', async () => {
+            const result = await parse(null);
             expect(result).toEqual({
                 type: 'error',
                 error: 'INVALID_INPUT',
@@ -11,8 +11,8 @@ describe('Reminders Parser', () => {
             });
         });
 
-        test('handles empty string', () => {
-            const result = remindersParser.parse('');
+        test('handles empty string', async () => {
+            const result = await parse('');
             expect(result).toEqual({
                 type: 'error',
                 error: 'INVALID_INPUT',
@@ -20,352 +20,180 @@ describe('Reminders Parser', () => {
             });
         });
 
-        test('returns null for text without reminders', () => {
-            const result = remindersParser.parse('Regular text without reminders');
+        test('returns null for non-reminder text', async () => {
+            const result = await parse('Regular text without reminders');
             expect(result).toBeNull();
         });
     });
 
-    describe('Relative Time Reminders', () => {
-        test('parses minute-based reminders', () => {
-            const result = remindersParser.parse('remind me 30 minutes before');
+    describe('Explicit Reminders', () => {
+        test('parses explicit time-based reminders', async () => {
+            const result = await parse('remind me in 30 minutes');
             expect(result).toEqual({
-                type: 'reminders',
-                value: [{
-                    type: 'relative',
-                    minutes: 30,
-                    originalValue: '30 minutes',
-                    beforeEvent: true
-                }],
+                type: 'reminder',
+                value: {
+                    type: 'offset',
+                    minutes: 30
+                },
                 metadata: {
-                    pattern: 'relative',
+                    pattern: 'explicit',
                     confidence: expect.any(Number),
-                    count: 1,
-                    types: ['relative']
+                    originalMatch: 'remind me in 30 minutes',
+                    isRelative: true
                 }
             });
         });
 
-        test('parses hour-based reminders', () => {
-            const result = remindersParser.parse('remind me 2 hours before');
-            expect(result.value[0]).toEqual({
-                type: 'relative',
-                minutes: 120,
-                originalValue: '2 hours',
-                beforeEvent: true
-            });
-        });
-
-        test('handles abbreviated time units', () => {
+        test('handles various time units', async () => {
             const cases = [
-                ['30 mins', 30],
-                ['2 hrs', 120],
-                ['1 hr', 60]
+                ['remind me in 1 hour', 60],
+                ['remind me in 2 days', 2880],
+                ['remind me in 1 week', 10080]
             ];
 
-            cases.forEach(([input, expected]) => {
-                const result = remindersParser.parse(`remind me ${input} before`);
-                expect(result.value[0].minutes).toBe(expected);
-            });
+            for (const [input, expectedMinutes] of cases) {
+                const result = await parse(input);
+                expect(result.value.minutes).toBe(expectedMinutes);
+            }
         });
     });
 
-    describe('Absolute Time Reminders', () => {
-        test('parses specific times', () => {
-            const result = remindersParser.parse('remind me at 2:30pm');
-            expect(result.value[0]).toEqual({
-                type: 'absolute',
-                time: {
-                    hours: 14,
-                    minutes: 30
-                },
-                originalValue: expect.stringContaining('2:30pm')
+    describe('Before Reminders', () => {
+        test('parses before-event reminders', async () => {
+            const result = await parse('30 minutes before');
+            expect(result.value).toEqual({
+                type: 'before',
+                minutes: 30
             });
+            expect(result.metadata.pattern).toBe('before');
         });
 
-        test('handles 24-hour format', () => {
-            const result = remindersParser.parse('remind me at 14:30');
-            expect(result.value[0].time).toEqual({
-                hours: 14,
+        test('handles invalid time amounts', async () => {
+            const result = await parse('0 minutes before');
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('At Time Reminders', () => {
+        test('parses specific time reminders', async () => {
+            const result = await parse('remind me at 2:30pm');
+            expect(result.value).toEqual({
+                type: 'time',
+                hour: 14,
                 minutes: 30
             });
         });
 
-        test('converts 12-hour format correctly', () => {
+        test('handles 12-hour format', async () => {
             const cases = [
-                ['9:00am', 9],
-                ['9:00pm', 21],
-                ['12:00pm', 12],
-                ['12:00am', 0]
+                ['remind me at 12:00am', 0, 0],
+                ['remind me at 12:00pm', 12, 0],
+                ['remind me at 1:00pm', 13, 0],
+                ['remind me at 11:30pm', 23, 30]
             ];
 
-            cases.forEach(([input, expectedHours]) => {
-                const result = remindersParser.parse(`remind me at ${input}`);
-                expect(result.value[0].time.hours).toBe(expectedHours);
+            for (const [input, expectedHour, expectedMinutes] of cases) {
+                const result = await parse(input);
+                expect(result.value).toEqual({
+                    type: 'time',
+                    hour: expectedHour,
+                    minutes: expectedMinutes
+                });
+            }
+        });
+
+        test('handles missing minutes', async () => {
+            const result = await parse('remind me at 3pm');
+            expect(result.value).toEqual({
+                type: 'time',
+                hour: 15,
+                minutes: 0
             });
         });
     });
 
-    describe('Multiple Reminders', () => {
-        test('parses multiple time intervals', () => {
-            const result = remindersParser.parse('remind me 1 hour and 30 minutes before');
-            expect(result.value).toHaveLength(2);
-            expect(result.value[0].minutes).toBe(60);
-            expect(result.value[1].minutes).toBe(30);
+    describe('On Date Reminders', () => {
+        test('parses date-based reminders', async () => {
+            const result = await parse('remind me on next Monday');
+            expect(result.value).toEqual({
+                type: 'date',
+                value: 'next Monday'
+            });
         });
 
-        test('consolidates reminders in order', () => {
-            const result = remindersParser.parse('remind me 10 minutes and 1 hour before');
-            const minutes = result.value.map(r => r.minutes);
-            expect(minutes).toEqual([60, 10]); // Should be sorted descending
-        });
+        test('handles various date formats', async () => {
+            const dates = [
+                'remind me on tomorrow',
+                'remind me on Jan 15',
+                'remind me on next week'
+            ];
 
-        test('handles comma-separated reminders', () => {
-            const result = remindersParser.parse('remind me 2 hours, 1 hour and 30 minutes before');
-            expect(result.value).toHaveLength(3);
-            expect(result.metadata.count).toBe(3);
+            for (const input of dates) {
+                const result = await parse(input);
+                expect(result.value.type).toBe('date');
+                expect(result.metadata.pattern).toBe('on');
+            }
         });
     });
 
-    describe('Day-based Reminders', () => {
-        test('parses day references', () => {
-            const result = remindersParser.parse('remind me on Monday');
-            expect(result.value[0]).toEqual({
-                type: 'day',
-                value: 'Monday',
-                originalValue: expect.stringContaining('Monday')
+    describe('Relative Reminders', () => {
+        test('parses relative time expressions', async () => {
+            const result = await parse('in 2 hours');
+            expect(result.value).toEqual({
+                type: 'offset',
+                minutes: 120
             });
+            expect(result.metadata.isRelative).toBe(true);
         });
 
-        test('handles relative day references', () => {
-            const result = remindersParser.parse('remind me tomorrow');
-            expect(result.value[0]).toEqual({
-                type: 'day',
-                value: 'tomorrow',
-                originalValue: expect.stringContaining('tomorrow')
-            });
-        });
-    });
+        test('handles plural and singular units', async () => {
+            const cases = [
+                ['in 1 hour', 60],
+                ['in 2 hours', 120],
+                ['in 1 day', 1440],
+                ['in 2 days', 2880]
+            ];
 
-    describe('General Reminders', () => {
-        test('captures general reminder requests', () => {
-            const result = remindersParser.parse('please remind me about this');
-            expect(result.value[0]).toEqual({
-                type: 'general',
-                value: true,
-                originalValue: expect.stringContaining('remind me')
-            });
+            for (const [input, expectedMinutes] of cases) {
+                const result = await parse(input);
+                expect(result.value.minutes).toBe(expectedMinutes);
+            }
         });
     });
 
     describe('Confidence Scoring', () => {
-        test('assigns higher confidence to specific times', () => {
+        test('assigns higher confidence to explicit patterns', async () => {
             const results = [
-                remindersParser.parse('remind me'),
-                remindersParser.parse('remind me tomorrow'),
-                remindersParser.parse('remind me at 2:30pm')
+                await parse('remind me in 30 minutes'),
+                await parse('in 30 minutes'),
+                await parse('30 minutes before')
             ];
 
             const confidences = results.map(r => r.metadata.confidence);
+            expect(confidences[0]).toBeGreaterThan(confidences[1]);
             expect(confidences[2]).toBeGreaterThan(confidences[1]);
-            expect(confidences[1]).toBeGreaterThan(confidences[0]);
         });
 
-        test('increases confidence for multiple reminders', () => {
-            const single = remindersParser.parse('remind me 30 minutes before');
-            const multiple = remindersParser.parse('remind me 1 hour and 30 minutes before');
-            expect(multiple.metadata.confidence).toBeGreaterThan(single.metadata.confidence);
-        });
-
-        test('adjusts confidence based on precision', () => {
+        test('adjusts confidence based on position', async () => {
             const results = [
-                remindersParser.parse('remind me 1 hour before'),
-                remindersParser.parse('remind me 30 minutes before')
+                await parse('remind me in 30 minutes'),
+                await parse('task remind me in 30 minutes')
             ];
 
-            const confidences = results.map(r => r.metadata.confidence);
-            expect(confidences[1]).toBeGreaterThan(confidences[0]);
+            expect(results[0].metadata.confidence)
+                .toBeGreaterThan(results[1].metadata.confidence);
         });
     });
 
     describe('Error Handling', () => {
-        test('handles invalid time values', () => {
-            const result = remindersParser.parse('remind me -30 minutes before');
+        test('handles invalid time values', async () => {
+            const result = await parse('remind me at 25:00');
             expect(result).toBeNull();
         });
 
-        test('handles time conversion errors', () => {
-            // Mock convertToMinutes to throw
-            const originalConvert = remindersParser.convertToMinutes;
-            remindersParser.convertToMinutes = () => {
-                throw new Error('Conversion error');
-            };
-
-            const result = remindersParser.parse('remind me 30 minutes before');
-            expect(result).toEqual({
-                type: 'error',
-                error: 'PARSER_ERROR',
-                message: 'Conversion error'
-            });
-
-            // Restore original function
-            remindersParser.convertToMinutes = originalConvert;
-        });
-
-        test('handles consolidation errors gracefully', () => {
-            // Mock consolidateReminders to throw
-            const originalConsolidate = remindersParser.consolidateReminders;
-            remindersParser.consolidateReminders = () => {
-                throw new Error('Consolidation error');
-            };
-
-            const result = remindersParser.parse('remind me 1 hour and 30 minutes before');
-            expect(result).toEqual({
-                type: 'error',
-                error: 'PARSER_ERROR',
-                message: 'Consolidation error'
-            });
-
-            // Restore original function
-            remindersParser.consolidateReminders = originalConsolidate;
-        });
-    });
-
-    describe('Edge Cases', () => {
-        test('handles zero time values', () => {
-            const result = remindersParser.parse('remind me 0 minutes before');
+        test('handles parser errors gracefully', async () => {
+            const result = await parse('remind me in -1 hours');
             expect(result).toBeNull();
-        });
-
-        test('handles extremely large time values', () => {
-            const result = remindersParser.parse('remind me 1000000 hours before');
-            expect(result).toBeNull();
-        });
-
-        test('handles duplicated time references', () => {
-            const result = remindersParser.parse('remind me 30 minutes before and 30 minutes before');
-            expect(result.value).toHaveLength(1); // Should deduplicate
-            expect(result.value[0].minutes).toBe(30);
-        });
-
-        test('handles overlapping patterns', () => {
-            const result = remindersParser.parse('remind me at 2pm and 2 hours before');
-            expect(result.value).toHaveLength(2);
-            expect(result.value.map(r => r.type)).toEqual(['absolute', 'relative']);
-        });
-
-        test('handles missing time units', () => {
-            const result = remindersParser.parse('remind me 30 before');
-            expect(result).toBeNull();
-        });
-
-        test('handles invalid time formats', () => {
-            const invalidFormats = [
-                'remind me at 25:00',    // Invalid hour
-                'remind me at 10:60',    // Invalid minute
-                'remind me at 2:30xx'    // Invalid period
-            ];
-
-            invalidFormats.forEach(input => {
-                const result = remindersParser.parse(input);
-                expect(result).toBeNull();
-            });
-        });
-    });
-
-    describe('Time Unit Conversion', () => {
-        test('converts all supported time units', () => {
-            const conversions = [
-                ['30 minutes', 30],
-                ['1 hour', 60],
-                ['2 hours', 120],
-                ['1 day', 1440],
-                ['2 days', 2880]
-            ];
-
-            conversions.forEach(([input, expected]) => {
-                const result = remindersParser.parse(`remind me ${input} before`);
-                expect(result.value[0].minutes).toBe(expected);
-            });
-        });
-
-        test('handles mixed units', () => {
-            const result = remindersParser.parse('remind me 1 hour and 30 minutes before');
-            const totalMinutes = result.value.reduce((sum, r) => sum + r.minutes, 0);
-            expect(totalMinutes).toBe(90);
-        });
-
-        test('handles unit variations', () => {
-            const variations = [
-                'min',
-                'mins',
-                'minute',
-                'minutes',
-                'hr',
-                'hrs',
-                'hour',
-                'hours'
-            ];
-
-            variations.forEach(unit => {
-                const result = remindersParser.parse(`remind me 1 ${unit} before`);
-                expect(result).not.toBeNull();
-                expect(result.value[0].minutes).toBeGreaterThan(0);
-            });
-        });
-    });
-
-    describe('Context and Position', () => {
-        test('handles reminders at start of text', () => {
-            const result = remindersParser.parse('remind me at 2pm about the meeting');
-            expect(result).not.toBeNull();
-            expect(result.metadata.confidence).toBeLessThan(0.95); // Lower confidence for start position
-        });
-
-        test('handles reminders at end of text', () => {
-            const result = remindersParser.parse('about the meeting, remind me at 2pm');
-            expect(result).not.toBeNull();
-            expect(result.metadata.confidence).toBeGreaterThan(0.85); // Higher confidence for end position
-        });
-
-        test('handles multiple reminder phrases', () => {
-            const result = remindersParser.parse('remind me at 2pm and also remind me 30 minutes before');
-            expect(result.value).toHaveLength(2);
-            expect(result.value.map(r => r.type)).toEqual(['absolute', 'relative']);
-        });
-    });
-
-    describe('Pattern Integration', () => {
-        test('recognizes all reminder formats in one text', () => {
-            const result = remindersParser.parse(
-                'remind me tomorrow at 2pm, 1 hour before, and 30 minutes before'
-            );
-            
-            expect(result.value).toHaveLength(3);
-            expect(result.value.map(r => r.type)).toEqual(['day', 'relative', 'relative']);
-            expect(result.metadata.types).toEqual(expect.arrayContaining(['day', 'relative']));
-        });
-
-        test('maintains correct reminder order', () => {
-            const result = remindersParser.parse(
-                'remind me 30 minutes before, at 2pm, and 1 hour before'
-            );
-
-            const values = result.value;
-            expect(values[0].type).toBe('absolute'); // Time-specific reminders first
-            expect(values[1].minutes).toBe(60);      // Then longer durations
-            expect(values[2].minutes).toBe(30);      // Then shorter durations
-        });
-
-        test('handles complex reminder combinations', () => {
-            const result = remindersParser.parse(
-                'remind me tomorrow at 2pm, then 1 hour, 30 minutes, and 15 minutes before'
-            );
-
-            expect(result.value).toHaveLength(4);
-            expect(result.metadata.count).toBe(4);
-            expect(result.metadata.pattern).toBe('multiple');
-            expect(result.metadata.types).toEqual(expect.arrayContaining(['day', 'relative']));
         });
     });
 });

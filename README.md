@@ -86,7 +86,7 @@ src/
 │   ├── styles/      # Component-specific styles
 │   │   ├── base.css     # Core variables and reset
 │   │   ├── ribbon.css   # Header styles
-│   │   ├── sidebar.css  # Navigation styles
+│   │   ├��─ sidebar.css  # Navigation styles
 │   │   ├── entries.css  # Entry list styles
 │   │   ├── editor.css   # Editor styles
 │   │   ├── modals.css   # Modal and toast styles
@@ -230,3 +230,42 @@ The application features a modern, efficient interface:
 ## License
 
 MIT
+
+## Parser System Architecture
+
+The application features a sophisticated parser system:
+
+### Parser Standards
+- Standardized structure and error handling
+- Consistent confidence scoring (0.7 base + modifiers)
+- Rich metadata generation
+- Pattern-based matching with priorities
+- Comprehensive test coverage
+
+### Parser Types
+1. Core Parsers:
+   - Date (ISO, natural, relative)
+   - Time (12/24h, periods, relative)
+   - Project (explicit, references, shorthand)
+   - Status (explicit, progress, contextual)
+   - Tags (hashtags, categories, topics)
+   - Subject (cleanup, key terms, validation)
+   - Recurring (intervals, patterns, end conditions)
+   - Reminders (time-based, date-based, relative)
+   - Priority (explicit, shorthand, contextual)
+
+2. Common Features:
+   - Async/await support
+   - Standardized error handling
+   - Confidence scoring
+   - Metadata enrichment
+   - Input validation
+   - Pattern matching
+   - Test coverage
+
+3. Integration:
+   - Central parser registry
+   - Batch processing support
+   - Error aggregation
+   - Confidence-based filtering
+   - Rich metadata generation

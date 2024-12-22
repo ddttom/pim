@@ -1,435 +1,292 @@
-# Text Parsers Documentation
+# Parser Documentation
 
 ## Overview
 
-The parser system breaks down natural language text input into structured data using specialized parsers. Each parser is responsible for extracting specific types of information and follows a standardized pattern.
+The parsing system consists of multiple specialized parsers that extract structured information from text input. Each parser follows a standardized pattern for consistency and reliability.
 
-## Parser Directory Structure
+## Common Features
 
-    src/services/parser/
-    ├── parsers/
-    │   ├── attendees.js
-    │   ├── categories.js
-    │   ├── complexity.js
-    │   ├── contact.js
-    │   ├── date.js
-    │   ├── dependencies.js
-    │   ├── duration.js
-    │   ├── links.js
-    │   ├── location.js
-    │   ├── priority.js
-    │   ├── project.js
-    │   ├── recurring.js
-    │   ├── reminders.js
-    │   ├── status.js
-    │   ├── subject.js
-    │   └── urgency.js
-    └── utils/
-        └── patterns.js
+- Async/await support
+- Standardized error handling
+- Confidence scoring
+- Metadata enrichment
+- Input validation
 
-## Standard Parser Template
+## Parser Types
 
-All parsers must follow the standardized template (base.js) to ensure consistency and maintainability:
+### Date Parser
+
+Extracts date information in various formats:
+
+- ISO format (2024-01-15)
+- Natural language (January 15th, 2024)
+- Relative dates (tomorrow, next week)
+
+### Time Parser
+
+Extracts time information:
+
+- 12/24 hour format
+- Natural language (morning, afternoon)
+- Relative times (in 2 hours)
+
+### Project Parser
+
+Identifies project references:
+
+- Explicit declarations (project: name)
+- References (for project name)
+- Shorthand ($project)
+
+### Status Parser
+
+Detects task status:
+
+- Explicit status declarations
+- Progress indicators
+- State references
+- Contextual status
+
+### Tags Parser
+
+Extracts and categorizes tags:
+
+- Hashtags (#tag)
+- Categories (+category)
+- Topics (@topic)
+- Inline tags [tag]
+
+### Subject Parser
+
+Processes main task subject:
+
+- Removes metadata
+- Extracts key terms
+- Validates structure
+- Identifies action verbs
+
+### Recurring Parser
+
+Identifies recurring patterns:
+
+- Time intervals
+- Day patterns
+- End conditions
+
+### Reminders Parser
+
+Extracts reminder information:
+
+- Time-based reminders
+- Date-based reminders
+- Relative reminders
+
+### Priority Parser
+
+Detects priority levels:
+
+- Explicit priority
+- Shorthand notation
+- Contextual priority
+
+## Parser Standards
+
+### Parser Structure
+
+Each parser must follow these standards:
+
+1. File Organization:
 
 ```javascript
+// Imports
 import { createLogger } from '../../../utils/logger.js';
-import { validatePatternMatch } from '../utils/patterns.js';
+import { validatePatternMatch, calculateBaseConfidence } from '../utils/patterns.js';
 
+// Constants
 const logger = createLogger('ParserName');
+const PATTERNS = { /* ... */ };
 
-// Define patterns at module level for performance
-const PATTERNS = {
-    // Primary patterns
-    main: /your-main-pattern-here/i,
-    alternative: /alternative-pattern/i,
-    
-    // Support patterns
-    auxiliary: /support-pattern/i
-};
+// Exports
+export const name = 'parsername';
+export async function parse(text) { /* ... */ }
 
-export default {
-    name: 'parser_name',
-    
-    parse(text) {
-        // Input validation
-        if (!text || typeof text !== 'string') {
-            logger.warn('Invalid input:', { text });
-            return {
-                type: 'error',
-                error: 'INVALID_INPUT',
-                message: 'Input must be a non-empty string'
-            };
-        }
+// Helper Functions
+async function extractValue() { /* ... */ }
+function calculateConfidence() { /* ... */ }
+```
 
-        try {
-            // Check each pattern in order of preference
-            for (const [patternName, pattern] of Object.entries(PATTERNS)) {
-                const match = text.match(pattern);
-                
-                if (validatePatternMatch(match)) {
-                    const value = this.extractValue(match);
-                    const confidence = this.calculateConfidence(match[0], text);
-                    
-                    logger.debug('Pattern match found:', {
-                        pattern: patternName,
-                        match: match[0],
-                        value,
-                        confidence
-                    });
+2. Required Exports:
 
-                    return {
-                        type: this.name,
-                        value,
-                        metadata: {
-                            pattern: patternName,
-                            confidence,
-                            originalMatch: match[0]
-                        }
-                    };
-                }
-            }
+- `name`: String identifier for the parser
+- `parse`: Async function that processes input text
 
-            logger.debug('No pattern matches found');
-            return null;
+3. Error Handling:
 
-        } catch (error) {
-            logger.error('Parser error:', {
-                error: error.message,
-                stack: error.stack,
-                input: text
-            });
-            
-            return {
-                type: 'error',
-                error: 'PARSER_ERROR',
-                message: error.message
-            };
-        }
+```javascript
+try {
+    // Parser logic
+} catch (error) {
+    logger.error('Error in parser:', error);
+    return {
+        type: 'error',
+        error: 'PARSER_ERROR',
+        message: error.message
+    };
+}
+```
+
+### Return Format
+
+1. Success Response:
+
+```javascript
+{
+    type: 'parsertype',
+    value: {
+        // Parser-specific value structure
     },
-
-    extractValue(match) {
-        // Extract and transform the matched value
-        return match[1]?.trim();
-    },
-
-    calculateConfidence(match, fullText) {
-        let confidence = 0.5; // Base confidence
-        
-        // Common confidence factors:
-        // - Pattern specificity
-        // - Match position
-        // - Supporting context
-        // - Quality indicators
-        
-        return Math.min(1, confidence);
+    metadata: {
+        pattern: 'matched_pattern',
+        confidence: 0.0-1.0,
+        originalMatch: 'matched_text',
+        // Parser-specific metadata
     }
+}
+```
+
+2. Error Response:
+
+```javascript
+{
+    type: 'error',
+    error: 'ERROR_CODE',
+    message: 'Human readable message'
+}
+```
+
+3. No Match:
+
+```javascript
+null
+```
+
+### Test Standards
+
+1. Test File Structure:
+
+```javascript
+import { name, parse } from '../../src/services/parser/parsers/parser.js';
+
+describe('Parser Name', () => {
+    describe('Input Validation', () => {
+        // Input validation tests
+    });
+
+    describe('Pattern Matching', () => {
+        // Pattern-specific tests
+    });
+
+    describe('Confidence Scoring', () => {
+        // Confidence calculation tests
+    });
+
+    describe('Error Handling', () => {
+        // Error case tests
+    });
+});
+```
+
+2. Required Test Categories:
+
+- Input validation
+- Pattern matching
+- Edge cases
+- Error handling
+- Confidence scoring
+- Metadata validation
+
+3. Test Case Standards:
+
+```javascript
+test('descriptive test name', async () => {
+    const result = await parse('test input');
+    expect(result).toEqual({
+        type: 'expected_type',
+        value: expect.any(Object),
+        metadata: {
+            pattern: expect.any(String),
+            confidence: expect.any(Number),
+            // ...other expectations
+        }
+    });
+});
+```
+
+### Confidence Scoring
+
+1. Base Confidence:
+
+- Start with 0.7 base confidence
+- Add/subtract based on specific criteria
+- Cap at 1.0 maximum
+
+2. Common Factors:
+
+```javascript
+function calculateConfidence(matches, text, type) {
+    let confidence = 0.7;
+
+    // Pattern-based confidence
+    switch (type) {
+        case 'explicit': confidence += 0.2; break;
+        case 'implicit': confidence += 0.1; break;
+        // ...
+    }
+
+    // Position-based confidence
+    if (matches.index === 0) confidence += 0.1;
+    if (text[matches.index - 1] === ' ') confidence += 0.05;
+
+    return Math.min(confidence, 1.0);
+}
+```
+
+### Pattern Matching
+
+1. Pattern Organization:
+
+```javascript
+const PATTERNS = {
+    explicit: /\b(?:pattern):\s*(value)\b/i,
+    implicit: /\b(value)\b/i,
+    // ...
 };
 ```
 
-### Key Components
+2. Pattern Priorities:
 
-1. **Pattern Management**
-   - Patterns defined at module level for performance
-   - Organized by primary and support patterns
-   - Pattern prioritization through ordering
+- Explicit patterns (highest confidence)
+- Structured patterns
+- Contextual patterns
+- Implicit patterns (lowest confidence)
 
-2. **Error Handling**
-   - Structured error objects with type and message
-   - Input validation at entry point
-   - Detailed error logging with context
-   - Graceful handling of edge cases
+### Error Codes
 
-3. **Metadata Generation**
-   - Pattern identification
-   - Confidence scoring
-   - Original match preservation
-   - Pattern-specific information
+Standard error codes across all parsers:
 
-4. **Required Methods**
-   - parse(text): Main entry point with validation
-   - extractValue(match): Transform matched content
-   - calculateConfidence(match, fullText): Score quality
+- `INVALID_INPUT`: Input validation failures
+- `PARSER_ERROR`: Internal parser errors
+- `VALIDATION_ERROR`: Pattern validation failures
+- `FORMAT_ERROR`: Format-specific errors
 
-5. **Logging**
-   - Consistent logger naming
-   - Debug logs for pattern matches
-   - Warning logs for invalid input
-   - Error logs with stack traces
+## Usage
 
-## Available Parsers
+```javascript
+import { parsers, parseAll } from './services/parser';
 
-### 1. Project Parser
+// Parse specific type
+const dateResult = await parsers.date(text);
 
-Extracts project names and references.
-
-Example:
-    // Input: "Meeting about Project Alpha"
-    // Output: { type: 'project', value: 'Project Alpha' }
-
-    const patterns = {
-        project: /\bProject\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+)*)/,
-        about: /\babout\s+Project\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+)*)/,
-        re: /\bre\s+Project\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+)*)/
-    };
-
-### 2. Contact Parser
-
-Identifies people mentioned in the text.
-
-Example:
-    // Input: "Call John about meeting"
-    // Output: { type: 'contact', value: 'John' }
-
-    const patterns = {
-        action: /\b(?:call|email|message|contact|meet)\s+([A-Z][a-z]+)(?:\s|$)/,
-        with: /\bwith\s+([A-Z][a-z]+)(?:\s|$)/
-    };
-
-### 3. Location Parser
-
-Extracts meeting or event locations.
-
-Example:
-    // Input: "Meeting at Coffee Shop"
-    // Output: { type: 'location', value: 'Coffee Shop' }
-
-    const patterns = {
-        at: /\bat\s+([A-Za-z][a-zA-Z0-9\s]+(?:\s+[A-Za-z][a-zA-Z0-9\s]*)*)/i,
-        in: /\bin\s+([A-Za-z][a-zA-Z0-9\s]+(?:\s+[A-Za-z][a-zA-Z0-9\s]*)*)/i,
-        location: /location:\s+([A-Za-z][a-zA-Z0-9\s]+(?:\s+[A-Za-z][a-zA-Z0-9\s]*)*)/i
-    };
-
-### 4. Duration Parser
-
-Parses time durations.
-
-Example:
-    // Input: "Meeting for 2 hours"
-    // Output: { type: 'duration', value: 120 }
-
-    const DURATION_PATTERNS = [
-        { regex: /(\d+)\s*(?:hour|hr)s?/i, multiplier: 60 },
-        { regex: /(\d+)\s*(?:minute|min)s?/i, multiplier: 1 },
-        { regex: /(\d+)\s*(?:day)s?/i, multiplier: 1440 }
-    ];
-
-### 5. Status Parser
-
-Identifies task/project status.
-
-Example:
-    // Input: "Project started yesterday"
-    // Output: { type: 'status', value: 'Started' }
-
-    const STATUS_KEYWORDS = {
-        'started': 'Started',
-        'in progress': 'InProgress',
-        'done': 'Done',
-        'completed': 'Completed',
-        'pending': 'Pending',
-        'blocked': 'Blocked'
-    };
-
-### 6. Priority Parser
-
-Determines task priority levels.
-
-Example:
-    // Input: "Urgent meeting tomorrow"
-    // Output: { type: 'priority', value: 'high' }
-
-    const PRIORITY_LEVELS = {
-        'urgent': 'high',
-        'high': 'high',
-        'medium': 'medium',
-        'normal': 'normal',
-        'low': 'low'
-    };
-
-### 7. Complexity Parser
-
-Assesses task complexity.
-
-Example:
-    // Input: "Complex task review needed"
-    // Output: { type: 'complexity', value: 3 }
-
-    const COMPLEXITY_LEVELS = {
-        'simple': 1,
-        'easy': 1,
-        'medium': 2,
-        'moderate': 2,
-        'complex': 3,
-        'difficult': 3,
-        'hard': 3
-    };
-
-### 8. Categories Parser
-
-Extracts hashtags and categories.
-
-Example:
-    // Input: "Meeting #important #project"
-    // Output: { type: 'categories', value: ['important', 'project'] }
-
-    const hashtagPattern = /#([a-zA-Z]\w+)/g;
-
-### 9. Dependencies Parser
-
-Identifies task dependencies.
-
-Example:
-    // Input: "Must be done after Project Alpha"
-    // Output: { type: 'dependencies', value: 'Project Alpha' }
-
-    const dependencyPattern = /\b(?:after|depends on|requires|needs?)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/i;
-
-### 10. Date Parser
-
-Parses date references.
-
-Example:
-    // Input: "Meeting tomorrow"
-    // Output: { type: 'date', value: '2024-01-22T09:00:00.000Z' }
-
-    const DATE_PATTERNS = [
-        {
-            regex: /\b(tomorrow)\b/i,
-            handler: () => {
-                const date = new Date();
-                date.setDate(date.getDate() + 1);
-                return date;
-            }
-        },
-        {
-            regex: /\bnext\s+(week|month)\b/i,
-            handler: (match) => {
-                const date = new Date();
-                if (match[1].toLowerCase() === 'week') {
-                    date.setDate(date.getDate() + 7);
-                } else {
-                    date.setMonth(date.getMonth() + 1);
-                }
-                return date;
-            }
-        }
-    ];
-
-### 11. Recurring Parser
-
-Identifies recurring patterns.
-
-Example:
-    // Input: "Meeting every week"
-    // Output: { type: 'recurring', value: { frequency: 'weekly' } }
-
-    const RECURRING_PATTERNS = {
-        'daily': /\bevery\s+day\b/i,
-        'weekly': /\bevery\s+week\b/i,
-        'monthly': /\bevery\s+month\b/i,
-        'weekday': /\bevery\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i
-    };
-
-### 12. Subject Parser
-
-Extracts the main subject/topic.
-
-Example:
-    // Input: "Review project documentation"
-    // Output: { type: 'subject', value: 'Review project documentation' }
-
-    const IGNORE_PATTERNS = [
-        /\b(?:at|in|on|with|for|to|from)\s+/i,
-        /\b(?:every|each)\s+/i,
-        /\b(?:high|medium|low)\s+priority\b/i,
-        /\b(?:urgent|asap)\b/i,
-        /#\w+/,
-        /@\w+/
-    ];
-
-### 13. Reminders Parser
-
-Extracts reminder information.
-
-Example:
-    // Input: "Remind me in 2 hours"
-    // Output: { type: 'reminders', value: { time: '2024-01-21T14:00:00.000Z' } }
-
-    const REMINDER_PATTERNS = [
-        /\bremind\s+(?:me\s+)?(?:in|after)\s+(\d+)\s*(hour|minute|day)s?\b/i,
-        /\bremind\s+(?:me\s+)?(?:at|on)\s+(\d{1,2}):(\d{2})\b/i
-    ];
-
-## Usage Examples
-
-Complex Example:
-    const text = "Call John about Project Alpha tomorrow at Coffee Shop #urgent";
-
-    const parsers = [
-        projectParser,
-        contactParser,
-        locationParser,
-        dateParser,
-        categoriesParser
-    ];
-
-    const results = parsers.map(parser => parser.parse(text))
-                          .filter(result => result !== null);
-
-    // Results:
-    // [
-    //     { type: 'contact', value: 'John' },
-    //     { type: 'project', value: 'Project Alpha' },
-    //     { type: 'location', value: 'Coffee Shop' },
-    //     { type: 'date', value: '2024-01-22T09:00:00.000Z' },
-    //     { type: 'categories', value: ['urgent'] }
-    // ]
-
-## Error Handling
-
-All parsers implement standardized error handling:
-
-- Errors are logged with stack traces
-- Failed parsers return null
-- Invalid matches return null
-- Consistent error message format
-
-## Best Practices
-
-1. Always check for null returns
-2. Use type-safe handling of parser results
-3. Consider parser order for dependent information
-4. Handle partial matches appropriately
-5. Validate parser results before use
-6. Keep patterns in constants at the top of files
-7. Use consistent naming conventions
-8. Maintain standardized return format
-
-## Integration
-
-Parsers can be used:
-
-- Individually for specific data extraction
-- As part of the larger parsing system
-- In combination for complex text analysis
-- With custom pattern matching
-
-## Testing
-
-Each parser should be tested with:
-
-- Valid inputs
-- Edge cases
-- Invalid inputs
-- Empty inputs
-- Special characters
-- Multiple matches
-- Overlapping patterns
-
-## Performance Considerations
-
-1. Regex patterns are compiled once at module level
-2. Early returns for no matches
-3. Efficient string operations
-4. Minimal object creation
-5. Optimized pattern matching
+// Parse all types
+const { results, errors } = await parseAll(text);
+```

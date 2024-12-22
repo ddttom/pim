@@ -1,9 +1,9 @@
-import statusParser from '../../src/services/parser/parsers/status.js';
+import { name, parse } from '../../src/services/parser/parsers/status.js';
 
 describe('Status Parser', () => {
     describe('Input Validation', () => {
-        test('handles null input', () => {
-            const result = statusParser.parse(null);
+        test('handles null input', async () => {
+            const result = await parse(null);
             expect(result).toEqual({
                 type: 'error',
                 error: 'INVALID_INPUT',
@@ -11,8 +11,8 @@ describe('Status Parser', () => {
             });
         });
 
-        test('handles empty string', () => {
-            const result = statusParser.parse('');
+        test('handles empty string', async () => {
+            const result = await parse('');
             expect(result).toEqual({
                 type: 'error',
                 error: 'INVALID_INPUT',
@@ -20,215 +20,131 @@ describe('Status Parser', () => {
             });
         });
 
-        test('returns null for text without status', () => {
-            const result = statusParser.parse('Regular text without status');
+        test('returns null for text without status', async () => {
+            const result = await parse('Regular text without status');
             expect(result).toBeNull();
         });
     });
 
     describe('Explicit Status', () => {
-        test('parses explicit status declarations', () => {
-            const result = statusParser.parse('Task status: in progress');
+        test('parses explicit status declarations', async () => {
+            const result = await parse('status: completed');
             expect(result).toEqual({
                 type: 'status',
-                value: 'started',
+                value: {
+                    status: 'completed'
+                },
                 metadata: {
                     pattern: 'explicit',
                     confidence: expect.any(Number),
-                    category: 'active',
-                    progress: null,
-                    allowedTransitions: ['completed', 'blocked', 'cancelled'],
-                    explicit: true,
-                    originalMatch: 'status: in progress'
+                    originalMatch: 'status: completed',
+                    level: 3
                 }
             });
         });
 
-        test('normalizes explicit status variants', () => {
-            const cases = [
-                ['status: in-progress', 'started'],
-                ['status: on hold', 'blocked'],
-                ['status: done', 'completed']
-            ];
+        test('handles all status types', async () => {
+            const statuses = ['pending', 'started', 'completed', 'blocked', 'cancelled'];
+            const levels = [0, 1, 3, 2, 4];
 
-            cases.forEach(([input, expected]) => {
-                const result = statusParser.parse(input);
-                expect(result.value).toBe(expected);
-                expect(result.metadata.explicit).toBe(true);
-            });
+            for (let i = 0; i < statuses.length; i++) {
+                const result = await parse(`status: ${statuses[i]}`);
+                expect(result.value.status).toBe(statuses[i]);
+                expect(result.metadata.level).toBe(levels[i]);
+            }
         });
     });
 
-    describe('Progress-based Status', () => {
-        test('infers completion from 100%', () => {
-            const result = statusParser.parse('Task 100% complete');
-            expect(result.value).toBe('completed');
-            expect(result.metadata.progress).toBe(100);
+    describe('Progress Indicators', () => {
+        test('parses percentage complete', async () => {
+            const result = await parse('50% complete');
+            expect(result.value.progress).toBe(50);
+            expect(result.metadata.pattern).toBe('progress');
         });
 
-        test('captures progress without status change', () => {
-            const result = statusParser.parse('Task 50% complete');
-            expect(result.metadata.progress).toBe(50);
-            expect(result.value).not.toBe('completed');
-        });
-    });
-
-    describe('Status Keywords', () => {
-        test('recognizes started status', () => {
-            const variants = [
-                'Started working on task',
-                'Task in progress',
-                'Begun implementation',
-                'Working on the feature'
-            ];
-
-            variants.forEach(input => {
-                const result = statusParser.parse(input);
-                expect(result.value).toBe('started');
-                expect(result.metadata.category).toBe('active');
-            });
-        });
-
-        test('recognizes completed status', () => {
-            const variants = [
-                'Task completed',
-                'Feature is done',
-                'Finished implementation',
-                'Issue resolved'
-            ];
-
-            variants.forEach(input => {
-                const result = statusParser.parse(input);
-                expect(result.value).toBe('completed');
-                expect(result.metadata.category).toBe('terminal');
-            });
-        });
-
-        test('recognizes blocked status', () => {
-            const variants = [
-                'Task is blocked',
-                'Work is stuck',
-                'Waiting for review',
-                'On hold pending approval'
-            ];
-
-            variants.forEach(input => {
-                const result = statusParser.parse(input);
-                expect(result.value).toBe('blocked');
-                expect(result.metadata.category).toBe('inactive');
-            });
+        test('validates percentage range', async () => {
+            const result = await parse('150% complete');
+            expect(result).toBeNull();
         });
     });
 
-    describe('Status Context', () => {
-        test('considers progress indicators', () => {
-            const result = statusParser.parse('Task in progress (75% complete)');
-            expect(result.value).toBe('started');
-            expect(result.metadata.progress).toBe(75);
-            expect(result.metadata.confidence).toBeGreaterThan(0.85);
+    describe('State Format', () => {
+        test('parses state declarations', async () => {
+            const result = await parse('is completed');
+            expect(result.value.status).toBe('completed');
+            expect(result.metadata.pattern).toBe('state');
         });
 
-        test('considers temporal indicators', () => {
-            const withTime = statusParser.parse('Just started working on task');
-            const withoutTime = statusParser.parse('Started working on task');
-            expect(withTime.metadata.confidence)
-                .toBeGreaterThan(withoutTime.metadata.confidence);
-        });
-
-        test('considers action verbs', () => {
-            const withAction = statusParser.parse('Marked task as completed');
-            const withoutAction = statusParser.parse('Task completed');
-            expect(withAction.metadata.confidence)
-                .toBeGreaterThan(withoutAction.metadata.confidence);
+        test('handles marked as format', async () => {
+            const result = await parse('marked as blocked');
+            expect(result.value.status).toBe('blocked');
         });
     });
 
-    describe('Status Transitions', () => {
-        test('validates allowed transitions', () => {
-            expect(statusParser.isTransitionAllowed('pending', 'started')).toBe(true);
-            expect(statusParser.isTransitionAllowed('started', 'cancelled')).toBe(true);
-            expect(statusParser.isTransitionAllowed('completed', 'cancelled')).toBe(false);
+    describe('Shorthand Notation', () => {
+        test('parses bracketed status', async () => {
+            const result = await parse('[completed]');
+            expect(result.value.status).toBe('completed');
+            expect(result.metadata.pattern).toBe('shorthand');
         });
 
-        test('provides available transitions', () => {
-            const pendingTransitions = statusParser.getAvailableTransitions('pending');
-            expect(pendingTransitions).toContain('started');
-            expect(pendingTransitions).toContain('cancelled');
-
-            const startedTransitions = statusParser.getAvailableTransitions('started');
-            expect(startedTransitions).toContain('completed');
-            expect(startedTransitions).toContain('blocked');
+        test('parses parenthesized status', async () => {
+            const result = await parse('(blocked)');
+            expect(result.value.status).toBe('blocked');
         });
     });
 
-    describe('Status Categories', () => {
-        test('categorizes active statuses', () => {
-            const result = statusParser.parse('Working on task');
-            expect(result.metadata.category).toBe('active');
-            expect(result.value).toBe('started');
-        });
+    describe('Contextual Status', () => {
+        test('recognizes status contexts', async () => {
+            const mappings = {
+                'waiting': 'blocked',
+                'done': 'completed',
+                'finished': 'completed',
+                'cancelled': 'cancelled'
+            };
 
-        test('categorizes inactive statuses', () => {
-            const result = statusParser.parse('Task is blocked');
-            expect(result.metadata.category).toBe('inactive');
-            expect(result.value).toBe('blocked');
-        });
-
-        test('categorizes terminal statuses', () => {
-            const result = statusParser.parse('Task cancelled');
-            expect(result.metadata.category).toBe('terminal');
-            expect(result.value).toBe('cancelled');
+            for (const [input, expected] of Object.entries(mappings)) {
+                const result = await parse(input);
+                expect(result.value.status).toBe(expected);
+                expect(result.metadata.pattern).toBe('contextual');
+            }
         });
     });
 
     describe('Confidence Scoring', () => {
-        test('assigns higher confidence to explicit status', () => {
-            const explicit = statusParser.parse('status: completed');
-            const implicit = statusParser.parse('task completed');
-            expect(explicit.metadata.confidence)
-                .toBeGreaterThan(implicit.metadata.confidence);
-        });
-
-        test('adjusts confidence based on context', () => {
+        test('assigns higher confidence to explicit declarations', async () => {
             const results = [
-                statusParser.parse('Task completed'),
-                statusParser.parse('Task completed today'),
-                statusParser.parse('Task marked as completed with 100% progress')
+                await parse('status: completed'),
+                await parse('is completed'),
+                await parse('[completed]'),
+                await parse('done')
             ];
 
             const confidences = results.map(r => r.metadata.confidence);
-            expect(confidences[1]).toBeGreaterThan(confidences[0]);
-            expect(confidences[2]).toBeGreaterThan(confidences[1]);
+            expect(confidences[0]).toBeGreaterThan(confidences[2]);
+            expect(confidences[1]).toBeGreaterThan(confidences[3]);
+        });
+
+        test('adjusts confidence based on position', async () => {
+            const results = [
+                await parse('status: completed task'),
+                await parse('task with status: completed')
+            ];
+
+            expect(results[0].metadata.confidence)
+                .toBeGreaterThan(results[1].metadata.confidence);
         });
     });
 
     describe('Error Handling', () => {
-        test('handles invalid status values', () => {
-            const result = statusParser.parse('status: invalid_status');
+        test('handles invalid status values', async () => {
+            const result = await parse('status: invalid');
             expect(result).toBeNull();
         });
 
-        test('handles malformed progress', () => {
-            const result = statusParser.parse('Task 200% complete');
+        test('handles parser errors gracefully', async () => {
+            const result = await parse('status: ');
             expect(result).toBeNull();
-        });
-
-        test('handles parser errors gracefully', () => {
-            // Mock normalizeStatus to throw
-            const originalNormalize = statusParser.normalizeStatus;
-            statusParser.normalizeStatus = () => {
-                throw new Error('Normalization error');
-            };
-
-            const result = statusParser.parse('status: in_progress');
-            expect(result).toEqual({
-                type: 'error',
-                error: 'PARSER_ERROR',
-                message: 'Normalization error'
-            });
-
-            // Restore original function
-            statusParser.normalizeStatus = originalNormalize;
         });
     });
 });

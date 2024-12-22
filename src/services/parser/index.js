@@ -2,6 +2,30 @@
 import { createLogger } from '../../utils/logger.js';
 import { compilePatterns } from './utils/patterns.js';
 
+// Import all parsers
+import * as actionParser from './parsers/action.js';
+import * as attendeesParser from './parsers/attendees.js';
+import * as categoriesParser from './parsers/categories.js';
+import * as complexityParser from './parsers/complexity.js';
+import * as contactParser from './parsers/contact.js';
+import * as contextsParser from './parsers/contexts.js';
+import * as dateParser from './parsers/date.js';
+import * as dependenciesParser from './parsers/dependencies.js';
+import * as durationParser from './parsers/duration.js';
+import * as linksParser from './parsers/links.js';
+import * as locationParser from './parsers/location.js';
+import * as participantsParser from './parsers/participants.js';
+import * as priorityParser from './parsers/priority.js';
+import * as projectParser from './parsers/project.js';
+import * as recurringParser from './parsers/recurring.js';
+import * as remindersParser from './parsers/reminders.js';
+import * as statusParser from './parsers/status.js';
+import * as subjectParser from './parsers/subject.js';
+import * as tagsParser from './parsers/tags.js';
+import * as timeParser from './parsers/time.js';
+import * as timeOfDayParser from './parsers/timeOfDay.js';
+import * as urgencyParser from './parsers/urgency.js';
+
 const logger = createLogger('ParserService');
 
 class ParserService {
@@ -10,8 +34,29 @@ class ParserService {
         this.parserStats = new Map();
         this.compiledPatterns = new Map();
         
-        // Parser middleware system for cross-cutting concerns
-        this.middleware = [];
+        // Register all parsers
+        this.registerParser(actionParser.name, actionParser);
+        this.registerParser(attendeesParser.name, attendeesParser);
+        this.registerParser(categoriesParser.name, categoriesParser);
+        this.registerParser(complexityParser.name, complexityParser);
+        this.registerParser(contactParser.name, contactParser);
+        this.registerParser(contextsParser.name, contextsParser);
+        this.registerParser(dateParser.name, dateParser);
+        this.registerParser(dependenciesParser.name, dependenciesParser);
+        this.registerParser(durationParser.name, durationParser);
+        this.registerParser(linksParser.name, linksParser);
+        this.registerParser(locationParser.name, locationParser);
+        this.registerParser(participantsParser.name, participantsParser);
+        this.registerParser(priorityParser.name, priorityParser);
+        this.registerParser(projectParser.name, projectParser);
+        this.registerParser(recurringParser.name, recurringParser);
+        this.registerParser(remindersParser.name, remindersParser);
+        this.registerParser(statusParser.name, statusParser);
+        this.registerParser(subjectParser.name, subjectParser);
+        this.registerParser(tagsParser.name, tagsParser);
+        this.registerParser(timeParser.name, timeParser);
+        this.registerParser(timeOfDayParser.name, timeOfDayParser);
+        this.registerParser(urgencyParser.name, urgencyParser);
     }
 
     registerParser(name, parser) {
@@ -28,11 +73,6 @@ class ParserService {
         logger.info(`Parser registered: ${name}`);
     }
 
-    // Add middleware for cross-cutting concerns
-    use(middlewareFn) {
-        this.middleware.push(middlewareFn);
-    }
-
     async parse(text, options = {}) {
         if (!text || typeof text !== 'string') {
             logger.warn('Invalid input:', { text });
@@ -47,7 +87,6 @@ class ParserService {
             logger.debug('Starting parse:', { text, options });
             const startTime = performance.now();
 
-            // Initialize result structure
             const result = {
                 raw: text,
                 parsed: {},
@@ -59,16 +98,9 @@ class ParserService {
                 }
             };
 
-            // Run middleware pipeline
-            for (const mw of this.middleware) {
-                await mw(text, result);
-            }
-
-            // Track errors without failing
             const errors = [];
-
-            // Run each parser with dependency ordering
             const orderedParsers = this.getOrderedParsers();
+            
             for (const [name, parser] of orderedParsers) {
                 const parserStartTime = performance.now();
                 try {
@@ -109,9 +141,6 @@ class ParserService {
             if (errors.length > 0) {
                 result.metadata.errors = errors;
             }
-
-            // Emit parse completed event for plugins
-            this.emit('parseCompleted', result);
 
             return {
                 success: true,
@@ -173,11 +202,6 @@ class ParserService {
         }
 
         return summary.join('\n');
-    }
-
-    // Event system for plugin architecture
-    emit(eventName, data) {
-        // Implement event emission for plugins
     }
 }
 

@@ -1,9 +1,9 @@
-import priorityParser from '../../src/services/parser/parsers/priority.js';
+import { name, parse } from '../../src/services/parser/parsers/priority.js';
 
 describe('Priority Parser', () => {
     describe('Input Validation', () => {
-        test('handles null input', () => {
-            const result = priorityParser.parse(null);
+        test('handles null input', async () => {
+            const result = await parse(null);
             expect(result).toEqual({
                 type: 'error',
                 error: 'INVALID_INPUT',
@@ -11,170 +11,169 @@ describe('Priority Parser', () => {
             });
         });
 
-        test('handles empty string', () => {
-            const result = priorityParser.parse('');
+        test('handles empty string', async () => {
+            const result = await parse('');
             expect(result).toEqual({
                 type: 'error',
                 error: 'INVALID_INPUT',
                 message: 'Input must be a non-empty string'
             });
+        });
+
+        test('returns null for text without priority', async () => {
+            const result = await parse('Regular text without priority');
+            expect(result).toBeNull();
         });
     });
 
     describe('Explicit Priority', () => {
-        test('parses explicit priority statements', () => {
-            const result = priorityParser.parse('This is high priority task');
+        test('parses explicit priority declarations', async () => {
+            const result = await parse('priority: high');
             expect(result).toEqual({
                 type: 'priority',
-                value: 'high',
+                value: {
+                    priority: 'high'
+                },
                 metadata: {
                     pattern: 'explicit',
-                    confidence: 0.9,
-                    originalMatch: 'high priority'
+                    confidence: expect.any(Number),
+                    originalMatch: 'priority: high',
+                    level: 2
                 }
             });
         });
 
-        test('handles different priority levels', () => {
-            const cases = [
-                ['high priority', 'high'],
-                ['medium priority', 'medium'],
-                ['low priority', 'low'],
-                ['normal priority', 'normal']
-            ];
+        test('handles various priority levels', async () => {
+            const levels = ['urgent', 'high', 'medium', 'normal', 'low'];
+            const expectedLevels = [1, 2, 3, 4, 5];
 
-            cases.forEach(([input, expected]) => {
-                const result = priorityParser.parse(input);
-                expect(result.value).toBe(expected);
-                expect(result.metadata.confidence).toBe(0.9);
-            });
+            for (let i = 0; i < levels.length; i++) {
+                const result = await parse(`priority: ${levels[i]}`);
+                expect(result.value.priority).toBe(levels[i]);
+                expect(result.metadata.level).toBe(expectedLevels[i]);
+            }
+        });
+    });
+
+    describe('Prefix Format', () => {
+        test('parses prefix format', async () => {
+            const result = await parse('high priority task');
+            expect(result.value.priority).toBe('high');
+            expect(result.metadata.pattern).toBe('prefix');
+        });
+
+        test('handles urgent priority', async () => {
+            const result = await parse('urgent priority');
+            expect(result.value.priority).toBe('urgent');
+            expect(result.metadata.level).toBe(1);
         });
     });
 
     describe('Shorthand Notation', () => {
-        test('parses exclamation mark notation', () => {
+        test('parses exclamation marks', async () => {
             const cases = [
-                ['Task !!!', 'high'],
-                ['Task !!', 'medium'],
-                ['Task !', 'low']
+                ['!!!', 'urgent'],
+                ['!!', 'high'],
+                ['!', 'medium']
             ];
 
-            cases.forEach(([input, expected]) => {
-                const result = priorityParser.parse(input);
-                expect(result.value).toBe(expected);
-                expect(result.metadata.pattern).toBe('shorthand');
-            });
+            for (const [input, expected] of cases) {
+                const result = await parse(input);
+                expect(result.value.priority).toBe(expected);
+            }
         });
 
-        test('parses P-notation', () => {
-            const cases = [
-                ['p1 Task', 'high'],
-                ['p2 Task', 'medium'],
-                ['p3 Task', 'low']
-            ];
-
-            cases.forEach(([input, expected]) => {
-                const result = priorityParser.parse(input);
-                expect(result.value).toBe(expected);
-                expect(result.metadata.pattern).toBe('shorthand');
-            });
+        test('ignores invalid exclamation patterns', async () => {
+            const result = await parse('!!!!');
+            expect(result).toBeNull();
         });
     });
 
-    describe('Urgency Indicators', () => {
-        test('identifies urgent tasks', () => {
-            const result = priorityParser.parse('Need this ASAP');
-            expect(result).toEqual({
-                type: 'priority',
-                value: 'high',
-                metadata: {
-                    pattern: 'urgent',
-                    confidence: expect.any(Number),
-                    originalMatch: 'ASAP',
-                    indicators: expect.any(Array)
-                }
-            });
+    describe('Numeric Priority', () => {
+        test('parses numeric priorities', async () => {
+            const result = await parse('p1 task');
+            expect(result.value.priority).toBe('urgent');
+            expect(result.metadata.pattern).toBe('numeric');
         });
 
-        test('recognizes important tasks', () => {
-            const result = priorityParser.parse('This is critical');
-            expect(result.value).toBe('high');
-            expect(result.metadata.pattern).toBe('important');
-        });
-    });
-
-    describe('Time-based Urgency', () => {
-        test('recognizes deadline-based priority', () => {
-            const result = priorityParser.parse('Due by end of today');
-            expect(result.value).toBe('high');
-            expect(result.metadata.pattern).toBe('deadline');
+        test('handles priority range', async () => {
+            const priorities = ['urgent', 'high', 'medium', 'normal', 'low'];
+            
+            for (let i = 1; i <= 5; i++) {
+                const result = await parse(`p${i} task`);
+                expect(result.value.priority).toBe(priorities[i - 1]);
+            }
         });
 
-        test('handles various deadline formats', () => {
-            const cases = [
-                'due today',
-                'by end of week',
-                'before tomorrow',
-                'due close of day'
-            ];
-
-            cases.forEach(input => {
-                const result = priorityParser.parse(input);
-                expect(result.value).toBe('high');
-                expect(result.metadata.pattern).toBe('deadline');
-            });
+        test('ignores invalid numbers', async () => {
+            const result = await parse('p6 task');
+            expect(result).toBeNull();
         });
     });
 
-    describe('Low Priority Indicators', () => {
-        test('identifies low priority tasks', () => {
-            const result = priorityParser.parse('Can be done whenever');
-            expect(result.value).toBe('low');
-            expect(result.metadata.pattern).toBe('low');
+    describe('Contextual Priority', () => {
+        test('recognizes urgent contexts', async () => {
+            const terms = ['asap', 'urgent', 'critical'];
+            for (const term of terms) {
+                const result = await parse(`${term} task`);
+                expect(result.value.priority).toBe('urgent');
+                expect(result.metadata.pattern).toBe('contextual');
+            }
         });
 
-        test('recognizes normal priority tasks', () => {
-            const result = priorityParser.parse('Regular weekly task');
-            expect(result.value).toBe('normal');
-            expect(result.metadata.pattern).toBe('normal');
-        });
-    });
-
-    describe('Context-based Priority', () => {
-        test('derives priority from multiple indicators', () => {
-            const result = priorityParser.parse('Client needs this for tomorrow');
-            expect(result.metadata.indicators).toContain('stakeholder');
-            expect(result.metadata.indicators).toContain('time_pressure');
-            expect(result.value).toBe('high');
-        });
-
-        test('considers impact indicators', () => {
-            const result = priorityParser.parse('This is blocking other tasks');
-            expect(result.metadata.indicators).toContain('impact');
-            expect(result.value).toBe('medium');
-        });
-
-        test('recognizes low effort tasks', () => {
-            const result = priorityParser.parse('Quick and simple task');
-            expect(result.metadata.indicators).toContain('low_effort');
-            expect(result.value).toBe('low');
+        test('recognizes blocking as high priority', async () => {
+            const result = await parse('blocking task');
+            expect(result.value.priority).toBe('high');
         });
     });
 
     describe('Confidence Scoring', () => {
-        test('adjusts confidence based on exclamation marks', () => {
-            const result = priorityParser.parse('Urgent task!!!');
-            expect(result.metadata.confidence).toBeGreaterThan(0.8);
+        test('assigns higher confidence to explicit declarations', async () => {
+            const results = [
+                await parse('priority: high'),
+                await parse('high priority'),
+                await parse('!!!'),
+                await parse('urgent')
+            ];
+
+            const confidences = results.map(r => r.metadata.confidence);
+            expect(confidences[0]).toBeGreaterThan(confidences[2]);
+            expect(confidences[1]).toBeGreaterThan(confidences[3]);
         });
 
-        test('considers pattern repetition', () => {
-            const result = priorityParser.parse('Urgent urgent task');
-            expect(result.metadata.confidence).toBeGreaterThan(0.8);
+        test('adjusts confidence based on position', async () => {
+            const results = [
+                await parse('priority: high task'),
+                await parse('task with priority: high')
+            ];
+
+            expect(results[0].metadata.confidence)
+                .toBeGreaterThan(results[1].metadata.confidence);
+        });
+    });
+
+    describe('Error Handling', () => {
+        test('handles invalid priority values', async () => {
+            const result = await parse('priority: invalid');
+            expect(result).toBeNull();
         });
 
-        test('factors in position', () => {
-            const result = priorityParser.parse('URGENT: task details');
-            expect(result.metadata.confidence).toBeGreaterThan(0.8);
+        test('handles parser errors gracefully', async () => {
+            // Mock extractPriorityValue to throw
+            const originalExtract = parse.extractPriorityValue;
+            parse.extractPriorityValue = () => {
+                throw new Error('Extraction error');
+            };
+
+            const result = await parse('priority: high');
+            expect(result).toEqual({
+                type: 'error',
+                error: 'PARSER_ERROR',
+                message: 'Extraction error'
+            });
+
+            // Restore original function
+            parse.extractPriorityValue = originalExtract;
         });
     });
 });
