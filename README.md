@@ -19,6 +19,15 @@ A desktop application for managing personal information with rich text editing c
 ## Features
 
 - Rich text editor with markdown support
+- State Management System:
+  - Centralized store architecture
+  - Action-based state mutations
+  - Selector pattern for state access
+  - Immutable state updates
+  - Comprehensive error handling
+  - State validation
+  - IPC state synchronization
+  - Constants management
 - Advanced configuration system:
   - Configurable data storage location
   - Two-tier configuration (app config and user settings)
@@ -78,7 +87,10 @@ src/
 ├── config/           # Configuration management
 │   ├── ConfigManager.js  # App-level configuration
 │   └── settings/        # User settings management
-├── plugins/          # Plugin system
+├── services/         # Core services
+│   ├── state-manager.js # Centralized state management
+│   ├── parser/         # Text parsing system
+│   └── constants.js    # Global constants
 ├── renderer/         # Frontend UI components
 │   ├── editor/      # Rich text editor
 │   ├── entries/     # Entry management
@@ -86,7 +98,7 @@ src/
 │   ├── styles/      # Component-specific styles
 │   │   ├── base.css     # Core variables and reset
 │   │   ├── ribbon.css   # Header styles
-│   │   ├��─ sidebar.css  # Navigation styles
+│   │   ├── sidebar.css  # Navigation styles
 │   │   ├── entries.css  # Entry list styles
 │   │   ├── editor.css   # Editor styles
 │   │   ├── modals.css   # Modal and toast styles
@@ -94,14 +106,67 @@ src/
 │   │   └── index.js     # Style loader
 │   ├── sync/        # Sync functionality
 │   └── utils/       # Utility functions
-├── services/        # Core services
-│   └── parser/      # Text parsing system
 └── utils/           # Shared utilities
 
 tests/
 ├── __mocks__/       # Mock implementations
 ├── parsers/         # Parser-specific tests
+├── state-manager.test.js # State management tests
 └── setup.js         # Test environment setup
+```
+
+## State Management
+
+The application uses a centralized state management system:
+
+### Store Architecture
+- Single source of truth for application state
+- Immutable state updates through actions
+- Pure selectors for state access
+- Comprehensive error handling
+- State validation
+- IPC state synchronization
+
+### Action Types
+- UI State: Modal, theme, editor state
+- Parser State: Results and statistics
+- Application State: Settings and errors
+- Entry State: List management
+
+### Usage Example
+```javascript
+// Dispatch an action
+stateManager.dispatch(actions.setTheme('dark'));
+
+// Access state through selectors
+const theme = selectors.getCurrentTheme(stateManager.getState());
+```
+
+### State Structure
+```javascript
+{
+  ui: {
+    activeModal: null,
+    theme: 'light',
+    editor: {
+      content: '',
+      selection: null
+    }
+  },
+  parser: {
+    results: [],
+    stats: {
+      totalProcessed: 0,
+      averageConfidence: 0
+    }
+  },
+  settings: {},
+  error: null,
+  entries: {
+    list: [],
+    selectedId: null
+  }
+}
 ```
 
 ## Configuration
@@ -145,38 +210,8 @@ npm run test:db         # Database operations
 npm run test:parser     # Parser functionality
 npm run test:renderer   # UI components
 npm run test:rich-text  # Editor features
-npm run test:plugins    # Plugin system
+npm run test:state     # State management
 ```
-
-### Building
-
-```bash
-# Build the application
-npm run build
-
-# Run in development mode
-npm run dev
-```
-
-### Styling
-
-The application uses a modular CSS system:
-
-- Each component has its own CSS file for better maintainability
-- Base variables and reset styles are centralized
-- Theme system supports light/dark modes
-- Dynamic style loading with smooth transitions
-- Proper z-index management for overlays
-
-## Usage
-
-- Create new entries with Ctrl+N or the New Entry button
-- Save entries with Ctrl+S
-- Save As to change entry type
-- Archive old entries to keep workspace clean
-- Filter by type or archived status
-- Access settings via the gear icon or Ctrl+,
-- Use keyboard shortcuts for common actions
 
 ## UI Features
 
@@ -223,7 +258,6 @@ The application features a modern, efficient interface:
 - [User Manual](usermanual.md) - Guide for end users
 - [Project Status](projectstate.md) - Current state and roadmap
 - [Configuration](config.md) - Configuration system details
-- [Plugin System](docs/plugin.md) - Plugin development guide
 - [Testing](docs/test.md) - Test suite documentation
 - [Contributing](CONTRIBUTING.md) - Development guidelines
 

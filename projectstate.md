@@ -4,6 +4,21 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
 
 ## Recent Updates
 
+### State Management Implementation
+
+- Added centralized state management service
+  - Action-based state mutations
+  - Immutable state updates
+  - Selector pattern for state access
+  - Comprehensive error handling
+  - State validation
+  - IPC state synchronization
+- Implemented constants management
+  - Centralized configuration values
+  - Documented constant usage
+  - Organized by functionality
+  - Enhanced maintainability
+
 ### Parser Service Improvements
 
 - Refactored the parser service and individual parsers, enhancing maintainability and organization
@@ -15,7 +30,29 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
 
 ### Completed Features
 
-1. Parser System:
+1. State Management:
+   - ✅ Centralized store implementation
+     - Action creators for state mutations
+     - Pure selectors for state access
+     - Immutable state updates
+     - State validation system
+   - ✅ IPC Communication
+     - Secure channel validation
+     - Error handling
+     - State synchronization
+     - Message validation
+   - ✅ Constants Management
+     - Action type definitions
+     - IPC channel names
+     - UI constants
+     - Error messages
+   - ✅ Error Handling
+     - Standardized error messages
+     - Error state management
+     - Error recovery
+     - Logging integration
+
+2. Parser System:
    - ✅ Standardized parser architecture
      - Common base structure
      - Consistent error handling
@@ -79,7 +116,7 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
      - Result aggregation
      - Error handling
 
-2. Core Infrastructure:
+3. Core Infrastructure:
    - ✅ Configuration system
      - Two-tier configuration
      - Migration support
@@ -101,7 +138,7 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
      - Mock system
      - Coverage reporting
 
-3. UI Components:
+4. UI Components:
    - ✅ Rich text editor
    - ✅ Entry management
    - ✅ Modal system
@@ -136,227 +173,198 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
 
 ## Development Standards
 
-### Parser Implementation
+### Logging Standards
 
-- Follow standardized structure
-- Implement comprehensive tests
-- Maintain consistent confidence scoring
-- Provide rich metadata
-- Handle errors gracefully
-- Support async operations
-
-### Testing Requirements
-
-- Input validation tests
-- Pattern matching tests
-- Edge case coverage
-- Error handling tests
-- Confidence scoring tests
-- Metadata validation
-
-### Documentation
-
-- API documentation
-- Implementation guides
-- Test coverage reports
-- Performance metrics
-- Usage examples
-
-## Next Steps
-
-1. Short Term:
-   - Optimize parser performance
-   - Refine pattern matching
-   - Enhance error handling
-   - Improve test coverage
-
-2. Medium Term:
-   - Implement caching system
-   - Add plugin support
-   - Enhance metadata
-   - Improve confidence scoring
-
-3. Long Term:
-   - Add ML capabilities
-   - Implement cloud features
-   - Add collaboration tools
-   - Create public API
-
-## Known Issues
-
-1. Parser System:
-   - Pattern conflicts in complex texts
-     - Overlapping patterns
-     - Confidence conflicts
-     - Context conflicts
-   - Performance with large texts
-     - Pattern matching overhead
-     - Memory usage
-     - Batch processing
-   - Memory usage optimization
-     - Pattern compilation
-     - Result caching
-     - Resource cleanup
-   - Edge case handling
-     - Invalid patterns
-     - Incomplete matches
-     - Context conflicts
-
-2. Integration:
-   - Real-time parsing overhead
-   - Result caching implementation
-   - Plugin system architecture
-   - API design considerations
-
-## Timeline
-
-Q1 2024:
-
-- Complete parser optimization
-- Implement caching system
-- Enhance pattern matching
-- Improve test coverage
-
-Q2 2024:
-
-- Add plugin support
-- Implement cloud sync
-- Enhance collaboration features
-- Create public API
-
-Q3 2024:
-
-- Add ML capabilities
-- Implement mobile support
-- Enhance security features
-- Improve performance
-
-Q4 2024:
-
-- Complete cloud integration
-- Add advanced features
-- Enhance user experience
-- Release stable version
-
-## Project Structure
-
-```bash
-.
-├── data/           # Application data and user settings
-├── db/            # Database configuration and models
-├── docs/          # Plugin and testing documentation
-├── src/           # Application source code
-│   ├── components/    # Reusable UI components
-│   ├── config/       # Application configuration
-│   ├── plugins/      # Plugin system and custom plugins
-│   ├── renderer/     # Renderer process
-│   │   ├── editor/      # Editor components and logic
-│   │   ├── entries/     # Entry management
-│   │   ├── settings/    # Settings interface
-│   │   ├── styles/      # CSS modules
-│   │   ├── sync/        # Sync functionality
-│   │   └── utils/       # Renderer utilities
-│   ├── scripts/      # Utility scripts
-│   ├── services/     # Core services
-│   │   └── parser/      # Parser system
-│   │       ├── formatters/  # Text formatting
-│   │       ├── parsers/    # Individual parsers
-│   │       └── utils/      # Parser utilities
-│   └── utils/        # Shared utilities
-└── tests/         # Test suite
-    ├── parsers/      # Parser tests
-    └── __mocks__/    # Test mocks
-```
-
-## Important Notes
-
-### Module System
-
-- All .js files use ES modules (import/export) by default
-- Files with .cjs extension must use CommonJS
-- File extensions (.js/.cjs) are required in all imports
-- Preload scripts must use .cjs extension
-
-Import/Export Standards:
-
-- Use named exports instead of default exports
-- Include .js extension in all import paths
-- Use import aliases for clarity (e.g., `import { DEFAULT_CONFIG as CONFIG }`)
-- Group multiple exports at the end of the file:
+1. Logger Initialization
 
 ```javascript
-export {
-    function1,
-    function2,
-    constant1,
-    // ...
-};
+// Always initialize at module level with parser name
+import { createLogger } from '../../../utils/logger.js';
+const logger = createLogger('ParserName');
 ```
 
-CommonJS Usage:
-
-- Limited to specific cases (preload scripts, certain Node.js modules)
-- Must use .cjs extension to indicate CommonJS usage
-- Example:
+2. Error Logging
 
 ```javascript
-// file: script.cjs
-const { something } = require('./other.cjs');
-module.exports = { /* exports */ };
+// Always include error object and context
+logger.error('Error in parser:', {
+    error: error.message,
+    stack: error.stack,
+    input: text
+});
+
+// For specific operation errors
+logger.error('Operation failed:', {
+    operation: 'extractValue',
+    error: error.message,
+    context: matches
+});
 ```
 
-### Data Persistence
+3. Debug Logging
 
-- Uses JsonDatabaseService for storage
-- Supports multiple content types
-- Handles image attachments
-- Provides backup/restore functionality
-- Uses atomic operations
+```javascript
+// Pattern matches
+logger.debug('Pattern match found:', {
+    pattern: patternName,
+    match: match[0],
+    value,
+    confidence
+});
 
-### Modal System
+// State changes
+logger.debug('State updated:', {
+    previous: prevValue,
+    current: newValue,
+    changes: diff
+});
+```
 
-- Dynamic modal creation and removal
-- Supports custom content and handlers
-- Proper z-index management
-- Full viewport editor support
+4. Warning Logging
 
-## Technical Debt
+```javascript
+// Input validation
+logger.warn('Invalid input:', { 
+    text,
+    type: typeof text,
+    length: text?.length 
+});
 
-- Improve plugin error handling and logging
-- Need to refactor event listener management
-- Consider moving to a state management system
-- Improve error handling consistency
-- Improve module organization
-- Add comprehensive testing
-- Document component architecture
-- Refactor parser system
-- Improve plugin architecture
-- Enhance state management
-- Optimize database queries
-- Improve file handling
-- Enhance security measures
-- Better error boundaries
-- Improve code splitting
-- Enhance build system
-- Better dependency management
-- Improve test infrastructure
-- Enhance logging system
-- Better code documentation
-- Improve CI/CD process
-- Enhance development workflow
-- Better version control strategy
-- Improve deployment process
-- Enhance backup system
-- Better data validation
-- Improve error recovery
-- Enhance user analytics
-- Need to implement proper security measures
-- Improve project structure organization
-- Add comprehensive IPC validation
-- Setup proper build configuration
-- Implement proper test framework
+// Operation failures
+logger.warn('Operation failed:', {
+    operation: 'extractValue',
+    matches,
+    type,
+    error
+});
+```
 
-## Parser System Standards
+5. Logging Context
+
+- Always include relevant data for debugging
+- Structure objects for readability
+- Include operation names
+- Add input values where relevant
+- Include state changes
+
+6. Logging Levels
+
+- ERROR: Unrecoverable errors, invalid states
+- WARN: Recoverable issues, validation failures
+- INFO: Important state changes, operations
+- DEBUG: Pattern matches, detailed operations
+
+7. Best Practices
+
+- Use structured logging (objects over strings)
+- Include operation context
+- Log state transitions
+- Track pattern matches
+- Include confidence scores
+- Log validation failures
+- Track performance metrics
+
+8. Performance Considerations
+
+- Use debug level for detailed logging
+- Avoid logging sensitive data
+- Structure data for easy filtering
+- Include timestamps for operations
+- Track operation durations
+
+9. Security Guidelines
+
+- Never log sensitive information
+- Sanitize user input in logs
+- Mask sensitive patterns
+- Validate log data
+- Control log access
+
+10. Implementation Example
+
+```javascript
+try {
+    // Input validation
+    if (!text || typeof text !== 'string') {
+        logger.warn('Invalid input:', { text });
+        return {
+            type: 'error',
+            error: 'INVALID_INPUT',
+            message: 'Input must be a non-empty string'
+        };
+    }
+
+    // Pattern matching
+    const match = text.match(pattern);
+    if (match) {
+        logger.debug('Pattern match:', {
+            pattern: pattern.source,
+            match: match[0],
+            index: match.index
+        });
+
+        // Value extraction
+        const value = await extractValue(match);
+        logger.debug('Value extracted:', { value });
+
+        // Confidence calculation
+        const confidence = calculateConfidence(match, text);
+        logger.debug('Confidence calculated:', { confidence });
+
+        return {
+            type: 'success',
+            value,
+            metadata: {
+                confidence,
+                pattern: pattern.source,
+                match: match[0]
+            }
+        };
+    }
+
+    logger.debug('No pattern match found');
+    return null;
+
+} catch (error) {
+    logger.error('Parser error:', {
+        error: error.message,
+        stack: error.stack,
+        input: text
+    });
+    return {
+        type: 'error',
+        error: 'PARSER_ERROR',
+        message: error.message
+    };
+}
+```
+
+### State Management Standards
+
+1. Action Creators:
+   - Use descriptive action types
+   - Include payload validation
+   - Document expected payload shape
+   - Handle edge cases
+
+2. Selectors:
+   - Pure functions only
+   - Memoize complex computations
+   - Document return types
+   - Handle null states
+
+3. State Updates:
+   - Maintain immutability
+   - Validate state changes
+   - Handle errors gracefully
+   - Log state transitions
+
+4. Testing Requirements:
+   - Action creator tests
+   - Reducer tests
+   - Selector tests
+   - State validation tests
+   - Error handling tests
 
 ### Parser Implementation Standards
 
@@ -455,141 +463,179 @@ try {
 null
 ```
 
-### Parser Test Standards
+## Next Steps
 
-1. Test File Naming Standards
+1. Short Term:
+   - Optimize parser performance
+   - Refine pattern matching
+   - Enhance error handling
+   - Improve test coverage
 
-- Test files must match their source file name exactly, with `.test.js` appended
-- Use camelCase to match source files (e.g., `timeOfDay.test.js` for `timeOfDay.js`)
-- Do not include additional descriptors like "-parser" in the filename
-- Always use `.test.js` extension (not `.tests.js`)
+2. Medium Term:
+   - Implement caching system
+   - Enhance metadata
+   - Improve confidence scoring
+   - Optimize performance metrics
 
-Example:
+3. Long Term:
+   - Add ML capabilities
+   - Implement cloud features
+   - Add collaboration tools
+   - Create public API
+
+## Known Issues
+
+1. Parser System:
+   - Pattern conflicts in complex texts
+   - Performance with large texts
+   - Memory usage optimization
+   - Edge case handling
+
+2. Integration:
+   - Real-time parsing overhead
+   - Result caching implementation
+   - Performance optimization
+   - API design considerations
+
+## Timeline
+
+Q1 2024:
+
+- Complete parser optimization
+- Implement caching system
+- Enhance pattern matching
+- Improve test coverage
+
+Q2 2024:
+
+- Implement cloud sync
+- Enhance collaboration features
+- Create public API
+- Optimize performance metrics
+
+Q3 2024:
+
+- Add ML capabilities
+- Implement mobile support
+- Enhance security features
+- Improve performance
+
+Q4 2024:
+
+- Complete cloud integration
+- Add advanced features
+- Enhance user experience
+- Release stable version
+
+## Project Structure
 
 ```bash
-Source file: timeOfDay.js
-Test file: timeOfDay.test.js
+.
+├── data/           # Application data and user settings
+├── db/            # Database configuration and models
+├── docs/          # Testing documentation
+├── src/           # Application source code
+│   ├── components/    # Reusable UI components
+│   ├── config/       # Application configuration
+│   ├── renderer/     # Renderer process
+│   │   ├── editor/      # Editor components and logic
+│   │   ├── entries/     # Entry management
+│   │   ├── settings/    # Settings interface
+│   │   ├── styles/      # CSS modules
+│   │   ├── sync/        # Sync functionality
+│   │   └── utils/       # Renderer utilities
+│   ├── scripts/      # Utility scripts
+│   ├── services/     # Core services
+│   │   └── parser/      # Parser system
+│   │       ├── formatters/  # Text formatting
+│   │       ├── parsers/    # Individual parsers
+│   │       └── utils/      # Parser utilities
+│   └── utils/        # Shared utilities
+└── tests/         # Test suite
+    ├── parsers/      # Parser tests
+    └── __mocks__/    # Test mocks
 ```
 
-2. Test File Organization
+## Important Notes
+
+### Module System
+
+- All .js files use ES modules (import/export) by default
+- Files with .cjs extension must use CommonJS
+- File extensions (.js/.cjs) are required in all imports
+- Preload scripts must use .cjs extension
+
+Import/Export Standards:
+
+- Use named exports instead of default exports
+- Include .js extension in all import paths
+- Use import aliases for clarity (e.g., `import { DEFAULT_CONFIG as CONFIG }`)
+- Group multiple exports at the end of the file:
 
 ```javascript
-import { name, parse } from '../../src/services/parser/parsers/parser.js';
-
-describe('Parser Name', () => {
-    describe('Input Validation', () => {
-        // Input validation tests
-    });
-
-    describe('Pattern Matching', () => {
-        // Pattern-specific tests
-    });
-
-    describe('Confidence Scoring', () => {
-        // Confidence tests
-    });
-
-    describe('Error Handling', () => {
-        // Error case tests
-    });
-});
+export {
+    function1,
+    function2,
+    constant1,
+    // ...
+};
 ```
 
-2. Required Test Categories
+CommonJS Usage:
 
-- Input validation
-  - Null input
-  - Empty string
-  - Invalid types
-  - Edge cases
-- Pattern matching
-  - Explicit patterns
-  - Implicit patterns
-  - Edge cases
-  - Multiple matches
-- Confidence scoring
-  - Base confidence
-  - Pattern modifiers
-  - Position adjustments
-  - Context factors
-- Error handling
-  - Invalid inputs
-  - Parser errors
-  - Edge cases
-  - Error messages
-- Metadata validation
-  - Pattern information
-  - Confidence values
-  - Original matches
-  - Context data
-
-3. Test Case Standards
+- Limited to specific cases (preload scripts, certain Node.js modules)
+- Must use .cjs extension to indicate CommonJS usage
+- Example:
 
 ```javascript
-test('descriptive test name', async () => {
-    // Arrange
-    const input = 'test input';
-    
-    // Act
-    const result = await parse(input);
-    
-    // Assert
-    expect(result).toEqual({
-        type: 'expected_type',
-        value: expect.any(Object),
-        metadata: {
-            pattern: expect.any(String),
-            confidence: expect.any(Number),
-            originalMatch: expect.any(String)
-        }
-    });
-});
+// file: script.cjs
+const { something } = require('./other.cjs');
+module.exports = { /* exports */ };
 ```
 
-4. Test Coverage Requirements
+### Data Persistence
 
-- 100% coverage of parse function
-- All pattern types tested
-- All error cases covered
-- Edge cases validated
-- Confidence scoring verified
-- Metadata generation confirmed
+- Uses JsonDatabaseService for storage
+- Supports multiple content types
+- Handles image attachments
+- Provides backup/restore functionality
+- Uses atomic operations
 
-5. Test Documentation Standards
+### Modal System
 
-- Clear test descriptions
-- Documented test cases
-- Explained edge cases
-- Coverage reports
-- Performance metrics
+- Dynamic modal creation and removal
+- Supports custom content and handlers
+- Proper z-index management
+- Full viewport editor support
 
-### Confidence Scoring Standards
+## Technical Debt
 
-1. Base Confidence: 0.7
-
-2. Pattern Modifiers:
-
-```javascript
-// Explicit patterns: +0.2
-// Structured patterns: +0.15
-// Contextual patterns: +0.1
-// Implicit patterns: +0.05
-```
-
-3. Position Modifiers:
-
-```javascript
-// Start of text: +0.1
-// After space: +0.05
-// After punctuation: +0.05
-```
-
-4. Context Modifiers:
-
-```javascript
-// Multiple matches: +0.1
-// Known context: +0.1
-// User preference match: +0.1
-```
-
-Note: The project intentionally avoids TypeScript to maintain simplicity and reduce build complexity. Instead, we focus on clear code organization, comprehensive documentation, and thorough testing to ensure code quality.
+- Need to refactor event listener management
+- Improve error handling consistency
+- Improve module organization
+- Add comprehensive testing
+- Document component architecture
+- Refactor parser system
+- Optimize database queries
+- Improve file handling
+- Enhance security measures
+- Better error boundaries
+- Improve code splitting
+- Enhance build system
+- Better dependency management
+- Improve test infrastructure
+- Enhance logging system
+- Better code documentation
+- Improve CI/CD process
+- Enhance development workflow
+- Better version control strategy
+- Improve deployment process
+- Enhance backup system
+- Better data validation
+- Improve error recovery
+- Enhance user analytics
+- Need to implement proper security measures
+- Improve project structure organization
+- Add comprehensive IPC validation
+- Setup proper build configuration
+- Implement proper test framework
