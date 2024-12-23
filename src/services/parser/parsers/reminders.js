@@ -1,14 +1,20 @@
 import { createLogger } from '../../../utils/logger.js';
-import { validatePatternMatch, calculateBaseConfidence } from '../utils/patterns.js';
 
 const logger = createLogger('RemindersParser');
 
+const TIME_WORDS = {
+    tomorrow: { unit: 'day', amount: 1 },
+    'next week': { unit: 'week', amount: 1 },
+    'next month': { unit: 'month', amount: 1 }
+};
+
 const REMINDER_PATTERNS = {
-    explicit: /\bremind(?:er)?\s*(?:me|us)?\s*(?:in|after)\s*(\d+)\s*(minute|hour|day|week)s?\b/i,
+    explicit: /\[remind:(\d+)\s*(minute|hour|day|week)s?\s*(?:before)?\]/i,
     before: /\b(\d+)\s*(minute|hour|day|week)s?\s*before\b/i,
     at: /\bremind(?:er)?\s*(?:me|us)?\s*at\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i,
     on: /\bremind(?:er)?\s*(?:me|us)?\s*on\s*([^,\n]+)\b/i,
-    relative: /\b(?:in|after)\s*(\d+)\s*(minute|hour|day|week)s?\b/i
+    relative: /\b(?:remind(?:er)?\s*(?:me|us)?\s*)?(?:in|after)\s*(\d+)\s*(minute|hour|day|week)s?\b/i,
+    timeword: /\bremind(?:er)?\s*(?:me|us)?\s*(tomorrow|next\s+(?:week|month))\b/i
 };
 
 const TIME_UNITS = {
@@ -35,7 +41,7 @@ export async function parse(text) {
             if (matches) {
                 const value = await extractReminderValue(matches, type);
                 if (value) {
-                    const confidence = calculateConfidence(matches, text, type);
+                    const confidence = calculateConfidence(type);
                     return {
                         type: 'reminder',
                         value,
@@ -62,6 +68,10 @@ export async function parse(text) {
 }
 
 async function extractReminderValue(matches, type) {
+    const createOffsetValue = (amount, unit) => ({
+        type: 'offset',
+        minutes: (amount * TIME_UNITS[unit]) / (60 * 1000)
+    });
     try {
         switch (type) {
             case 'explicit':
@@ -69,10 +79,14 @@ async function extractReminderValue(matches, type) {
                 const amount = parseInt(matches[1], 10);
                 const unit = matches[2].toLowerCase();
                 if (amount <= 0) throw new Error('Invalid time amount');
-                return {
-                    type: 'offset',
-                    minutes: (amount * TIME_UNITS[unit]) / (60 * 1000)
-                };
+                return createOffsetValue(amount, unit);
+            }
+
+            case 'timeword': {
+                const word = matches[1].toLowerCase();
+                const timeWord = TIME_WORDS[word];
+                if (!timeWord) return null;
+                return createOffsetValue(timeWord.amount, timeWord.unit);
             }
 
             case 'before': {
@@ -121,21 +135,18 @@ async function extractReminderValue(matches, type) {
     }
 }
 
-function calculateConfidence(matches, text, type) {
-    let confidence = 0.7;
-
-    // Pattern-based confidence
+function calculateConfidence(type) {
     switch (type) {
-        case 'explicit': confidence += 0.2; break;
-        case 'at': confidence += 0.15; break;
-        case 'before': confidence += 0.15; break;
-        case 'on': confidence += 0.1; break;
-        case 'relative': confidence += 0.05; break;
+        case 'explicit':
+            return 0.95;
+        case 'at':
+        case 'before':
+            return 0.90;
+        case 'on':
+            return 0.85;
+        case 'relative':
+            return 0.80;
+        default:
+            return 0.70;
     }
-
-    // Position-based confidence
-    if (matches.index === 0) confidence += 0.1;
-    if (text[matches.index - 1] === ' ') confidence += 0.05;
-
-    return Math.min(confidence, 1.0);
 }

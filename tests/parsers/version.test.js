@@ -1,3 +1,5 @@
+import { name, parse } from '../../src/services/parser/parsers/version.js';
+
 describe('Confidence Scoring', () => {
   test('should have higher confidence for explicit versions', async () => {
     const result = await parse('[version:1.0.0]');
@@ -8,4 +10,4 @@ describe('Confidence Scoring', () => {
     const result = await parse('version 1.0.0');
     expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
   });
-}); 
+});

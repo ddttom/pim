@@ -6,12 +6,16 @@ export const name = 'complexity';
 
 export async function parse(text) {
     if (!text || typeof text !== 'string') {
-        throw new Error('Invalid input: text must be a non-empty string');
+        return {
+            type: 'error',
+            error: 'INVALID_INPUT',
+            message: 'Input must be a non-empty string'
+        };
     }
 
     const patterns = {
-        explicit_complexity: /\[complexity:(high|medium|low)\]/i,
         numeric_complexity: /\[complexity:(\d+)\]/i,
+        explicit_complexity: /\[complexity:(high|medium|low)\]/i,
         keyword_complexity: /\b(complex|complicated|simple|easy|difficult|hard|challenging)\b/i
     };
 
@@ -41,31 +45,39 @@ export async function parse(text) {
             let value;
 
             switch (pattern) {
-                case 'explicit_complexity':
-                    confidence = 0.9;
-                    value = {
-                        level: match[1].toLowerCase(),
-                        score: complexityLevels[match[1].toLowerCase()]
-                    };
-                    break;
-
-                case 'numeric_complexity':
-                    confidence = 0.95;
+                case 'numeric_complexity': {
                     const score = parseInt(match[1], 10);
+                    // Validate numeric value
+                    if (score < 1 || score > 3) {
+                        continue;
+                    }
+                    confidence = 0.95;
                     value = {
                         level: score >= 3 ? 'high' : score >= 2 ? 'medium' : 'low',
                         score
                     };
                     break;
+                }
 
-                case 'keyword_complexity':
-                    confidence = 0.75;
+                case 'explicit_complexity': {
+                    confidence = 0.9;
+                    const level = match[1].toLowerCase();
+                    value = {
+                        level,
+                        score: complexityLevels[level]
+                    };
+                    break;
+                }
+
+                case 'keyword_complexity': {
+                    confidence = 0.8;
                     const level = keywordMap[match[1].toLowerCase()];
                     value = {
                         level,
                         score: complexityLevels[level]
                     };
                     break;
+                }
             }
 
             if (confidence > highestConfidence) {

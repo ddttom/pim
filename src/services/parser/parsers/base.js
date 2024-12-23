@@ -15,10 +15,10 @@
 import { createLogger } from '../../../utils/logger.js';
 
 // Initialize logger at module level
-const logger = createLogger('ParserName');
+const logger = createLogger('BaseParser');
 
 // Export parser name
-export const name = 'parsername';
+export const name = 'base';
 
 /**
  * Main parse function
@@ -34,8 +34,8 @@ export async function parse(text) {
 
     // Define patterns in order of confidence
     const patterns = {
-        explicit_pattern: /\[type:([^\]]+)\]/i,     // Highest confidence (0.95)
-        standard_pattern: /\b(pattern)\b/i,         // Standard confidence (0.90)
+        explicit_pattern: /\[base:([^\]]+)\]/i,     // Highest confidence (0.95)
+        standard_pattern: /\b(\w+\s*\w*)\b/i,      // Standard confidence (0.90)
         implicit_pattern: /(.+)/i                   // Lowest confidence (0.80)
     };
 
@@ -46,9 +46,17 @@ export async function parse(text) {
     // For multi-match parsers
     const results = [];
 
+    // Trim input for pattern matching
+    const trimmedText = text.trim();
+    
     // Pattern matching
     for (const [pattern, regex] of Object.entries(patterns)) {
-        const match = text.match(regex);
+        // Skip implicit pattern for empty trimmed input
+        if (pattern === 'implicit_pattern' && !trimmedText) {
+            continue;
+        }
+        
+        const match = trimmedText.match(regex);
         if (match) {
             let confidence;
             let value;

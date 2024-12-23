@@ -1,9 +1,9 @@
 import { createLogger } from '../../../utils/logger.js';
-import { validatePatternMatch, calculateBaseConfidence } from '../utils/patterns.js';
 
 const logger = createLogger('RecurringParser');
 
 const RECURRING_PATTERNS = {
+    explicit: /\[recur:(\w+)\]/i,
     daily: /\b(?:every|each)\s+(?:day|daily)\b/i,
     weekly: /\b(?:every|each)\s+(?:week|weekly)\b/i,
     monthly: /\b(?:every|each)\s+(?:month|monthly)\b/i,
@@ -33,12 +33,14 @@ export async function parse(text) {
     try {
         // Check patterns in priority order
         for (const [type, pattern] of Object.entries(RECURRING_PATTERNS)) {
+            if (type === 'endCount' || type === 'endDate') continue;
+
             const matches = text.match(pattern);
             if (matches) {
                 const value = await extractRecurringValue(matches, type);
                 if (value) {
                     const endCondition = await extractEndCondition(text);
-                    const confidence = calculateConfidence(matches, text, type, endCondition);
+                    const confidence = calculateConfidence(type, endCondition);
 
                     return {
                         type: 'recurring',
@@ -70,6 +72,16 @@ export async function parse(text) {
 
 async function extractRecurringValue(matches, type) {
     switch (type) {
+        case 'explicit': {
+            const value = matches[1].toLowerCase();
+            switch (value) {
+                case 'daily': return { type: 'day', interval: 1 };
+                case 'weekly': return { type: 'week', interval: 1 };
+                case 'monthly': return { type: 'month', interval: 1 };
+                default: return null;
+            }
+        }
+
         case 'daily':
             return { type: 'day', interval: 1 };
 
@@ -125,25 +137,35 @@ async function extractEndCondition(text) {
     return null;
 }
 
-function calculateConfidence(matches, text, type, endCondition) {
-    let confidence = 0.7;
+function calculateConfidence(type, endCondition) {
+    let confidence;
 
-    // Pattern-based confidence
     switch (type) {
-        case 'specific': confidence += 0.2; break;
-        case 'business': confidence += 0.15; break;
+        case 'explicit':
+            confidence = 0.95;
+            break;
+        case 'weekday':
+            confidence = 0.90;
+            break;
+        case 'business':
+            confidence = 0.85;
+            break;
         case 'daily':
         case 'weekly':
-        case 'monthly': confidence += 0.1; break;
-        case 'interval': confidence += 0.05; break;
+        case 'monthly':
+            confidence = 0.80;
+            break;
+        case 'interval':
+            confidence = 0.75;
+            break;
+        default:
+            confidence = 0.70;
     }
 
-    // Position-based confidence
-    if (matches.index === 0) confidence += 0.1;
-    if (text[matches.index - 1] === ' ') confidence += 0.05;
+    // End condition increases confidence slightly
+    if (endCondition) {
+        confidence = Math.min(confidence + 0.05, 1.0);
+    }
 
-    // End condition increases confidence
-    if (endCondition) confidence += 0.1;
-
-    return Math.min(confidence, 1.0);
+    return confidence;
 }

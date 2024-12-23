@@ -1,94 +1,100 @@
 import { createLogger } from '../../../utils/logger.js';
-import { validatePatternMatch, calculateBaseConfidence } from '../utils/patterns.js';
 
 const logger = createLogger('UrgencyParser');
 
-const URGENCY_PATTERNS = {
-    explicit: {
-        pattern: /\b(asap|urgent|immediately)\b/i,
-        value: 'high',
-        confidence: 0.9
-    },
-    moderate: {
-        pattern: /\b(soon|shortly)\b/i,
-        value: 'medium',
-        confidence: 0.8
-    },
-    low: {
-        pattern: /\b(whenever|eventually)\b/i,
-        value: 'low',
-        confidence: 0.7
-    }
+export const name = 'urgency';
+
+const URGENCY_LEVELS = {
+    high: 3,
+    medium: 2,
+    low: 1
 };
 
-export const name = 'urgency';
+const URGENCY_KEYWORDS = {
+    urgent: 'high',
+    asap: 'high',
+    critical: 'high',
+    important: 'high',
+    priority: 'high',
+    moderate: 'medium',
+    normal: 'medium',
+    standard: 'medium',
+    low: 'low',
+    minor: 'low',
+    routine: 'low'
+};
+
+const TIME_URGENCY = new Set([
+    'asap',
+    'immediately',
+    'right away',
+    'right now',
+    'as soon as possible'
+]);
+
+function validateUrgencyLevel(level) {
+    return level && typeof level === 'string' && level.toLowerCase() in URGENCY_LEVELS;
+}
 
 export async function parse(text) {
     if (!text || typeof text !== 'string') {
-        throw new Error('Invalid input: text must be a non-empty string');
+        return {
+            type: 'error',
+            error: 'INVALID_INPUT',
+            message: 'Input must be a non-empty string'
+        };
     }
 
-    const patterns = {
-        explicit_urgency: /\[urgency:(high|medium|low)\]/i,
-        keyword_urgency: /\b(urgent|asap|emergency|critical|important|priority)\b/i,
-        time_urgency: /\b(due|deadline|by|before|until)\b/i
-    };
+    try {
+        // Check for explicit urgency format
+        const explicitMatch = text.match(/\[urgency:([^\]]+)\]/i);
+        if (explicitMatch) {
+            const level = explicitMatch[1].toLowerCase().trim();
+            if (!validateUrgencyLevel(level)) return null;
 
-    const urgencyLevels = {
-        high: 3,
-        medium: 2,
-        low: 1
-    };
+            return {
+                type: 'urgency',
+                value: {
+                    level,
+                    score: URGENCY_LEVELS[level]
+                },
+                metadata: {
+                    pattern: 'explicit_urgency',
+                    confidence: 0.95,
+                    originalMatch: explicitMatch[0]
+                }
+            };
+        }
 
-    let bestMatch = null;
-    let highestConfidence = 0;
-
-    for (const [pattern, regex] of Object.entries(patterns)) {
-        const match = text.match(regex);
-        if (match) {
-            let confidence;
-            let value;
-
-            switch (pattern) {
-                case 'explicit_urgency':
-                    confidence = 0.95;
-                    value = {
-                        level: match[1].toLowerCase(),
-                        score: urgencyLevels[match[1].toLowerCase()]
-                    };
-                    break;
-                case 'keyword_urgency':
-                    confidence = 0.9;
-                    value = {
-                        level: 'high',
-                        score: 3,
-                        keyword: match[1].toLowerCase()
-                    };
-                    break;
-                case 'time_urgency':
-                    confidence = 0.85;
-                    value = {
-                        level: 'high',
-                        score: 3,
-                        timeBased: true
-                    };
-                    break;
-            }
-
-            if (confidence > highestConfidence) {
-                highestConfidence = confidence;
-                bestMatch = {
+        // Check for urgency keywords
+        const lowerText = text.toLowerCase();
+        for (const [keyword, level] of Object.entries(URGENCY_KEYWORDS)) {
+            const keywordMatch = text.match(new RegExp(`\\b${keyword}\\b`, 'i'));
+            if (keywordMatch) {
+                const isTimeBased = TIME_URGENCY.has(keyword);
+                return {
                     type: 'urgency',
-                    value,
+                    value: {
+                        level,
+                        score: URGENCY_LEVELS[level],
+                        ...(isTimeBased ? { timeBased: true } : { keyword })
+                    },
                     metadata: {
-                        confidence,
-                        pattern,
-                        originalMatch: match[0]
+                        pattern: isTimeBased ? 'time_urgency' : 'keyword_urgency',
+                        confidence: isTimeBased ? 0.85 : 0.80,
+                        originalMatch: keywordMatch[0]
                     }
                 };
             }
         }
-    }
 
-    return bestMatch;
+        return null;
+    } catch (error) {
+        logger.error('Error in urgency parser:', error);
+        return {
+            type: 'error',
+            error: 'PARSER_ERROR',
+            message: error.message
+        };
+    }
 }

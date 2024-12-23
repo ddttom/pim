@@ -6,14 +6,18 @@ export const name = 'contact';
 
 export async function parse(text) {
   if (!text || typeof text !== 'string') {
-    throw new Error('Invalid input: text must be a non-empty string');
+    return {
+      type: 'error',
+      error: 'INVALID_INPUT',
+      message: 'Input must be a non-empty string'
+    };
   }
 
   const patterns = {
-    contact_reference: /\[contact:([^\]]+)\]/i,
     email: /\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b/i,
-    phone: /\b(\+?\d{1,3}[-.]?\d{3}[-.]?\d{3}[-.]?\d{4})\b/i,
-    name_with_role: /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*\(([^)]+)\)/i
+    contact_reference: /\[contact:([^\]]+)\]/i,
+    phone: /(?:^|\s)(\+\d{1,3}-\d{3}-\d{3}-\d{4})\b/i,
+    inferred_contact: /\b(?:call|contact|email|meet)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/i
   };
 
   let bestMatch = null;
@@ -26,19 +30,13 @@ export async function parse(text) {
       let value;
 
       switch (pattern) {
-        case 'contact_reference': {
-          confidence = 0.95;
-          value = {
-            type: 'reference',
-            name: match[1].trim(),
-            id: match[1].toLowerCase().replace(/\s+/g, '_')
-          };
-          break;
-        }
-
         case 'email': {
-          confidence = 0.95;
           const email = match[1];
+          // Validate email format
+          if (!email.includes('@') || !email.includes('.')) {
+            continue;
+          }
+          confidence = 0.95;
           const nameParts = email.split('@')[0].split(/[._]/);
           const name = nameParts
             .map(part => part.charAt(0).toUpperCase() + part.slice(1))
@@ -51,32 +49,49 @@ export async function parse(text) {
           break;
         }
 
+        case 'contact_reference': {
+          const name = match[1].trim();
+          // Validate reference format
+          if (!name) {
+            continue;
+          }
+          confidence = 0.95;
+          value = {
+            type: 'reference',
+            name,
+            id: name.toLowerCase().replace(/\s+/g, '_')
+          };
+          break;
+        }
+
         case 'phone': {
-          confidence = 0.90;
           const phone = match[1];
-          const cleanPhone = phone.startsWith('+') ? 
-            `+${phone.replace(/[-.\s+]/g, '')}` : 
-            phone.replace(/[-.\s+]/g, '');
+          // Validate phone format
+          if (!phone.match(/^\+\d{1,3}-\d{3}-\d{3}-\d{4}$/)) {
+            continue;
+          }
+          confidence = 0.9;
           value = {
             type: 'phone',
-            value: cleanPhone,
+            value: phone.replace(/-/g, ''),
             formatted: phone
           };
           break;
         }
 
-        case 'name_with_role': {
-          confidence = 0.85;
+        case 'inferred_contact': {
+          const name = match[1].trim();
+          confidence = 0.75;
           value = {
-            type: 'person',
-            name: match[1].trim(),
-            role: match[2].trim()
+            type: 'reference',
+            name,
+            id: name.toLowerCase().replace(/\s+/g, '_')
           };
           break;
         }
       }
 
-      if (confidence > highestConfidence) {
+      if (confidence > highestConfidence && value) {
         highestConfidence = confidence;
         bestMatch = {
           type: 'contact',
@@ -84,7 +99,7 @@ export async function parse(text) {
           metadata: {
             confidence,
             pattern,
-            originalMatch: match[0]
+            originalMatch: pattern === 'phone' ? match[1] : match[0]
           }
         };
       }

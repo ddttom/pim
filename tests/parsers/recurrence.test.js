@@ -1,3 +1,5 @@
+import { name, parse } from '../../src/services/parser/parsers/recurring.js';
+
 describe('Confidence Scoring', () => {
   test('should have higher confidence for explicit recurrence', async () => {
     const result = await parse('[recur:weekly]');
@@ -8,4 +10,4 @@ describe('Confidence Scoring', () => {
     const result = await parse('every week');
     expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
   });
-}); 
+});

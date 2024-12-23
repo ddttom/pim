@@ -1,103 +1,148 @@
 import { createLogger } from '../../../utils/logger.js';
-import { validatePatternMatch, calculateBaseConfidence } from '../utils/patterns.js';
 
 const logger = createLogger('ProjectParser');
 
-const PROJECT_PATTERNS = {
-    explicit: /\bproject:\s*([A-Z][a-zA-Z0-9_-]+)/i,
-    reference: /\b(?:re|about):\s*Project\s+([A-Z][a-zA-Z0-9_-]+)/i,
-    identifier: /\b(?:PRJ|PROJ)-(\d+)\b/i,
-    shorthand: /\$([A-Z][a-zA-Z0-9_-]+)/i,
-    contextual: /\b(?:for|under)\s+project\s+([A-Z][a-zA-Z0-9_-]+)/i
-};
+export const name = 'project';
 
 const IGNORED_TERMS = new Set(['the', 'this', 'new', 'project']);
 
-export const name = 'project';
+const PROJECT_INDICATORS = {
+  project_term: ['project', 'initiative', 'program'],
+  task_organization: ['under', 'for', 'in', 'story'],
+  stakeholder: ['client', 'team', 'department'],
+  timeline: ['roadmap', 'milestone', 'sprint']
+};
 
-async function extractValue(matches) {
-    if (!matches || !matches[1]) return null;
-    const value = matches[1].trim();
-    return value;
+function validateProjectName(name) {
+  if (!name || typeof name !== 'string') return false;
+  
+  // Length validation
+  if (name.length <= 1 || name.length > 50) return false;
+  
+  // Character validation (alphanumeric, underscore, hyphen)
+  if (/[!@#$%^&*()+={}\[\]|\\:;"'<>,.?/]/.test(name)) return false;
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(name)) return false;
+  
+  // Ignore common terms
+  if (IGNORED_TERMS.has(name.toLowerCase())) return false;
+  
+  return true;
+}
+
+function detectIndicators(text) {
+  const indicators = [];
+  const lowerText = text.toLowerCase();
+
+  for (const [type, terms] of Object.entries(PROJECT_INDICATORS)) {
+    if (terms.some(term => lowerText.includes(term))) {
+      indicators.push(type);
+    }
+  }
+
+  return indicators;
 }
 
 export async function parse(text) {
-    if (!text || typeof text !== 'string') {
-        throw new Error('Invalid input: text must be a non-empty string');
-    }
+  if (!text || typeof text !== 'string') {
+    return {
+      type: 'error',
+      error: 'INVALID_INPUT',
+      message: 'Input must be a non-empty string'
+    };
+  }
 
-    try {
-        for (const [type, pattern] of Object.entries(PROJECT_PATTERNS)) {
-            const matches = text.match(pattern);
-            if (matches) {
-                const value = await extractValue(matches);
-                if (value && validateProjectName(value)) {
-                    const confidence = calculateConfidence(matches, text, type);
-                    const indicators = getProjectIndicators(text);
+  try {
+    // Detect indicators first
+    const indicators = detectIndicators(text);
 
-                    return {
-                        type: 'project',
-                        value: {
-                            project: value,
-                            originalName: matches[1]
-                        },
-                        metadata: {
-                            pattern: type,
-                            confidence,
-                            originalMatch: matches[0],
-                            indicators
-                        }
-                    };
-                }
-            }
+    const patterns = {
+      explicit: /(?:\[project:|project:)\s*([^\]\s]+)/i,
+      reference: /\bre:\s*(?:project\s+)?([^\s]+)/i,
+      identifier: /\bPRJ-(\d+)\b/i,
+      shorthand: /\$([^\s]+)/i,
+      contextual: /(?:\b(?:project|initiative|program)\s+([^\s]+)\b)|(?:\b(?:for|in|under)\s+([^\s]+)\s+project\b)/i
+    };
+
+    let bestMatch = null;
+    let highestConfidence = 0;
+
+    for (const [pattern, regex] of Object.entries(patterns)) {
+      const match = text.match(regex);
+      if (match) {
+        let confidence;
+        let value;
+        const projectName = match[1] || match[2] || '';
+
+        // Skip invalid project names
+        if (!projectName || !parse.validateProjectName(projectName)) {
+          continue;
         }
 
-        return null;
-    } catch (error) {
-        logger.error('Error in project parser:', error);
-        return {
-            type: 'error',
-            error: 'PARSER_ERROR',
-            message: error.message
-        };
+        switch (pattern) {
+          case 'explicit': {
+            confidence = 0.95;
+            value = {
+              project: projectName,
+              originalName: projectName
+            };
+            break;
+          }
+
+          case 'reference':
+          case 'identifier': {
+            confidence = 0.9;
+            value = {
+              project: projectName,
+              originalName: projectName
+            };
+            break;
+          }
+
+          case 'shorthand': {
+            confidence = 0.85;
+            value = {
+              project: projectName,
+              originalName: projectName
+            };
+            break;
+          }
+
+          case 'contextual': {
+            confidence = 0.8;
+            value = {
+              project: projectName,
+              originalName: projectName
+            };
+            break;
+          }
+        }
+
+        if (confidence > highestConfidence) {
+          highestConfidence = confidence;
+          bestMatch = {
+            type: 'project',
+            value,
+            metadata: {
+              confidence,
+              pattern,
+              originalMatch: match[0],
+              indicators
+            }
+          };
+        }
+      }
     }
+
+    return bestMatch;
+  } catch (error) {
+    logger.error('Error in project parser:', error);
+    return {
+      type: 'error',
+      error: 'PARSER_ERROR',
+      message: error.message
+    };
+  }
 }
 
-function validateProjectName(name) {
-    if (!name) return false;
-    const normalizedName = name.toLowerCase();
-    if (name.length < 2 || name.length > 50) return false;
-    if (IGNORED_TERMS.has(normalizedName)) return false;
-    if (!/^[A-Za-z][A-Za-z0-9_-]*$/.test(name)) return false;
-    return true;
-}
-
-function getProjectIndicators(text) {
-    const indicators = [];
-    if (/\b(?:milestone|epic|sprint)\b/i.test(text)) indicators.push('project_term');
-    if (/\b(?:task|story|issue)\b/i.test(text)) indicators.push('task_organization');
-    if (/\b(?:client|stakeholder|team)\b/i.test(text)) indicators.push('stakeholder');
-    if (/\b(?:roadmap|timeline|schedule)\b/i.test(text)) indicators.push('timeline');
-    return indicators;
-}
-
-function calculateConfidence(matches, text, type) {
-    let confidence = 0.7;
-
-    // Pattern-based confidence
-    switch (type) {
-        case 'explicit': confidence += 0.2; break;
-        case 'identifier': confidence += 0.2; break;
-        case 'shorthand': confidence += 0.15; break;
-        case 'reference': confidence += 0.1; break;
-    }
-
-    // Position-based confidence
-    if (matches.index === 0) confidence += 0.1;
-
-    // Format-based confidence
-    if (/^[A-Z]/.test(matches[1])) confidence += 0.1;
-    if (matches[1].includes('-') || matches[1].includes('_')) confidence += 0.05;
-
-    return Math.min(confidence, 1.0);
-}
+// Make functions available for mocking in tests
+parse.validateProjectName = validateProjectName;

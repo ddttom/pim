@@ -1,12 +1,11 @@
 import { createLogger } from '../../../utils/logger.js';
 
-const logger = createLogger('LocationParser');
+const logger = createLogger('ProgressParser');
 
-export const name = 'location';
+export const name = 'progress';
 
-function inferLocationType(location) {
-  const roomKeywords = /\b(?:room|conference|meeting|office)\b/i;
-  return roomKeywords.test(location) ? 'room' : 'unknown';
+function isValidPercentage(value) {
+  return value >= 0 && value <= 100;
 }
 
 export async function parse(text) {
@@ -19,8 +18,8 @@ export async function parse(text) {
   }
 
   const patterns = {
-    explicit_location: /\[location:([^\]]+)\]/i,
-    inferred_location: /\b(?:in|at)\s+(?:the\s+)?([^,.]+?)(?:[,.]|\s|$)/i
+    explicit: /\[progress:(\d+)%\]/i,
+    inferred: /(\d+)%\s*(?:complete|done|finished)/i
   };
 
   let bestMatch = null;
@@ -32,26 +31,24 @@ export async function parse(text) {
       let confidence;
       let value;
 
-      const name = match[1].trim();
-      if (!name) {
+      const percentage = parseInt(match[1], 10);
+      if (!isValidPercentage(percentage)) {
         continue;
       }
 
       switch (pattern) {
-        case 'explicit_location': {
+        case 'explicit': {
           confidence = 0.95;
           value = {
-            name,
-            type: inferLocationType(name)
+            percentage
           };
           break;
         }
 
-        case 'inferred_location': {
-          confidence = 0.75;
+        case 'inferred': {
+          confidence = 0.8;
           value = {
-            name,
-            type: inferLocationType(name)
+            percentage
           };
           break;
         }
@@ -60,7 +57,7 @@ export async function parse(text) {
       if (confidence > highestConfidence) {
         highestConfidence = confidence;
         bestMatch = {
-          type: 'location',
+          type: 'progress',
           value,
           metadata: {
             confidence,

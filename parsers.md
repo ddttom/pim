@@ -163,26 +163,65 @@ export async function parse(text) {
 }
 ```
 
-## Parser Types
+## Implemented Parsers
 
-Each parser type follows the base template but implements specific patterns and value structures:
+Each parser follows the base template with specific patterns and confidence levels:
 
-### Single-Match Parsers
+### Core Parsers
 
-- Subject Parser
-- Priority Parser
-- Status Parser
-- TimeOfDay Parser
-- Urgency Parser
-- Complexity Parser
+1. Status Parser
+   - `[status:X]` - 0.95 confidence
+   - `marked as X` - 0.80 confidence
+   - `X% complete` - 0.80 confidence
 
-### Multi-Match Parsers
+2. Subject Parser
+   - Text cleanup (time, date, project refs)
+   - Key term extraction
+   - Action verb detection
 
-- Tags Parser
-- Links Parser
-- Categories Parser
-- Dependencies Parser
-- Attendees Parser
+3. Tags Parser
+   - `[tag:X]` - 0.95 confidence
+   - `#tag` - 0.80 confidence
+   - Multiple tag support
+
+4. Task Parser
+   - `[task:123]` - 0.95 confidence
+   - `task 123` - 0.80 confidence
+   - Task ID validation
+
+5. Team Parser
+   - `[team:X]` - 0.95 confidence
+   - `X team` - 0.80 confidence
+   - Predefined team validation
+
+6. TimeOfDay Parser
+   - `[time:14:30]` - 0.95 confidence
+   - `2:30 PM` - 0.90 confidence
+   - `afternoon` - 0.80 confidence
+
+7. Urgency Parser
+   - `[urgency:X]` - 0.95 confidence
+   - `ASAP` - 0.85 confidence
+   - `urgent` - 0.80 confidence
+
+8. Version Parser
+   - `[version:1.0.0]` - 0.95 confidence
+   - `version 1.0.0` - 0.80 confidence
+   - Semantic version validation
+
+### Additional Parsers (Ready for Testing)
+
+- Action Parser (verbs, completion)
+- Attendees Parser (lists, roles)
+- Categories Parser (hierarchical)
+- Complexity Parser (levels, scoring)
+- Contact Parser (email, phone)
+- Contexts Parser (location, time)
+- Dependencies Parser (tasks)
+- Duration Parser (explicit, natural)
+- Links Parser (URLs, files)
+- Location Parser (rooms, addresses)
+- Participants Parser (lists, roles)
 
 ## Return Format
 

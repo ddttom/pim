@@ -30,7 +30,7 @@ describe('Complexity Parser', () => {
         },
         metadata: {
           pattern: 'keyword_complexity',
-          confidence: 0.75,
+          confidence: 0.8,
           originalMatch: 'complex'
         }
       });

@@ -1,56 +1,109 @@
 import { createLogger } from '../../../utils/logger.js';
-import { validatePatternMatch, calculateBaseConfidence } from '../utils/patterns.js';
 
 const logger = createLogger('ContextsParser');
 
-const CONTEXT_PATTERNS = {
-    standard: /@(\w+)/g,
-    detailed: /\bcontext:\s*([^:\n]+)(?:\n|$)/gi,
-    hashtag: /#context[_-]?(\w+)/gi
-};
-
 export const name = 'contexts';
 
+// Context type mapping
+const contextTypes = {
+  home: 'location',
+  office: 'location',
+  computer: 'tool',
+  morning: 'time',
+  afternoon: 'time',
+  evening: 'time'
+};
+
 export async function parse(text) {
-    if (!text || typeof text !== 'string') {
-        throw new Error('Invalid input: text must be a non-empty string');
-    }
+  if (!text || typeof text !== 'string') {
+    return {
+      type: 'error',
+      error: 'INVALID_INPUT',
+      message: 'Input must be a non-empty string'
+    };
+  }
 
-    const results = [];
-    
-    for (const [type, pattern] of Object.entries(CONTEXT_PATTERNS)) {
-        const matches = Array.from(text.matchAll(pattern));
-        for (const match of matches) {
-            const value = await extractValue(match);
-            const baseConfidence = calculateBaseConfidence(match, text);
-            const confidence = adjustConfidence(baseConfidence, match, type);
+  const patterns = {
+    multiple_contexts: /(@\w+(?:\s+@\w+)+)\b/i,
+    parameterized_context: /@(\w+)\(([^)]*)\)/i,
+    explicit_context: /@(\w+)\b/i,
+    implicit_context: /\b(?:at|in|during|while at)\s+(?:the\s+)?(\w+)\b/i
+  };
 
-            results.push({
-                type: 'context',
-                value,
-                metadata: {
-                    confidence,
-                    pattern: type,
-                    originalMatch: match[0]
-                }
-            });
+  let bestMatch = null;
+  let highestConfidence = 0;
+
+  for (const [pattern, regex] of Object.entries(patterns)) {
+    const match = text.match(regex);
+    if (match) {
+      let confidence;
+      let value;
+
+      switch (pattern) {
+        case 'multiple_contexts': {
+          const contexts = match[1].match(/@\w+/g).map(ctx => {
+            const context = ctx.substring(1);
+            return {
+              context,
+              type: contextTypes[context] || 'location'
+            };
+          });
+          confidence = 0.95;
+          value = { contexts };
+          break;
         }
+
+        case 'parameterized_context': {
+          const context = match[1];
+          const parameter = match[2].trim();
+          // Validate parameter is not empty
+          if (!parameter || match[0].endsWith('()')) {
+            return null;
+          }
+          confidence = 0.95;
+          value = {
+            context,
+            type: contextTypes[context] || 'location',
+            parameter
+          };
+          break;
+        }
+
+        case 'explicit_context': {
+          const context = match[1];
+          confidence = 0.9;
+          value = {
+            context,
+            type: contextTypes[context] || 'location'
+          };
+          break;
+        }
+
+        case 'implicit_context': {
+          const context = match[1].toLowerCase();
+          confidence = 0.75;
+          value = {
+            context,
+            type: contextTypes[context] || 'location'
+          };
+          break;
+        }
+      }
+
+      if (confidence > highestConfidence) {
+        highestConfidence = confidence;
+        bestMatch = {
+          type: 'context',
+          value,
+          metadata: {
+            confidence,
+            pattern,
+            originalMatch: match[0]
+          }
+        };
+      }
     }
+  }
 
-    return results.length > 0 ? results : null;
-}
-
-function extractValue(match) {
-    return match[1].toLowerCase();
-}
-
-function adjustConfidence(baseConfidence, match, type) {
-    let confidence = baseConfidence;
-
-    // Increase confidence based on format and position
-    if (type === 'standard' && match[0].startsWith('@')) confidence += 0.2;
-    if (type === 'detailed') confidence += 0.15;
-    if (type === 'hashtag') confidence += 0.1;
-
-    return Math.min(confidence, 1.0);
+  return bestMatch;
 }

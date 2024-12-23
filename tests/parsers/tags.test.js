@@ -42,7 +42,7 @@ describe('Tags Parser', () => {
                 value: ['frontend', 'backend'],
                 metadata: {
                     pattern: 'hashtag',
-                    confidence: 0.85,
+                    confidence: 0.80,
                     originalMatch: '#frontend #backend'
                 }
             });

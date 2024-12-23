@@ -58,17 +58,16 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
      - Consistent error handling
      - Standardized confidence scoring
      - Rich metadata generation
-   - ✅ Nine core parsers implemented
-     - Date Parser (ISO, natural, relative)
-     - Time Parser (12/24h, periods)
-     - Project Parser (explicit, references)
-     - Status Parser (explicit, progress)
-     - Tags Parser (hashtags, categories)
-     - Subject Parser (cleanup, key terms)
-     - Recurring Parser (intervals, patterns)
-     - Reminders Parser (time-based, relative)
-     - Priority Parser (explicit, contextual)
-   - ✅ Additional parsers implemented and tested
+   - ✅ Core parsers implemented and tested
+     - Status Parser (explicit 0.95, state 0.80, progress 0.80)
+     - Subject Parser (text cleanup, key terms, action verbs)
+     - Tags Parser (explicit 0.95, hashtags 0.80)
+     - Task Parser (explicit 0.95, inferred 0.80)
+     - Team Parser (explicit 0.95, inferred 0.80)
+     - TimeOfDay Parser (explicit 0.95, 12h 0.90, natural 0.80)
+     - Urgency Parser (explicit 0.95, time-based 0.85, keywords 0.80)
+     - Version Parser (explicit 0.95, inferred 0.80)
+   - ✅ Additional parsers ready for testing
      - Action Parser (verbs, completion)
      - Attendees Parser (lists, roles)
      - Categories Parser (hierarchical, multiple)
@@ -80,8 +79,6 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
      - Links Parser (URLs, files, markdown)
      - Location Parser (rooms, addresses)
      - Participants Parser (lists, roles)
-     - TimeOfDay Parser (12/24h, natural)
-     - Urgency Parser (levels, keywords)
    - ✅ Comprehensive test coverage
      - Input validation tests
      - Pattern matching tests

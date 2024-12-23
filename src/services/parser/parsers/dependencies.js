@@ -1,114 +1,111 @@
 import { createLogger } from '../../../utils/logger.js';
-import { validatePatternMatch, calculateBaseConfidence } from '../utils/patterns.js';
 
 const logger = createLogger('DependenciesParser');
 
-const PATTERNS = {
-    explicit_dependency: /\b(?:requires|depends on|blocked by|references?):\s*([^:\n]+)(?:\n|$)/i,
-    relationship_dependency: /\b(blocks|depends\s+on|requires)\s+\[task:([^\]]+)\]/i,
-    multiple_dependencies: /\bafter\s+\[task:([^\]]+)\]\s+(?:and|,)\s+\[task:([^\]]+)\]/i,
-    implicit_dependency: /\b(after|before|with)\s+task\s+([a-z0-9_-]+)\b/i
-};
-
-const RELATIONSHIP_TYPES = {
-    'requires': 'requires',
-    'depends on': 'depends_on',
-    'blocked by': 'blocked_by',
-    'blocks': 'blocks',
-    'references': 'references',
-    'after': 'after',
-    'before': 'before',
-    'with': 'with'
-};
-
 export const name = 'dependencies';
 
+const RELATIONSHIP_TYPES = {
+  'depends on': 'depends_on',
+  'blocks': 'blocks',
+  'after': 'after'
+};
+
 export async function parse(text) {
-    if (!text || typeof text !== 'string') {
-        throw new Error('Invalid input: text must be a non-empty string');
-    }
+  if (!text || typeof text !== 'string') {
+    return {
+      type: 'error',
+      error: 'INVALID_INPUT',
+      message: 'Input must be a non-empty string'
+    };
+  }
 
-    try {
-        for (const [pattern, regex] of Object.entries(PATTERNS)) {
-            const match = text.match(regex);
-            if (match) {
-                let value;
-                let confidence = pattern === 'explicit_dependency' ? 0.95 : 0.9;
+  const patterns = {
+    explicit_dependency: /\b(depends\s+on)\s+\[task:([^\]]+)\]/i,
+    multiple_dependencies: /\b(after)\s+\[task:([^\]]+)\]\s+and\s+\[task:([^\]]+)\]/i,
+    relationship_dependency: /\b(blocks)\s+\[task:([^\]]+)\]/i,
+    implicit_dependency: /\b(after)\s+task\s+([a-z0-9_-]+)\b/i
+  };
 
-                switch (pattern) {
-                    case 'explicit_dependency': {
-                        const relationship = 'depends_on';
-                        value = {
-                            type: 'task',
-                            id: match[1],
-                            relationship
-                        };
-                        break;
-                    }
+  let bestMatch = null;
+  let highestConfidence = 0;
 
-                    case 'relationship_dependency': {
-                        const relationship = RELATIONSHIP_TYPES[match[1].toLowerCase()] || match[1].toLowerCase().replace(/\s+/g, '_');
-                        value = {
-                            type: 'task',
-                            id: match[2],
-                            relationship
-                        };
-                        break;
-                    }
+  for (const [pattern, regex] of Object.entries(patterns)) {
+    const match = text.match(regex);
+    if (match) {
+      let confidence;
+      let value;
 
-                    case 'multiple_dependencies': {
-                        value = {
-                            dependencies: [
-                                {
-                                    type: 'task',
-                                    id: match[1],
-                                    relationship: 'after'
-                                },
-                                {
-                                    type: 'task',
-                                    id: match[2],
-                                    relationship: 'after'
-                                }
-                            ]
-                        };
-                        break;
-                    }
+      // Validate task IDs
+      const hasEmptyId = match.slice(2).some(id => !id || id.trim() === '');
+      if (hasEmptyId) {
+        continue;
+      }
 
-                    case 'implicit_dependency': {
-                        confidence = 0.75;
-                        const relationship = RELATIONSHIP_TYPES[match[1].toLowerCase()];
-                        value = {
-                            type: 'task',
-                            id: match[2],
-                            relationship
-                        };
-                        break;
-                    }
-                }
-
-                return {
-                    type: 'dependency',
-                    value,
-                    metadata: {
-                        confidence,
-                        pattern,
-                        originalMatch: match[0]
-                    }
-                };
-            }
+      switch (pattern) {
+        case 'explicit_dependency': {
+          confidence = 0.95;
+          value = {
+            type: 'task',
+            id: match[2],
+            relationship: RELATIONSHIP_TYPES[match[1].toLowerCase()]
+          };
+          break;
         }
-        
-        return null;
-    } catch (error) {
-        logger.error('Error in dependencies parser:', {
-            error: error.message,
-            stack: error.stack,
-            input: text
-        });
-        return {
-            type: 'error',
-            error: 'PARSER_ERROR',
-            message: error.message
+
+        case 'multiple_dependencies': {
+          confidence = 0.9;
+          value = {
+            dependencies: [
+              {
+                type: 'task',
+                id: match[2],
+                relationship: RELATIONSHIP_TYPES[match[1].toLowerCase()]
+              },
+              {
+                type: 'task',
+                id: match[3],
+                relationship: RELATIONSHIP_TYPES[match[1].toLowerCase()]
+              }
+            ]
+          };
+          break;
+        }
+
+        case 'relationship_dependency': {
+          confidence = 0.9;
+          value = {
+            type: 'task',
+            id: match[2],
+            relationship: RELATIONSHIP_TYPES[match[1].toLowerCase()]
+          };
+          break;
+        }
+
+        case 'implicit_dependency': {
+          confidence = 0.75;
+          value = {
+            type: 'task',
+            id: match[2],
+            relationship: RELATIONSHIP_TYPES[match[1].toLowerCase()]
+          };
+          break;
+        }
+      }
+
+      if (confidence > highestConfidence) {
+        highestConfidence = confidence;
+        bestMatch = {
+          type: 'dependency',
+          value,
+          metadata: {
+            confidence,
+            pattern,
+            originalMatch: match[0]
+          }
         };
+      }
     }
+  }
+
+  return bestMatch;
 }

@@ -49,7 +49,7 @@ describe('Urgency Parser', () => {
         },
         metadata: {
           pattern: 'keyword_urgency',
-          confidence: 0.9,
+          confidence: 0.8,
           originalMatch: 'URGENT'
         }
       });

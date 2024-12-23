@@ -1,3 +1,5 @@
+import { name, parse } from '../../src/services/parser/parsers/reminders.js';
+
 describe('Confidence Scoring', () => {
   test('should have higher confidence for explicit reminders', async () => {
     const result = await parse('[remind:2 days before]');
@@ -8,4 +10,4 @@ describe('Confidence Scoring', () => {
     const result = await parse('remind me tomorrow');
     expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
   });
-}); 
+});

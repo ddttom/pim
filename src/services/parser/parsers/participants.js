@@ -1,93 +1,133 @@
 import { createLogger } from '../../../utils/logger.js';
-import { validatePatternMatch, calculateBaseConfidence } from '../utils/patterns.js';
 
 const logger = createLogger('ParticipantsParser');
 
 export const name = 'participants';
 
 export async function parse(text) {
-    if (!text || typeof text !== 'string') {
-        throw new Error('Invalid input: text must be a non-empty string');
-    }
-
-    const patterns = {
-        explicit_list: /\[participants:([^\]]+)\]/i,
-        role_assignment: /\b(\w+)\s*\(([^)]+)\)(?:\s*(?:and|&)\s*(\w+)\s*\(([^)]+)\))?/i,
-        mentions: /@(\w+)(?:\s*(?:and|&)\s*@(\w+))?/i
+  if (!text || typeof text !== 'string') {
+    return {
+      type: 'error',
+      error: 'INVALID_INPUT',
+      message: 'Input must be a non-empty string'
     };
+  }
 
-    let bestMatch = null;
-    let highestConfidence = 0;
+  const patterns = {
+    explicit_list: /\[participants:([^\]]+)\]/i,
+    role_assignment: /(\w+)\s*\(([^)]+)\)(?:\s*and\s*(\w+)\s*\(([^)]+)\))?/i,
+    mentions: /@(\w+)(?:\s*and\s*@(\w+))?/i,
+    implicit: /\bwith\s+(\w+(?:\s*(?:and|,)\s*\w+)*)/i
+  };
 
-    for (const [pattern, regex] of Object.entries(patterns)) {
-        const match = text.match(regex);
-        if (match) {
-            let confidence;
-            let value;
+  let bestMatch = null;
+  let highestConfidence = 0;
 
-            switch (pattern) {
-                case 'explicit_list': {
-                    confidence = 0.95;
-                    const participants = match[1]
-                        .split(/,\s*/)
-                        .map(p => p.trim())
-                        .filter(Boolean);
-                    value = {
-                        participants,
-                        count: participants.length
-                    };
-                    break;
-                }
+  for (const [pattern, regex] of Object.entries(patterns)) {
+    const match = text.match(regex);
+    if (match) {
+      let confidence;
+      let value;
 
-                case 'role_assignment': {
-                    confidence = 0.90;
-                    const participants = [];
-                    if (match[1]) {
-                        participants.push({
-                            name: match[1],
-                            role: match[2]
-                        });
-                    }
-                    if (match[3]) {
-                        participants.push({
-                            name: match[3],
-                            role: match[4]
-                        });
-                    }
-                    value = {
-                        participants,
-                        count: participants.length
-                    };
-                    break;
-                }
+      switch (pattern) {
+        case 'explicit_list': {
+          const participants = match[1]
+            .split(/\s*,\s*/)
+            .map(p => p.trim())
+            .filter(Boolean);
 
-                case 'mentions': {
-                    confidence = 0.90;
-                    const participants = [match[1], match[2]]
-                        .filter(Boolean)
-                        .map(p => p.toLowerCase());
-                    value = {
-                        participants,
-                        count: participants.length
-                    };
-                    break;
-                }
-            }
+          if (participants.length === 0) {
+            continue;
+          }
 
-            if (confidence > highestConfidence) {
-                highestConfidence = confidence;
-                bestMatch = {
-                    type: 'participants',
-                    value,
-                    metadata: {
-                        confidence,
-                        pattern,
-                        originalMatch: match[0]
-                    }
-                };
-            }
+          confidence = 0.95;
+          value = {
+            participants,
+            count: participants.length
+          };
+          break;
         }
-    }
 
-    return bestMatch;
+        case 'role_assignment': {
+          const participants = [];
+          
+          if (match[1] && match[2] && match[2].trim()) {
+            participants.push({
+              name: match[1],
+              role: match[2].trim()
+            });
+          }
+          
+          if (match[3] && match[4] && match[4].trim()) {
+            participants.push({
+              name: match[3],
+              role: match[4].trim()
+            });
+          }
+
+          if (participants.length === 0) {
+            continue;
+          }
+
+          confidence = 0.9;
+          value = {
+            participants,
+            count: participants.length
+          };
+          break;
+        }
+
+        case 'mentions': {
+          const participants = [match[1]]
+            .concat(match[2] ? [match[2]] : [])
+            .filter(Boolean)
+            .map(p => p.toLowerCase());
+
+          if (participants.length === 0) {
+            continue;
+          }
+
+          confidence = 0.9;
+          value = {
+            participants,
+            count: participants.length
+          };
+          break;
+        }
+
+        case 'implicit': {
+          const participants = match[1]
+            .split(/\s*(?:and|,)\s*/)
+            .map(p => p.trim())
+            .filter(Boolean);
+
+          if (participants.length === 0) {
+            continue;
+          }
+
+          confidence = 0.75;
+          value = {
+            participants,
+            count: participants.length
+          };
+          break;
+        }
+      }
+
+      if (confidence > highestConfidence) {
+        highestConfidence = confidence;
+        bestMatch = {
+          type: 'participants',
+          value,
+          metadata: {
+            confidence,
+            pattern,
+            originalMatch: match[0]
+          }
+        };
+      }
+    }
+  }
+
+  return bestMatch;
 }

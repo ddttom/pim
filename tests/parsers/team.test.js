@@ -1,3 +1,5 @@
+import { name, parse } from '../../src/services/parser/parsers/team.js';
+
 describe('Confidence Scoring', () => {
   test('should have higher confidence for explicit teams', async () => {
     const result = await parse('[team:frontend]');
@@ -8,4 +10,4 @@ describe('Confidence Scoring', () => {
     const result = await parse('frontend team');
     expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
   });
-}); 
+});

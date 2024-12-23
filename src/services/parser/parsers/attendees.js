@@ -1,13 +1,5 @@
 import { createLogger } from '../../../utils/logger.js';
-import { validatePatternMatch, calculateBaseConfidence } from '../utils/patterns.js';
-
 const logger = createLogger('AttendeesParser');
-
-const ATTENDEE_PATTERNS = {
-    standard: /\battendees?:\s*([^:\n]+)(?:\n|$)/i,
-    participants: /\bparticipants?:\s*([^:\n]+)(?:\n|$)/i,
-    present: /\bpresent:\s*([^:\n]+)(?:\n|$)/i
-};
 
 export const name = 'attendees';
 
@@ -21,9 +13,10 @@ export async function parse(text) {
     }
 
     const patterns = {
-        explicit_mentions: /@(\w+)(?:\s*,\s*@(\w+))*(?:\s*(?:and|&)\s*@(\w+))?/i,
-        role_mentions: /@(\w+)\s*\(([^)]+)\)(?:\s*(?:and|&)\s*@(\w+)\s*\(([^)]+)\))?/i,
-        single_mention: /@(\w+)\b/i
+        explicit_list: /\[attendees:([^\]]+)\]/i,
+        role_mentions: /@(\w+)\s*\(([^)]+)\)(?:\s*(?:and|&|\s*,\s*)\s*@(\w+)\s*\(([^)]+)\))*/gi,
+        explicit_mentions: /@(\w+)(?:\s*,\s*@(\w+))*(?:\s*(?:and|&)\s*@(\w+))*/i,
+        implicit_attendees: /(?:with|and)\s+([A-Z][a-z]+(?:\s*,\s*[A-Z][a-z]+)*(?:\s*(?:and|&)\s*[A-Z][a-z]+)?)/i
     };
 
     let bestMatch = null;
@@ -36,9 +29,12 @@ export async function parse(text) {
             let value;
 
             switch (pattern) {
-                case 'explicit_mentions': {
-                    confidence = 0.9;
-                    const attendees = match.slice(1).filter(Boolean);
+                case 'explicit_list': {
+                    confidence = 0.95;
+                    const attendees = match[1]
+                        .split(/\s*,\s*/)
+                        .map(name => name.trim())
+                        .filter(Boolean);
                     value = {
                         attendees,
                         count: attendees.length
@@ -49,13 +45,13 @@ export async function parse(text) {
                 case 'role_mentions': {
                     confidence = 0.95;
                     const attendees = [];
-                    for (let i = 1; i < match.length; i += 2) {
-                        if (match[i]) {
-                            attendees.push({
-                                name: match[i],
-                                role: match[i + 1]
-                            });
-                        }
+                    let m;
+                    const rolePattern = /@(\w+)\s*\(([^)]+)\)/g;
+                    while ((m = rolePattern.exec(match[0])) !== null) {
+                        attendees.push({
+                            name: m[1],
+                            role: m[2].trim()
+                        });
                     }
                     value = {
                         attendees,
@@ -64,11 +60,26 @@ export async function parse(text) {
                     break;
                 }
 
-                case 'single_mention': {
-                    confidence = 0.85;
+                case 'explicit_mentions': {
+                    confidence = 0.9;
+                    const mentions = match[0].match(/@\w+/g) || [];
+                    const attendees = mentions.map(m => m.substring(1));
                     value = {
-                        attendees: [match[1]],
-                        count: 1
+                        attendees,
+                        count: attendees.length
+                    };
+                    break;
+                }
+
+                case 'implicit_attendees': {
+                    confidence = 0.75;
+                    const attendees = match[1]
+                        .split(/\s*(?:,|and|&)\s*/)
+                        .map(name => name.trim())
+                        .filter(Boolean);
+                    value = {
+                        attendees,
+                        count: attendees.length
                     };
                     break;
                 }
@@ -90,21 +101,4 @@ export async function parse(text) {
     }
 
     return bestMatch;
-}
-
-function extractValue(matches) {
-    return matches[1]
-        .split(/[,;]/)
-        .map(name => name.trim())
-        .filter(name => name.length > 0);
-}
-
-function calculateConfidence(matches, fullText) {
-    let confidence = 0.7;
-
-    // Increase confidence based on format and context
-    if (matches[0].toLowerCase().startsWith('attendees:')) confidence += 0.2;
-    if (matches.index === 0 || fullText[matches.index - 1] === '\n') confidence += 0.1;
-
-    return Math.min(confidence, 1.0);
 }
