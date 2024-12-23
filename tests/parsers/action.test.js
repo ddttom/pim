@@ -1,4 +1,4 @@
-import { name, parse } from '../../src/services/parser/parsers/action-parser.js';
+import { name, parse } from '../../src/services/parser/parsers/action.js';
 
 describe('Action Parser', () => {
   describe('Input Validation', () => {
@@ -92,4 +92,4 @@ describe('Action Parser', () => {
       expect(result).toBeNull();
     });
   });
-}); 
+});

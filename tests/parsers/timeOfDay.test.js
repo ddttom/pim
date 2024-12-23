@@ -1,4 +1,4 @@
-import { name, parse } from '../../src/services/parser/parsers/timeofday-parser.js';
+import { name, parse } from '../../src/services/parser/parsers/timeOfDay.js';
 
 describe('TimeOfDay Parser', () => {
   describe('Input Validation', () => {
@@ -97,4 +97,4 @@ describe('TimeOfDay Parser', () => {
       expect(result).toBeNull();
     });
   });
-}); 
+});

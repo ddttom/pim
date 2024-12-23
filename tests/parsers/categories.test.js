@@ -1,4 +1,4 @@
-import { name, parse } from '../../src/services/parser/parsers/categories-parser.js';
+import { name, parse } from '../../src/services/parser/parsers/categories.js';
 
 describe('Categories Parser', () => {
   describe('Input Validation', () => {
@@ -88,4 +88,4 @@ describe('Categories Parser', () => {
       expect(result).toBeNull();
     });
   });
-}); 
+});

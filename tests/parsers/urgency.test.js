@@ -1,4 +1,4 @@
-import { name, parse } from '../../src/services/parser/parsers/urgency-parser.js';
+import { name, parse } from '../../src/services/parser/parsers/urgency.js';
 
 describe('Urgency Parser', () => {
   describe('Input Validation', () => {
@@ -96,4 +96,4 @@ describe('Urgency Parser', () => {
       expect(result).toBeNull();
     });
   });
-}); 
+});

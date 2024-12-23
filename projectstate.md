@@ -463,6 +463,39 @@ try {
 null
 ```
 
+### Test File Naming Standards
+
+1. Test File Structure
+   - Test files should match their implementation file names
+   - Remove any prefixes or hyphens from the original implementation name
+   - Maintain proper case sensitivity (e.g., timeOfDay.js → timeOfDay.test.js)
+   - Always append .test.js to the base name
+
+2. Examples:
+
+   ```bash
+   Implementation File    →  Test File
+   action.js             →  action.test.js
+   timeOfDay.js          →  timeOfDay.test.js
+   categories.js         →  categories.test.js
+   ```
+
+3. Import Standards
+   - Use relative paths from the test file to the implementation
+   - Always include .js extension in import paths
+   - Import specific exports using destructuring
+   - Example:
+
+   ```javascript
+   import { name, parse } from '../../src/services/parser/parsers/timeOfDay.js';
+   ```
+
+4. Best Practices
+   - Keep test files in a parallel directory structure to implementations
+   - Use consistent naming across all test files
+   - Maintain case sensitivity from the original implementation
+   - Avoid prefixes or special characters in file names
+
 ## Next Steps
 
 1. Short Term:

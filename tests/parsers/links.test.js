@@ -1,4 +1,4 @@
-import { name, parse } from '../../src/services/parser/parsers/links-parser.js';
+                                                                      import { name, parse } from '../../src/services/parser/parsers/links.js';
 
 describe('Links Parser', () => {
   describe('Input Validation', () => {
@@ -95,4 +95,4 @@ describe('Links Parser', () => {
       expect(result).toBeNull();
     });
   });
-}); 
+});

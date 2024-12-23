@@ -1,4 +1,4 @@
-import { name, parse } from '../../src/services/parser/parsers/participants-parser.js';
+import { name, parse } from '../../src/services/parser/parsers/participants.js';
 
 describe('Participants Parser', () => {
   describe('Input Validation', () => {
@@ -97,4 +97,4 @@ describe('Participants Parser', () => {
       expect(result).toBeNull();
     });
   });
-}); 
+});

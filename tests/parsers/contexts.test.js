@@ -1,4 +1,4 @@
-import { name, parse } from '../../src/services/parser/parsers/contexts-parser.js';
+import { name, parse } from '../../src/services/parser/parsers/contexts.js';
 
 describe('Contexts Parser', () => {
   describe('Input Validation', () => {
@@ -98,4 +98,4 @@ describe('Contexts Parser', () => {
       expect(result).toBeNull();
     });
   });
-}); 
+});

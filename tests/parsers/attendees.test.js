@@ -1,4 +1,4 @@
-import { name, parse } from '../../src/services/parser/parsers/attendees-parser.js';
+import { name, parse } from '../../src/services/parser/parsers/attendees.js';
 
 describe('Attendees Parser', () => {
   describe('Input Validation', () => {
@@ -92,4 +92,4 @@ describe('Attendees Parser', () => {
       expect(result).toBeNull();
     });
   });
-}); 
+});

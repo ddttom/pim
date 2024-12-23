@@ -1,4 +1,4 @@
-import { name, parse } from '../../src/services/parser/parsers/complexity-parser.js';
+import { name, parse } from '../../src/services/parser/parsers/complexity.js';
 
 describe('Complexity Parser', () => {
   describe('Input Validation', () => {
@@ -89,4 +89,4 @@ describe('Complexity Parser', () => {
       expect(result).toBeNull();
     });
   });
-}); 
+});

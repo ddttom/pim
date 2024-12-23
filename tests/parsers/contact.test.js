@@ -1,4 +1,4 @@
-import { name, parse } from '../../src/services/parser/parsers/contact-parser.js';
+import { name, parse } from '../../src/services/parser/parsers/contact.js';
 
 describe('Contact Parser', () => {
   describe('Input Validation', () => {
@@ -97,4 +97,4 @@ describe('Contact Parser', () => {
       expect(result).toBeNull();
     });
   });
-}); 
+});

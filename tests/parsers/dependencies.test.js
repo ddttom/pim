@@ -1,4 +1,4 @@
-import { name, parse } from '../../src/services/parser/parsers/dependencies-parser.js';
+import { name, parse } from '../../src/services/parser/parsers/dependencies.js';
 
 describe('Dependencies Parser', () => {
   describe('Input Validation', () => {
@@ -98,4 +98,4 @@ describe('Dependencies Parser', () => {
       expect(result).toBeNull();
     });
   });
-}); 
+});

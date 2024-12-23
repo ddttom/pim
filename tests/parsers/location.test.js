@@ -1,4 +1,4 @@
-import { name, parse } from '../../src/services/parser/parsers/location-parser.js';
+import { name, parse } from '../../src/services/parser/parsers/location.js';
 
 describe('Location Parser', () => {
   describe('Input Validation', () => {
@@ -97,4 +97,4 @@ describe('Location Parser', () => {
       expect(result).toBeNull();
     });
   });
-}); 
+});

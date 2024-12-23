@@ -1,4 +1,4 @@
-import { name, parse } from '../../src/services/parser/parsers/duration-parser.js';
+import { name, parse } from '../../src/services/parser/parsers/duration.js';
 
 describe('Duration Parser', () => {
   describe('Input Validation', () => {
@@ -97,4 +97,4 @@ describe('Duration Parser', () => {
       expect(result).toBeNull();
     });
   });
-}); 
+});
