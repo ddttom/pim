@@ -29,4 +29,4 @@ describe('Confidence Scoring', () => {
 - High confidence (explicit patterns): >= 0.9
 - Medium confidence (standard patterns): >= 0.8
 - Low confidence (inferred patterns): <= 0.8
-- Invalid/uncertain matches: <= 0.7 
+- Invalid/uncertain matches: <= 0.7

@@ -28,6 +28,7 @@ Parsers use a standardized confidence scoring system:
 ### Testing Confidence Scores
 
 When testing parser confidence levels:
+
 - Use `>=` instead of `>` for minimum thresholds
 - Use `<=` instead of `<` for maximum thresholds
 - Example: `expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9)`
@@ -167,6 +168,7 @@ export async function parse(text) {
 Each parser type follows the base template but implements specific patterns and value structures:
 
 ### Single-Match Parsers
+
 - Subject Parser
 - Priority Parser
 - Status Parser
@@ -175,6 +177,7 @@ Each parser type follows the base template but implements specific patterns and 
 - Complexity Parser
 
 ### Multi-Match Parsers
+
 - Tags Parser
 - Links Parser
 - Categories Parser
@@ -184,6 +187,7 @@ Each parser type follows the base template but implements specific patterns and 
 ## Return Format
 
 ### Single Match Success
+
 ```javascript
 {
     type: 'parsertype',
@@ -199,6 +203,7 @@ Each parser type follows the base template but implements specific patterns and 
 ```
 
 ### Multiple Matches Success
+
 ```javascript
 [
     {
@@ -216,11 +221,13 @@ Each parser type follows the base template but implements specific patterns and 
 ```
 
 ### No Match
+
 ```javascript
 null
 ```
 
-### Error Handling
+### Error Handling 2
+
 ```javascript
 throw new Error('Invalid input: text must be a non-empty string');
 ```

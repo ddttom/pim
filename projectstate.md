@@ -512,6 +512,7 @@ null
    - Use `toBeGreaterThanOrEqual()` instead of `toBeGreaterThan()`
    - Use `toBeLessThanOrEqual()` instead of `toBeLessThan()`
    - Example:
+
    ```javascript
    // Good
    expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9);
@@ -529,6 +530,7 @@ null
    - Invalid/uncertain matches: `<= 0.7`
 
 3. Test File Structure
+
    ```javascript
    describe('Confidence Scoring', () => {
      test('should have higher confidence for explicit patterns', async () => {

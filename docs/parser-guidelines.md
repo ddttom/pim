@@ -9,6 +9,7 @@
    - Inferred patterns: 0.75
 
 2. Testing confidence:
+
    ```javascript
    expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9); // High confidence
    expect(result.metadata.confidence).toBeLessThanOrEqual(0.8); // Low confidence
@@ -18,4 +19,4 @@
    - Position bonus: +0.05
    - Context bonus: +0.05
    - Multiple indicators: +0.05
-   - Weak indicators: -0.05 
+   - Weak indicators: -0.05

@@ -15,6 +15,7 @@ When testing parser confidence levels:
    - Invalid/uncertain: <= 0.7
 
 3. Example test structure:
+
 ```javascript
 describe('Confidence Scoring', () => {
   test('should have higher confidence for explicit patterns', async () => {
@@ -27,4 +28,4 @@ describe('Confidence Scoring', () => {
     expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
   });
 });
-``` 
+```
