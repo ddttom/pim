@@ -12,12 +12,23 @@ const CLEANUP_PATTERNS = [
     /\b(?:for|under|in)\s+project\s+[a-z0-9_-]+\b/i,
     // Remove priority markers
     /\b(?:high|medium|low)\s+priority\b/i,
+    /\[priority:(?:high|medium|low)\]/i,
     // Remove tags and mentions
-    /[#@]\w+/g
+    /[#@]\w+/g,
+    // Remove status markers
+    /\[status:[^\]]+\]/i,
+    /\b(?:is|marked as)\s+(?:pending|started|completed|blocked)\b/i
 ];
 
 const INVALID_START_WORDS = new Set([
     'the', 'a', 'an', 'to', 'in', 'on', 'at', 'by', 'for'
+]);
+
+const ACTION_VERBS = new Set([
+    'create', 'update', 'delete', 'fix', 'implement',
+    'add', 'remove', 'change', 'modify', 'review',
+    'build', 'test', 'deploy', 'merge', 'refactor',
+    'debug', 'optimize', 'analyze', 'document', 'configure'
 ]);
 
 export const name = 'subject';
@@ -39,7 +50,9 @@ export async function parse(text) {
         }
 
         const keyTerms = extractKeyTerms(cleanedText);
-        const confidence = calculateConfidence(cleanedText, text);
+        const hasVerb = hasActionVerb(keyTerms);
+        const removedParts = getRemovedParts(text, cleanedText);
+        const confidence = calculateSubjectConfidence(cleanedText, hasVerb, removedParts);
 
         return {
             type: 'subject',
@@ -51,13 +64,20 @@ export async function parse(text) {
                 confidence,
                 originalLength: text.length,
                 cleanedLength: cleanedText.length,
-                removedParts: getRemovedParts(text, cleanedText),
-                hasActionVerb: hasActionVerb(keyTerms)
+                removedParts,
+                hasActionVerb: hasVerb
             }
         };
 
     } catch (error) {
         logger.error('Error in subject parser:', error);
+        if (error.message.includes('\0')) {
+            return {
+                type: 'error',
+                error: 'PARSER_ERROR',
+                message: 'Invalid character in input'
+            };
+        }
         return {
             type: 'error',
             error: 'PARSER_ERROR',
@@ -75,9 +95,10 @@ function cleanText(text) {
 }
 
 function validateSubject(text) {
-    if (text.length < 3) return false;
+    if (!text || text.length < 3) return false;
     const firstWord = text.split(/\s+/)[0].toLowerCase();
     if (INVALID_START_WORDS.has(firstWord)) return false;
+    if (/[\0\x08\x09\x1a\x1b]/.test(text)) return false;
     return true;
 }
 
@@ -85,7 +106,7 @@ function extractKeyTerms(text) {
     return text
         .toLowerCase()
         .split(/\s+/)
-        .filter(word => word.length > 2);
+        .filter(word => word.length > 2 && !INVALID_START_WORDS.has(word));
 }
 
 function getRemovedParts(original, cleaned) {
@@ -93,34 +114,32 @@ function getRemovedParts(original, cleaned) {
     for (const pattern of CLEANUP_PATTERNS) {
         const matches = original.match(pattern);
         if (matches) {
-            parts.push(...matches);
+            parts.push(...matches.map(m => m.trim()));
         }
     }
-    return parts;
+    return parts.filter(Boolean);
 }
 
 function hasActionVerb(terms) {
-    const actionVerbs = new Set([
-        'create', 'update', 'delete', 'fix', 'implement',
-        'add', 'remove', 'change', 'modify', 'review'
-    ]);
-    return terms.some(term => actionVerbs.has(term));
+    return terms.some(term => ACTION_VERBS.has(term));
 }
 
-function calculateConfidence(cleaned, original) {
-    let confidence = 0.7;
+function calculateSubjectConfidence(cleaned, hasVerb, removedParts) {
+    let confidence = 0.7; // Base confidence
 
     // Length-based confidence
-    if (cleaned.length > 10) confidence += 0.1;
-    if (cleaned.length > 20) confidence += 0.1;
+    const words = cleaned.split(/\s+/);
+    if (words.length >= 3) confidence += 0.1;
+    if (words.length >= 5) confidence += 0.1;
 
     // Structure-based confidence
-    if (hasActionVerb(extractKeyTerms(cleaned))) confidence += 0.1;
-    if (cleaned.split(/\s+/).length >= 3) confidence += 0.1;
+    if (hasVerb) confidence += 0.2;
 
     // Context-based confidence
-    const removedParts = getRemovedParts(original, cleaned);
     if (removedParts.length > 0) confidence += 0.1;
+
+    // Quality-based confidence
+    if (!INVALID_START_WORDS.has(words[0])) confidence += 0.1;
 
     return Math.min(confidence, 1.0);
 }

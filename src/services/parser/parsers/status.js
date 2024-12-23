@@ -36,7 +36,8 @@ export async function parse(text) {
             if (matches) {
                 const value = await extractStatusValue(matches, type);
                 if (value) {
-                    const confidence = calculateConfidence(matches, text, type);
+                    const baseConfidence = calculateBaseConfidence(matches, text);
+                    const confidence = adjustConfidence(baseConfidence, type, value);
                     return {
                         type: 'status',
                         value,
@@ -101,4 +102,27 @@ async function extractStatusValue(matches, type) {
         logger.warn('Status extraction failed:', { matches, type, error });
         return null;
     }
+}
+
+function adjustConfidence(baseConfidence, type, value) {
+    let confidence = baseConfidence;
+
+    // Adjust confidence based on pattern type
+    switch (type) {
+        case 'explicit':
+            confidence += 0.2;
+            break;
+        case 'state':
+        case 'shorthand':
+            confidence += 0.15;
+            break;
+        case 'progress':
+            confidence += value.progress === 100 ? 0.15 : 0.1;
+            break;
+        case 'contextual':
+            confidence += 0.05;
+            break;
+    }
+
+    return Math.min(confidence, 1.0);
 }

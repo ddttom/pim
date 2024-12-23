@@ -52,7 +52,8 @@ export async function parse(text) {
         }
 
         const tags = Array.from(allTags);
-        const confidence = calculateConfidence(tagMatches, text);
+        const baseConfidence = calculateBaseConfidence(tagMatches[0], text);
+        const confidence = adjustConfidence(baseConfidence, tagMatches);
         const categorized = categorizeKnownTags(tags);
         const hierarchy = buildTagHierarchy(tags);
 
@@ -101,19 +102,47 @@ function categorizeKnownTags(tags) {
 
 function buildTagHierarchy(tags) {
     const hierarchy = {};
+    const tagsByPrefix = {};
+
+    // First pass: Group tags by their prefixes
     for (const tag of tags) {
         const parts = tag.split('-');
-        let current = hierarchy;
-        for (const part of parts) {
-            current[part] = current[part] || {};
-            current = current[part];
+        if (parts.length > 1) {
+            const prefix = parts[0];
+            if (!tagsByPrefix[prefix]) {
+                tagsByPrefix[prefix] = [];
+            }
+            tagsByPrefix[prefix].push({
+                fullTag: tag,
+                parts: parts.slice(1)
+            });
+        } else {
+            hierarchy[tag] = {};
         }
     }
+
+    // Second pass: Build nested structure
+    for (const [prefix, children] of Object.entries(tagsByPrefix)) {
+        if (!hierarchy[prefix]) {
+            hierarchy[prefix] = {};
+        }
+        
+        for (const child of children) {
+            let current = hierarchy[prefix];
+            for (const part of child.parts) {
+                if (!current[part]) {
+                    current[part] = {};
+                }
+                current = current[part];
+            }
+        }
+    }
+
     return hierarchy;
 }
 
-function calculateConfidence(matches, text) {
-    let confidence = 0.7;
+function adjustConfidence(baseConfidence, matches) {
+    let confidence = baseConfidence;
 
     // Tag count confidence
     confidence += Math.min(matches.length * 0.05, 0.2);

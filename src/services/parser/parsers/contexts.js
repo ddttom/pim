@@ -5,7 +5,7 @@ const logger = createLogger('ContextsParser');
 
 const CONTEXT_PATTERNS = {
     standard: /@(\w+)/g,
-    detailed: /\bcontext:\s*([^:\n]+)(?:\n|$)/i,
+    detailed: /\bcontext:\s*([^:\n]+)(?:\n|$)/gi,
     hashtag: /#context[_-]?(\w+)/gi
 };
 
@@ -22,34 +22,35 @@ export async function parse(text) {
         const matches = Array.from(text.matchAll(pattern));
         for (const match of matches) {
             const value = await extractValue(match);
-            const confidence = calculateConfidence(match, text);
+            const baseConfidence = calculateBaseConfidence(match, text);
+            const confidence = adjustConfidence(baseConfidence, match, type);
 
             results.push({
                 type: 'context',
                 value,
-                confidence,
                 metadata: {
-                    pattern: pattern.source,
-                    originalMatch: match[0],
-                    format: type
+                    confidence,
+                    pattern: type,
+                    originalMatch: match[0]
                 }
             });
         }
     }
 
-    return results;
+    return results.length > 0 ? results : null;
 }
 
 function extractValue(match) {
     return match[1].toLowerCase();
 }
 
-function calculateConfidence(match, fullText) {
-    let confidence = 0.7;
+function adjustConfidence(baseConfidence, match, type) {
+    let confidence = baseConfidence;
 
     // Increase confidence based on format and position
-    if (match[0].startsWith('@')) confidence += 0.2;
-    if (match.index === 0 || fullText[match.index - 1] === ' ') confidence += 0.1;
+    if (type === 'standard' && match[0].startsWith('@')) confidence += 0.2;
+    if (type === 'detailed') confidence += 0.15;
+    if (type === 'hashtag') confidence += 0.1;
 
     return Math.min(confidence, 1.0);
 }
