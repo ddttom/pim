@@ -38,81 +38,37 @@ export async function parse(text) {
         throw new Error('Invalid input: text must be a non-empty string');
     }
 
-    const patterns = {
-        explicit_subject: /\[subject:([^\]]+)\]/i,
-        topic: /\btopic:\s*([^.,\n]+)/i,
-        re_prefix: /\bre:\s*([^.,\n]+)/i,
-        first_sentence: /^([^.!?\n]+)[.!?\n]/
-    };
+    try {
+        const cleanedText = cleanText(text);
+        const removedParts = getRemovedParts(text, cleanedText);
+        const keyTerms = extractKeyTerms(cleanedText);
+        const hasVerb = hasActionVerb(keyTerms);
 
-    let bestMatch = null;
-    let highestConfidence = 0;
-
-    for (const [pattern, regex] of Object.entries(patterns)) {
-        const match = text.match(regex);
-        if (match) {
-            let confidence;
-            let value;
-
-            switch (pattern) {
-                case 'explicit_subject': {
-                    confidence = 0.95;
-                    value = {
-                        text: match[1].trim(),
-                        type: 'explicit'
-                    };
-                    break;
-                }
-
-                case 'topic': {
-                    confidence = 0.9;
-                    value = {
-                        text: match[1].trim(),
-                        type: 'topic'
-                    };
-                    break;
-                }
-
-                case 're_prefix': {
-                    confidence = 0.85;
-                    value = {
-                        text: match[1].trim(),
-                        type: 'reply',
-                        isReply: true
-                    };
-                    break;
-                }
-
-                case 'first_sentence': {
-                    confidence = 0.8;
-                    const sentence = match[1].trim();
-                    // Only use first sentence if it's reasonably sized
-                    if (sentence.length >= 3 && sentence.length <= 100) {
-                        value = {
-                            text: sentence,
-                            type: 'inferred'
-                        };
-                    }
-                    break;
-                }
-            }
-
-            if (value && confidence > highestConfidence) {
-                highestConfidence = confidence;
-                bestMatch = {
-                    type: 'subject',
-                    value,
-                    metadata: {
-                        confidence,
-                        pattern,
-                        originalMatch: match[0]
-                    }
-                };
-            }
+        if (!validateSubject(cleanedText)) {
+            return null;
         }
-    }
 
-    return bestMatch;
+        return {
+            type: 'subject',
+            value: {
+                text: cleanedText,
+                keyTerms
+            },
+            metadata: {
+                confidence: calculateSubjectConfidence(cleanedText, hasVerb, removedParts),
+                hasActionVerb: hasVerb,
+                removedParts,
+                originalText: text
+            }
+        };
+    } catch (error) {
+        logger.error('Error in subject parser:', error);
+        return {
+            type: 'error',
+            error: 'PARSER_ERROR',
+            message: error.message
+        };
+    }
 }
 
 function cleanText(text) {
@@ -158,17 +114,16 @@ function calculateSubjectConfidence(cleaned, hasVerb, removedParts) {
 
     // Length-based confidence
     const words = cleaned.split(/\s+/);
-    if (words.length >= 3) confidence += 0.1;
-    if (words.length >= 5) confidence += 0.1;
+    if (words.length >= 3 && words.length <= 10) confidence += 0.1;
 
     // Structure-based confidence
-    if (hasVerb) confidence += 0.2;
+    if (hasVerb) confidence += 0.1;
 
     // Context-based confidence
-    if (removedParts.length > 0) confidence += 0.1;
+    if (removedParts.length > 0) confidence += 0.05;
 
     // Quality-based confidence
-    if (!INVALID_START_WORDS.has(words[0])) confidence += 0.1;
+    if (!INVALID_START_WORDS.has(words[0])) confidence += 0.05;
 
     return Math.min(confidence, 1.0);
 }

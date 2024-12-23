@@ -5,7 +5,7 @@ const logger = createLogger('TimeParser');
 
 const TIME_PATTERNS = {
     specific: /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i,
-    period: /\b(morning|afternoon|evening)\b/i,
+    period: /\b(?:in\s+the\s+)?(morning|afternoon|evening)\b/i,
     action: /\b(meet|call|text)\b/i
 };
 
@@ -19,11 +19,7 @@ export const name = 'time';
 
 export async function parse(text) {
     if (!text || typeof text !== 'string') {
-        return {
-            type: 'error',
-            error: 'INVALID_INPUT',
-            message: 'Input must be a non-empty string'
-        };
+        throw new Error('Invalid input: text must be a non-empty string');
     }
 
     try {
@@ -52,26 +48,27 @@ export async function parse(text) {
         // Parse specific time
         const timeMatch = text.match(TIME_PATTERNS.specific);
         if (timeMatch) {
-            const [_, hours, minutes, meridian] = timeMatch;
-            const { parsedHours, parsedMinutes } = parseTimeComponents(hours, minutes, meridian);
-
-            return {
-                type: 'time',
-                value: {
-                    hours: parsedHours,
-                    minutes: parsedMinutes
-                },
-                metadata: {
-                    pattern: 'specific',
-                    confidence: calculateConfidence(timeMatch, text, 'specific'),
-                    originalMatch: timeMatch[0]
-                }
-            };
+            const timeValue = parseTimeComponents(timeMatch[1], timeMatch[2], timeMatch[3]);
+            if (timeValue) {
+                return {
+                    type: 'time',
+                    value: timeValue,
+                    metadata: {
+                        pattern: 'specific',
+                        confidence: calculateConfidence(timeMatch, text, 'specific'),
+                        originalMatch: timeMatch[0]
+                    }
+                };
+            }
         }
 
         return null;
     } catch (error) {
-        logger.error('Error in time parser:', error);
+        logger.error('Error in time parser:', {
+            error: error.message,
+            stack: error.stack,
+            input: text
+        });
         return {
             type: 'error',
             error: 'PARSER_ERROR',
@@ -81,20 +78,45 @@ export async function parse(text) {
 }
 
 function parseTimeComponents(hours, minutes, meridian) {
-    let parsedHours = parseInt(hours, 10);
-    const parsedMinutes = parseInt(minutes || '0', 10);
+    try {
+        let parsedHours = parseInt(hours, 10);
+        const parsedMinutes = parseInt(minutes || '0', 10);
 
-    if (meridian?.toLowerCase() === 'pm' && parsedHours < 12) {
-        parsedHours += 12;
-    } else if (meridian?.toLowerCase() === 'am' && parsedHours === 12) {
-        parsedHours = 0;
+        // Basic validation
+        if (isNaN(parsedHours) || isNaN(parsedMinutes)) {
+            return null;
+        }
+
+        // Handle 12-hour format
+        if (meridian) {
+            if (parsedHours < 1 || parsedHours > 12) {
+                return null;
+            }
+            if (meridian.toLowerCase() === 'pm' && parsedHours < 12) {
+                parsedHours += 12;
+            } else if (meridian.toLowerCase() === 'am' && parsedHours === 12) {
+                parsedHours = 0;
+            }
+        } else {
+            // 24-hour format validation
+            if (parsedHours < 0 || parsedHours > 23) {
+                return null;
+            }
+        }
+
+        // Minutes validation
+        if (parsedMinutes < 0 || parsedMinutes > 59) {
+            return null;
+        }
+
+        return {
+            hours: parsedHours,
+            minutes: parsedMinutes
+        };
+    } catch (error) {
+        logger.warn('Time parsing failed:', { hours, minutes, meridian, error });
+        return null;
     }
-
-    if (parsedHours < 0 || parsedHours > 23 || parsedMinutes < 0 || parsedMinutes > 59) {
-        throw new Error('Invalid time values');
-    }
-
-    return { parsedHours, parsedMinutes };
 }
 
 function calculateConfidence(matches, text, type) {
@@ -102,14 +124,21 @@ function calculateConfidence(matches, text, type) {
 
     // Pattern-based confidence
     switch (type) {
-        case 'specific': confidence += 0.2; break;
-        case 'period': confidence += 0.15; break;
-        case 'action': confidence += 0.1; break;
+        case 'specific':
+            confidence = matches[2] ? 0.95 : 0.9; // Higher confidence with minutes specified
+            if (matches[3]) confidence += 0.05; // Additional boost for AM/PM
+            break;
+        case 'period':
+            confidence = matches[0].includes('in the') ? 0.95 : 0.9;
+            break;
+        case 'action':
+            confidence = 0.8;
+            break;
     }
 
     // Position-based confidence
-    if (matches.index === 0) confidence += 0.1;
+    if (matches.index === 0) confidence += 0.05;
     if (text[matches.index - 1] === ' ') confidence += 0.05;
 
     return Math.min(confidence, 1.0);
-} 
+}

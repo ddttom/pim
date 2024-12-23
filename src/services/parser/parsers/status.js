@@ -7,7 +7,7 @@ const STATUS_PATTERNS = {
     explicit: /\bstatus:\s*(pending|started|completed|blocked|cancelled)\b/i,
     progress: /\b(\d{1,3})%\s*(?:complete|done|finished)\b/i,
     state: /\b(?:is|marked\s+as)\s+(pending|started|completed|blocked|cancelled)\b/i,
-    shorthand: /\b(?:\[|\()(pending|started|completed|blocked|cancelled)(?:\]|\))\b/i,
+    shorthand: /^\[(pending|started|completed|blocked|cancelled)\]$/i,
     contextual: /\b(?:waiting|blocked|done|finished|cancelled)\b/i
 };
 
@@ -23,11 +23,7 @@ export const name = 'status';
 
 export async function parse(text) {
     if (!text || typeof text !== 'string') {
-        return {
-            type: 'error',
-            error: 'INVALID_INPUT',
-            message: 'Input must be a non-empty string'
-        };
+        throw new Error('Invalid input: text must be a non-empty string');
     }
 
     try {
@@ -36,8 +32,7 @@ export async function parse(text) {
             if (matches) {
                 const value = await extractStatusValue(matches, type);
                 if (value) {
-                    const baseConfidence = calculateBaseConfidence(matches, text);
-                    const confidence = adjustConfidence(baseConfidence, type, value);
+                    const confidence = calculateConfidence(type, value);
                     return {
                         type: 'status',
                         value,
@@ -45,7 +40,7 @@ export async function parse(text) {
                             pattern: type,
                             confidence,
                             originalMatch: matches[0],
-                            level: STATUS_LEVELS[value.status] || null
+                            level: STATUS_LEVELS[value.status]
                         }
                     };
                 }
@@ -104,25 +99,27 @@ async function extractStatusValue(matches, type) {
     }
 }
 
-function adjustConfidence(baseConfidence, type, value) {
-    let confidence = baseConfidence;
+function calculateConfidence(type, value) {
+    let confidence = 0.7;
 
-    // Adjust confidence based on pattern type
+    // Pattern-based confidence
     switch (type) {
         case 'explicit':
-            confidence += 0.2;
+            confidence = 0.95;
+            break;
+        case 'shorthand':
+            confidence = 0.9;
             break;
         case 'state':
-        case 'shorthand':
-            confidence += 0.15;
+            confidence = 0.85;
             break;
         case 'progress':
-            confidence += value.progress === 100 ? 0.15 : 0.1;
+            confidence = value.progress === 100 ? 0.9 : 0.85;
             break;
         case 'contextual':
-            confidence += 0.05;
+            confidence = 0.8;
             break;
     }
 
-    return Math.min(confidence, 1.0);
+    return confidence;
 }

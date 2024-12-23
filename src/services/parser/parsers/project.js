@@ -15,13 +15,15 @@ const IGNORED_TERMS = new Set(['the', 'this', 'new', 'project']);
 
 export const name = 'project';
 
+async function extractValue(matches) {
+    if (!matches || !matches[1]) return null;
+    const value = matches[1].trim();
+    return value;
+}
+
 export async function parse(text) {
     if (!text || typeof text !== 'string') {
-        return {
-            type: 'error',
-            error: 'INVALID_INPUT',
-            message: 'Input must be a non-empty string'
-        };
+        throw new Error('Invalid input: text must be a non-empty string');
     }
 
     try {
@@ -62,9 +64,12 @@ export async function parse(text) {
 }
 
 function validateProjectName(name) {
+    if (!name) return false;
+    const normalizedName = name.toLowerCase();
     if (name.length < 2 || name.length > 50) return false;
-    if (IGNORED_TERMS.has(name.toLowerCase())) return false;
-    return /^[A-Za-z0-9_-]+$/.test(name);
+    if (IGNORED_TERMS.has(normalizedName)) return false;
+    if (!/^[A-Za-z][A-Za-z0-9_-]*$/.test(name)) return false;
+    return true;
 }
 
 function getProjectIndicators(text) {

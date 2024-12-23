@@ -20,11 +20,7 @@ export const name = 'date';
 
 export async function parse(text) {
     if (!text || typeof text !== 'string') {
-        return {
-            type: 'error',
-            error: 'INVALID_INPUT',
-            message: 'Input must be a non-empty string'
-        };
+        throw new Error('Invalid input: text must be a non-empty string');
     }
 
     try {
@@ -34,6 +30,7 @@ export async function parse(text) {
                 const value = await extractDateValue(matches, type);
                 if (value) {
                     const confidence = calculateConfidence(matches, text, type);
+                    const format = type === 'deadline' || type === 'scheduled' ? type : 'natural';
                     return {
                         type: 'date',
                         value,
@@ -41,7 +38,7 @@ export async function parse(text) {
                             pattern: type,
                             confidence,
                             originalMatch: matches[0],
-                            format: type
+                            format
                         }
                     };
                 }
@@ -81,14 +78,7 @@ async function extractDateValue(matches, type) {
                 return validateAndFormatDate(date);
             }
 
-            case 'deadline': {
-                const parsed = parseDate(matches[1]);
-                if (parsed) {
-                    return parsed;
-                }
-                break;
-            }
-
+            case 'deadline':
             case 'scheduled': {
                 const parsed = parseDate(matches[1]);
                 if (parsed) {
@@ -107,8 +97,8 @@ async function extractDateValue(matches, type) {
 }
 
 function validateAndFormatDate(date) {
-    if (date.toString() === 'Invalid Date') {
-        throw new Error('Invalid date format');
+    if (!isValidDate(date)) {
+        return null;
     }
     return date.toISOString().split('T')[0];
 }
@@ -118,15 +108,15 @@ function calculateConfidence(matches, text, type) {
 
     // Pattern-based confidence
     switch (type) {
-        case 'iso': confidence += 0.2; break;
-        case 'natural': confidence += 0.15; break;
-        case 'relative': confidence += 0.1; break;
+        case 'iso': confidence = 0.9; break;
         case 'deadline':
-        case 'scheduled': confidence += 0.15; break;
+        case 'scheduled': confidence = 0.95; break;
+        case 'natural': confidence = 0.9; break;
+        case 'relative': confidence = 0.85; break;
     }
 
     // Position-based confidence
-    if (matches.index === 0) confidence += 0.1;
+    if (matches.index === 0) confidence += 0.05;
     if (text[matches.index - 1] === ' ') confidence += 0.05;
 
     return Math.min(confidence, 1.0);
@@ -134,13 +124,17 @@ function calculateConfidence(matches, text, type) {
 
 function parseDate(dateStr) {
     const date = new Date(dateStr);
-    if (isNaN(date.getTime()) || !isValidDate(date)) {
+    if (!isValidDate(date)) {
         return null;
     }
     return date.toISOString().split('T')[0];
 }
 
 function isValidDate(date) {
+    if (!date || date.toString() === 'Invalid Date') {
+        return false;
+    }
+
     const month = date.getMonth() + 1;
     const day = date.getDate();
     const year = date.getFullYear();
@@ -149,5 +143,6 @@ function isValidDate(date) {
     const testDate = new Date(year, month - 1, day);
     return testDate.getMonth() === month - 1 && 
            testDate.getDate() === day &&
-           testDate.getFullYear() === year;
+           testDate.getFullYear() === year &&
+           year >= 1900 && year <= 2100; // Reasonable year range
 }

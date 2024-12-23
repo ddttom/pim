@@ -1,8 +1,8 @@
 import { createLogger } from '../../../utils/logger.js';
 
-const logger = createLogger('LocationParser');
+const logger = createLogger('ContextParser');
 
-export const name = 'location';
+export const name = 'context';
 
 export async function parse(text) {
     if (!text || typeof text !== 'string') {
@@ -10,24 +10,26 @@ export async function parse(text) {
     }
 
     const patterns = {
-        explicit: /\[location:([^\]]+)\]/i,
+        explicit: /\[context:([^\]]+)\]/i,
         at: /\bat\s+([^,.]+)(?:[,.]|\s|$)/i,
-        in: /\bin\s+([^,.]+)(?:[,.]|\s|$)/i
+        in: /\bin\s+([^,.]+)(?:[,.]|\s|$)/i,
+        during: /\bduring\s+([^,.]+)(?:[,.]|\s|$)/i,
+        using: /\busing\s+([^,.]+)(?:[,.]|\s|$)/i
     };
 
     try {
         for (const [type, pattern] of Object.entries(patterns)) {
             const match = text.match(pattern);
             if (match) {
-                const location = match[1].trim();
+                const context = match[1].trim();
                 return {
-                    type: 'location',
+                    type: 'context',
                     value: {
-                        location,
-                        type: inferLocationType(location)
+                        context,
+                        type: inferContextType(context)
                     },
                     metadata: {
-                        confidence: calculateConfidence(type, location),
+                        confidence: calculateConfidence(type, context),
                         pattern: type,
                         originalMatch: match[0]
                     }
@@ -37,7 +39,7 @@ export async function parse(text) {
         
         return null;
     } catch (error) {
-        logger.error('Error in location parser:', {
+        logger.error('Error in context parser:', {
             error: error.message,
             stack: error.stack,
             input: text
@@ -50,28 +52,28 @@ export async function parse(text) {
     }
 }
 
-function inferLocationType(location) {
+function inferContextType(context) {
     const types = {
-        room: /^(?:room|conference room|meeting room|office)\s/i,
-        building: /building|floor|suite/i,
-        address: /\d+.+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr)/i,
-        virtual: /^(?:zoom|meet|teams|online|virtual|remote)/i
+        location: /(?:room|office|building|home|work)/i,
+        time: /(?:morning|afternoon|evening|night|day|week)/i,
+        tool: /(?:computer|laptop|phone|device|software|app)/i,
+        activity: /(?:meeting|call|lunch|break|session)/i
     };
 
     for (const [type, pattern] of Object.entries(types)) {
-        if (pattern.test(location)) {
+        if (pattern.test(context)) {
             return type;
         }
     }
 
-    return 'unknown';
+    return 'general';
 }
 
-function calculateConfidence(type, location) {
+function calculateConfidence(type, context) {
     let confidence = type === 'explicit' ? 0.95 : 0.8;
     
-    // Boost confidence for well-structured locations
-    if (inferLocationType(location) !== 'unknown') {
+    // Boost confidence for well-known context types
+    if (inferContextType(context) !== 'general') {
         confidence = Math.min(confidence + 0.1, 1.0);
     }
     
