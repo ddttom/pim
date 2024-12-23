@@ -350,26 +350,25 @@ class StateManager {
      * @throws {Error} If validation fails
      */
     validateState(state) {
-        // Ensure required top-level properties exist
-        for (const prop of State.Validation.REQUIRED_PROPS) {
-            if (!(prop in state)) {
-                throw new Error(ErrorMessages.MISSING_PROPERTY(prop));
+        // First ensure all required top-level properties exist
+        const requiredProps = ['ui', 'parser', 'settings', 'entries'];
+        for (const prop of requiredProps) {
+            if (!state[prop]) {
+                throw new Error(`Missing required state property: ${prop}`);
             }
         }
 
-        // Validate UI state
-        if (typeof state.ui.theme !== 'string') {
-            throw new Error(ErrorMessages.INVALID_THEME);
+        // Then validate nested properties
+        if (state.ui && typeof state.ui.theme !== 'string') {
+            throw new Error('Theme must be a string');
         }
 
-        // Validate parser state
-        if (!Array.isArray(state.parser.results)) {
-            throw new Error(ErrorMessages.INVALID_RESULTS);
+        if (state.parser && !Array.isArray(state.parser.results)) {
+            throw new Error('Parser results must be an array');
         }
 
-        // Validate entries
-        if (!Array.isArray(state.entries.list)) {
-            throw new Error(ErrorMessages.INVALID_ENTRIES);
+        if (state.entries && !Array.isArray(state.entries.list)) {
+            throw new Error('Entries list must be an array');
         }
 
         return state;
