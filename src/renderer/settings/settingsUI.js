@@ -241,6 +241,13 @@ function setupSettingsEventHandlers(settings, api) {
   }
 }
 
+export function closeSettingsModal() {
+  const modal = document.querySelector('.settings-modal');
+  if (modal) {
+    modal.remove();
+  }
+}
+
 export async function saveSettings(settings, api) {
   try {
     const updates = {

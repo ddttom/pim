@@ -1,4 +1,13 @@
 import { jest } from '@jest/globals';
+import path from 'path';
+import os from 'os';
+import fs from 'fs';
+
+// Create test directory
+export const TEST_DIR = path.join(os.tmpdir(), 'pim-test');
+if (!fs.existsSync(TEST_DIR)) {
+  fs.mkdirSync(TEST_DIR, { recursive: true });
+}
 
 // Initialize global objects
 global.window = global.window || {};
