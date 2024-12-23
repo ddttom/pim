@@ -219,11 +219,6 @@ class ConfigManager {
   }
 
   applyEnvironmentVariables() {
-    // Only apply in non-test environment
-    if (process.env.NODE_ENV === 'test') {
-      return;
-    }
-
     const envVars = Object.keys(process.env)
       .filter(key => key.startsWith('pim.'));
 

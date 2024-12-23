@@ -1,9 +1,110 @@
 import { stateManager, actions, selectors } from '../services/state-manager.js';
 import { createLogger } from '../utils/logger.js';
+import { initializeEditor, handleImageUpload, showEditor, clearEditor, getEditorContent } from './editor/editorWrapper.js';
+import { setupKeyboardShortcuts } from './editor/shortcuts.js';
+import { loadEntriesList, showEntriesList, toggleFilters, toggleSortMenu } from './entries/entryList.js';
+import { createNewEntry, loadEntry, saveEntry, getCurrentEntryId } from './entries/entryActions.js';
+import { defaultSettings, applySettings, updateSidebarState } from './settings/settings.js';
+import { showSettingsModal, closeSettingsModal, setupSettingsUI, saveSettings } from './settings/settingsUI.js';
+import { setupAutoSync } from './sync/sync.js';
+import { showToast } from './utils/toast.js';
 
 const logger = createLogger('Renderer');
 
-// Subscribe to state changes
+// Initialize application
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // Initialize settings
+        const settings = await window.api.invoke('get-settings');
+        applySettings(settings, window.api);
+
+        // Initialize editor
+        const editor = initializeEditor();
+        setupKeyboardShortcuts(editor);
+
+        // Setup image upload
+        const imageUpload = document.getElementById('image-upload');
+        if (imageUpload) {
+            imageUpload.addEventListener('change', async (event) => {
+                const currentEntryId = getCurrentEntryId();
+                if (currentEntryId) {
+                    await handleImageUpload(event, currentEntryId, window.api);
+                }
+            });
+        }
+
+        // Setup entry type selection
+        const saveAsBtn = document.getElementById('save-as-btn');
+        if (saveAsBtn) {
+            saveAsBtn.addEventListener('click', () => {
+                const typeSelect = document.createElement('select');
+                typeSelect.id = 'content-type';
+                typeSelect.innerHTML = `
+                    <option value="note">Note</option>
+                    <option value="task">Task</option>
+                    <option value="event">Event</option>
+                `;
+                
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <h3>Save As</h3>
+                        <div class="form-group">
+                            <label for="content-type">Type:</label>
+                            ${typeSelect.outerHTML}
+                        </div>
+                        <div class="modal-footer">
+                            <button class="primary-btn">Save</button>
+                            <button class="secondary-btn">Cancel</button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                const saveBtn = modal.querySelector('.primary-btn');
+                saveBtn.addEventListener('click', async () => {
+                    const type = modal.querySelector('#content-type').value;
+                    const content = getEditorContent();
+                    
+                    const entryId = await window.api.invoke('add-entry', {
+                        type,
+                        raw: content.text,
+                        html: content.html
+                    });
+                    
+                    const typeBadge = document.createElement('div');
+                    typeBadge.className = `editor-type-badge ${type}`;
+                    typeBadge.textContent = type;
+                    
+                    document.querySelector('.editor-type-badge')?.remove();
+                    document.querySelector('.editor-actions').appendChild(typeBadge);
+                    
+                    modal.remove();
+                });
+                
+                modal.querySelector('.secondary-btn').addEventListener('click', () => {
+                    modal.remove();
+                });
+            });
+        }
+
+        // Setup settings listener
+        window.api.on('settings-loaded', (newSettings) => {
+            applySettings(newSettings, window.api);
+        });
+
+        // Setup auto sync
+        setupAutoSync(window.api);
+
+    } catch (error) {
+        logger.error('Initialization error:', error);
+        showToast('Failed to initialize application', 'error');
+    }
+});
+
+// State change subscription
 stateManager.subscribe((newState, prevState) => {
     // Handle UI updates based on state changes
     if (newState.ui.theme !== prevState.ui.theme) {

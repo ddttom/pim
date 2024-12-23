@@ -1,27 +1,28 @@
 import { createLogger } from '../utils/logger.js';
 
-// Import standardized parsers
-import dateParser from './parsers/date.js';
-import projectParser from './parsers/project.js';
-import tagsParser from './parsers/tags.js';
-import recurringParser from './parsers/recurring.js';
-import priorityParser from './parsers/priority.js';
-
 const logger = createLogger('ParserService');
 
 class ParserService {
     constructor() {
         // Initialize parser registry
-        this.parsers = new Map([
-            ['date', dateParser],
-            ['project', projectParser],
-            ['tags', tagsParser],
-            ['recurring', recurringParser],
-            ['priority', priorityParser]
-        ]);
+        this.parsers = new Map();
+
+        // Initialize plugins registry
+        this.plugins = new Map();
 
         // Track parser performance
         this.parserStats = new Map();
+    }
+
+    resetPlugins() {
+        this.plugins.clear();
+    }
+
+    registerPlugin(name, plugin) {
+        if (!plugin.parse || typeof plugin.parse !== 'function') {
+            throw new Error('Invalid plugin: must have a parse method');
+        }
+        this.plugins.set(name, plugin);
     }
 
     parse(text, options = {}) {
@@ -41,7 +42,9 @@ class ParserService {
             // Initialize result structure
             const result = {
                 raw: text,
-                parsed: {},
+                parsed: {
+                    plugins: {}
+                },
                 metadata: {
                     parsers: {},
                     confidence: {},
@@ -89,6 +92,23 @@ class ParserService {
                 const parserDuration = performance.now() - parserStartTime;
                 result.metadata.performance[name] = parserDuration;
                 this.updateParserStats(name, parserDuration);
+            }
+
+            // Run each plugin
+            for (const [name, plugin] of this.plugins) {
+                // Skip if parser is excluded in options
+                if (options.exclude?.includes(name)) {
+                    continue;
+                }
+
+                try {
+                    const pluginResult = plugin.parse(text);
+                    if (pluginResult) {
+                        result.parsed.plugins[name] = pluginResult;
+                    }
+                } catch (error) {
+                    console.error('Plugin error failed:', error);
+                }
             }
 
             // Calculate overall confidence

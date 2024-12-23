@@ -1,52 +1,53 @@
-import fs from 'fs/promises';
-import path from 'path';
+import { jest } from '@jest/globals';
 
-const TEST_DIR = path.join(process.cwd(), 'tests', '__test_data__');
+// Initialize global objects
+global.window = global.window || {};
+global.document = global.document || {};
 
-async function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function cleanTestDirectories() {
-  try {
-    // Remove existing test directory and its contents
-    try {
-      await fs.rm(TEST_DIR, { recursive: true, force: true });
-      await sleep(100); // Wait for filesystem to catch up
-    } catch (err) {
-      // Ignore errors if directory doesn't exist
-      if (err.code !== 'ENOENT') {
-        throw err;
-      }
-    }
-    
-    // Create test directory and subdirectories
-    await fs.mkdir(TEST_DIR, { recursive: true });
-    await sleep(50);
-    await fs.mkdir(path.join(TEST_DIR, 'media'), { recursive: true });
-    await sleep(50);
-    await fs.mkdir(path.join(TEST_DIR, 'backup'), { recursive: true });
-    await sleep(50);
-
-    // Create empty test database
-    const dbPath = path.join(TEST_DIR, 'pim.test.json');
-    await fs.writeFile(dbPath, '{}');
-  } catch (error) {
-    console.error('Failed to setup test environment:', error);
-    throw error;
+// Mock Quill globally
+global.Quill = class Quill {
+  constructor(element, options) {
+    this.root = element;
+    this.options = options;
+    this.getText = jest.fn().mockReturnValue('Test content');
+    this.getSelection = jest.fn().mockReturnValue({ index: 0 });
+    this.insertEmbed = jest.fn();
+    this.setContents = jest.fn();
+    this.focus = jest.fn();
+    this.clipboard = {
+      dangerouslyPasteHTML: jest.fn()
+    };
   }
+};
+
+// Mock window.api
+global.window.api = {
+  on: jest.fn(),
+  invoke: jest.fn(),
+  send: jest.fn()
+};
+
+// Mock getCurrentEntryId
+global.getCurrentEntryId = jest.fn().mockReturnValue('test-entry-id');
+
+// Mock console methods to reduce noise in tests
+global.console = {
+  ...console,
+  log: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+  info: jest.fn(),
+  debug: jest.fn()
+};
+
+// Setup jsdom environment
+if (typeof document === 'undefined') {
+  const jsdom = require('jsdom');
+  const { JSDOM } = jsdom;
+  const dom = new JSDOM('<!doctype html><html><body></body></html>', {
+    url: 'http://localhost'
+  });
+  global.window = dom.window;
+  global.document = dom.window.document;
+  global.navigator = dom.window.navigator;
 }
-
-// Run before each test to ensure clean state
-beforeEach(async () => {
-  await cleanTestDirectories();
-});
-
-// Clean up after all tests
-afterAll(async () => {
-  try {
-    await fs.rm(TEST_DIR, { recursive: true, force: true });
-  } catch (error) {
-    console.error('Failed to cleanup test environment:', error);
-  }
-});

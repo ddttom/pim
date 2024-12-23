@@ -1,4 +1,4 @@
-class MockLogger {
+export default class MockLogger {
   constructor() {
     this.info = jest.fn();
     this.error = jest.fn();
@@ -6,5 +6,3 @@ class MockLogger {
     this.debug = jest.fn();
   }
 }
-
-module.exports = MockLogger; 

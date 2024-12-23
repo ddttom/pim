@@ -1,3 +1,6 @@
+import { promises as fs } from 'fs';
+import path from 'path';
+
 export default class JsonDatabaseService {
   #dbPath;
   #data = {};
@@ -311,6 +314,3 @@ export default class JsonDatabaseService {
     }
   }
 }
-
-import { promises as fs } from 'fs';
-import path from 'path';

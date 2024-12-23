@@ -1,5 +1,6 @@
 import parser from '../src/services/parser.js';
 import MockLogger from './__mocks__/logger.js';
+import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 
 describe('Plugin System', () => {
     beforeEach(() => {
@@ -43,7 +44,7 @@ describe('Plugin System', () => {
             parser.registerPlugin('location', locationPlugin);
             const result = parser.parse('meeting in Building A Room 123');
             
-            expect(result.parsed.plugins.location).toEqual({
+            expect(result.result.parsed.plugins.location).toEqual({
                 building: 'A',
                 room: '123',
             });
@@ -61,7 +62,7 @@ describe('Plugin System', () => {
             parser.registerPlugin('location', locationPlugin);
             const result = parser.parse('meeting custom-test in Room 123');
             
-            expect(result.parsed.plugins).toMatchObject({
+            expect(result.result.parsed.plugins).toMatchObject({
                 custom: { custom: true },
                 location: { location: 'test' },
             });
@@ -78,7 +79,7 @@ describe('Plugin System', () => {
             const result = parser.parse('test text');
             
             // Verify plugins object is empty when error occurs
-            expect(result.parsed.plugins).toEqual({});
+            expect(result.result.parsed.plugins).toEqual({});
             // Verify error was logged
             expect(console.error).toHaveBeenCalledWith('Plugin error failed:', expect.any(Error));
         });

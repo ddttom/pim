@@ -1,4 +1,5 @@
 import ConfigManager from '../src/config/ConfigManager.js';
+import { jest } from '@jest/globals';
 
 describe('Configuration Tests', () => {
   let configManager;
@@ -108,15 +109,15 @@ describe('Configuration Tests', () => {
     test('applies environment variables', async () => {
       const config = await configManager.initialize();
 
-      // Should keep default value
-      expect(configManager.get('parser').maxDepth).toBe(3);
+      // Should apply environment variable value
+      expect(configManager.get('parser').maxDepth).toBe(10);
     });
 
     test('handles array values', async () => {
       process.env['pim.parser.ignoreFiles'] = '["temp", "logs"]';
       const config = await configManager.initialize();
 
-      expect(config.parser.ignoreFiles).toEqual(['.git', 'node_modules']);
+      expect(config.parser.ignoreFiles).toEqual(['temp', 'logs']);
       delete process.env['pim.parser.ignoreFiles'];
     });
   });

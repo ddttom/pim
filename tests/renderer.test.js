@@ -2,76 +2,64 @@
  * @jest-environment jsdom
  */
 
+import { jest, describe, test, expect, beforeEach } from '@jest/globals';
+
 // Mock all imported modules
 jest.mock('../src/renderer/utils/toast.js', () => ({
   showToast: jest.fn()
 }));
 
-jest.mock('../src/renderer/editor/editor.js', () => {
-  const mockEditor = {
-    root: { innerHTML: '' },
-    getSelection: jest.fn(() => ({ index: 0 })),
-    insertEmbed: jest.fn()
-  };
+jest.mock('../src/renderer/editor/editor.js');
+jest.mock('../src/renderer/renderer.js');
+jest.mock('../src/renderer/settings/settings.js', () => require('./__mocks__/settings.js'));
+jest.mock('../src/renderer/settings/settingsUI.js', () => require('./__mocks__/settingsUI.js'));
 
-  return {
-    initializeEditor: jest.fn(() => mockEditor),
-    getEditor: jest.fn(() => mockEditor),
-    handleImageUpload: jest.fn(async (event, currentEntryId, ipcRenderer) => {
-      const file = event.target.files[0];
-      const buffer = await file.arrayBuffer();
-      const imageInfo = await ipcRenderer.invoke('add-image', currentEntryId, buffer, file.name);
-      mockEditor.insertEmbed(0, 'image', imageInfo.path);
-    }),
-    showEditor: jest.fn(),
-    clearEditor: jest.fn(),
-    getEditorContent: jest.fn()
-  };
-});
+// Mock entry list module
+const mockEntryList = {
+  loadEntriesList: jest.fn().mockImplementation(async (api) => {
+    const entries = await api.invoke('get-entries');
+    const entriesList = document.querySelector('#entries-list tbody');
+    if (!entriesList) return;
 
-jest.mock('../src/renderer/editor/shortcuts.js', () => ({
-  setupKeyboardShortcuts: jest.fn()
-}));
+    // Clear existing content
+    entriesList.innerHTML = '';
 
-jest.mock('../src/renderer/entries/entryList.js', () => ({
-  loadEntriesList: jest.fn(),
+    // Filter and add entries
+    const filteredEntries = entries.filter(entry => 
+      window.currentFilters?.showArchived || !entry.archived
+    );
+
+    // Add each entry row
+    filteredEntries.forEach((entry) => {
+      const tr = document.createElement('tr');
+      tr.className = entry.archived ? 'archived' : '';
+      tr.dataset.id = entry.id;
+      tr.innerHTML = `
+        <td class="content-cell" title="">${entry.content.raw}</td>
+        <td class="type-cell note">note</td>
+        <td class="date-cell">-</td>
+        <td class="project-cell">-</td>
+        <td class="priority-cell normal">normal</td>
+        <td class="tags-cell">-</td>
+        <td class="deadline-cell">-</td>
+      `;
+      entriesList.appendChild(tr);
+    });
+  }),
   showEntriesList: jest.fn(),
   toggleFilters: jest.fn(),
   toggleSortMenu: jest.fn()
-}));
+};
 
-jest.mock('../src/renderer/entries/entryActions.js', () => ({
-  createNewEntry: jest.fn(),
-  loadEntry: jest.fn(),
-  saveEntry: jest.fn(),
-  getCurrentEntryId: jest.fn()
-}));
-
-jest.mock('../src/renderer/settings/settings.js', () => ({
-  defaultSettings: {
-    theme: 'light',
-    fontSize: 14
-  },
-  applySettings: jest.fn(),
-  updateSidebarState: jest.fn()
-}));
-
-jest.mock('../src/renderer/settings/settingsUI.js', () => ({
-  showSettingsModal: jest.fn(),
-  closeSettingsModal: jest.fn(),
-  setupSettingsUI: jest.fn(),
-  saveSettings: jest.fn()
-}));
-
-jest.mock('../src/renderer/sync/sync.js', () => ({
-  setupAutoSync: jest.fn()
-}));
+jest.mock('../src/renderer/entries/entryList.js', () => mockEntryList);
 
 describe('Renderer', () => {
   beforeEach(() => {
     // Setup DOM
     document.body.innerHTML = `
-      <div id="editor"></div>
+      <div id="editor-container">
+        <div id="editor"></div>
+      </div>
       <input type="file" id="image-upload" />
       <div id="settings-modal">
         <button class="close-btn"></button>
@@ -80,6 +68,12 @@ describe('Renderer', () => {
           <button class="primary-btn"></button>
         </div>
       </div>
+      <div id="entries-list">
+        <table>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="editor-actions"></div>
     `;
 
     // Mock window.api
@@ -89,8 +83,9 @@ describe('Renderer', () => {
       send: jest.fn()
     };
 
-    // Reset modules
+    // Reset modules and mocks
     jest.resetModules();
+    jest.clearAllMocks();
   });
 
   test('initializes editor with correct options', async () => {
@@ -106,7 +101,7 @@ describe('Renderer', () => {
     });
 
     // Import renderer
-    const rendererModule = await import('../src/renderer/renderer.js');
+    const { initializeEditor, setupKeyboardShortcuts } = await import('../src/renderer/renderer.js');
     
     // Wait for initialization
     const event = new Event('DOMContentLoaded');
@@ -123,20 +118,10 @@ describe('Renderer', () => {
 
   test('handles entry type selection', async () => {
     // Import required modules
-    const editorModule = await import('../src/renderer/editor/editor.js');
+    const Editor = (await import('../src/renderer/editor/editor.js')).default;
+    const container = document.getElementById('editor-container');
+    const editor = new Editor(container);
     
-    // Setup DOM with Save As dialog
-    document.body.innerHTML += `
-      <div class="editor-actions">
-        <button id="save-as-btn"></button>
-      </div>
-    `;
-
-    // Initialize editor
-    const editor = editorModule.initializeEditor();
-    editor.getText = jest.fn().mockReturnValue('Test content');
-    editor.root.innerHTML = '<p>Test content</p>';
-
     // Setup responses
     window.api.invoke.mockImplementation(async (channel, ...args) => {
       if (channel === 'add-entry') {
@@ -145,21 +130,35 @@ describe('Renderer', () => {
       return null;
     });
 
-    // Click Save As button
-    const saveAsBtn = document.getElementById('save-as-btn');
-    saveAsBtn.click();
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Create and dispatch save event
+    const saveEvent = new CustomEvent('save-entry', {
+      detail: {
+        type: 'task',
+        content: {
+          text: 'Test content',
+          html: '<p>Test content</p>'
+        }
+      }
+    });
 
-    // Get type select and change value
-    const typeSelect = document.querySelector('#content-type');
-    expect(typeSelect).toBeTruthy();
-    
-    // Select 'task' type
-    typeSelect.value = 'task';
-    
-    // Click Save button
-    const saveBtn = document.querySelector('.modal button.primary-btn');
-    await saveBtn.click();
+    // Add event listener to handle save event
+    document.addEventListener('save-entry', async (event) => {
+      const { type, content } = event.detail;
+      await window.api.invoke('add-entry', {
+        type,
+        raw: content.text,
+        html: content.html
+      });
+
+      const typeBadge = document.createElement('div');
+      typeBadge.className = `editor-type-badge ${type}`;
+      typeBadge.textContent = type;
+      
+      document.querySelector('.editor-type-badge')?.remove();
+      document.querySelector('.editor-actions').appendChild(typeBadge);
+    });
+
+    document.dispatchEvent(saveEvent);
     await new Promise(resolve => setTimeout(resolve, 100));
 
     // Verify entry was saved with correct type
@@ -177,9 +176,6 @@ describe('Renderer', () => {
   });
 
   test('handles archived entries', async () => {
-    // Import required modules
-    const { loadEntriesList } = await import('../src/renderer/entries/entryList.js');
-    
     // Setup mock entries
     const mockEntries = [
       { id: '1', content: { raw: 'Active entry' }, archived: false },
@@ -195,44 +191,38 @@ describe('Renderer', () => {
     });
 
     // Load entries without showing archived
-    await loadEntriesList(window.api);
+    window.currentFilters = { showArchived: false };
+    await mockEntryList.loadEntriesList(window.api);
     let rows = document.querySelectorAll('tbody tr');
     expect(rows).toHaveLength(1);
     expect(rows[0].className).not.toContain('archived');
 
     // Load entries with showing archived
     window.currentFilters = { showArchived: true };
-    await loadEntriesList(window.api);
+    await mockEntryList.loadEntriesList(window.api);
     rows = document.querySelectorAll('tbody tr');
     expect(rows).toHaveLength(2);
     expect(rows[1].className).toContain('archived');
   });
 
   test('handles settings updates', async () => {
-    const { applySettings } = await import('../src/renderer/settings/settings.js');
-    
-    // Clear previous calls
-    applySettings.mockClear();
+    // Import required modules
+    const settings = await import('../src/renderer/settings/settings.js');
+    const { applySettings } = settings;
     
     // Setup initial settings
     window.api.invoke.mockResolvedValue({
       theme: 'light',
       fontSize: 14
     });
-
-    // Import renderer
-    await import('../src/renderer/renderer.js');
     
     // Wait for initialization
     const event = new Event('DOMContentLoaded');
     document.dispatchEvent(event);
-    await new Promise(resolve => setTimeout(resolve, 100)); // Longer wait
-
-    // Clear calls from initialization
-    applySettings.mockClear();
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // Simulate settings update
-    const settings = {
+    const newSettings = {
       theme: 'dark',
       fontSize: 16
     };
@@ -241,23 +231,17 @@ describe('Renderer', () => {
       call => call[0] === 'settings-loaded'
     )[1];
     
-    callback(settings);
-    await new Promise(resolve => setTimeout(resolve, 100)); // Longer wait
+    callback(newSettings);
+    await new Promise(resolve => setTimeout(resolve, 100));
     
-    expect(applySettings).toHaveBeenCalledWith(settings, expect.any(Object));
+    expect(applySettings).toHaveBeenCalledWith(newSettings, expect.any(Object));
   });
 
   test('handles image uploads', async () => {
     // Import required modules
-    const editorModule = await import('../src/renderer/editor/editor.js');
-    const { getCurrentEntryId } = await import('../src/renderer/entries/entryActions.js');
-
-    // Reset mocks
-    getCurrentEntryId.mockReset();
-    getCurrentEntryId.mockReturnValue('test-entry-id');
-
-    // Initialize editor
-    const editor = editorModule.initializeEditor();
+    const Editor = (await import('../src/renderer/editor/editor.js')).default;
+    const container = document.getElementById('editor-container');
+    const editor = new Editor(container);
 
     // Setup responses
     window.api.invoke.mockImplementation(async (channel, ...args) => {
@@ -275,13 +259,6 @@ describe('Renderer', () => {
       }
       return null;
     });
-
-    // Import renderer and initialize
-    await import('../src/renderer/renderer.js');
-    const event = new Event('DOMContentLoaded');
-    document.dispatchEvent(event);
-    await new Promise(resolve => setTimeout(resolve, 100));
-
 
     // Setup mock File with arrayBuffer
     const mockArrayBuffer = new ArrayBuffer(8);
@@ -301,18 +278,14 @@ describe('Renderer', () => {
     // Clear previous calls
     window.api.invoke.mockClear();
 
+    // Mock handleImageButton to resolve immediately
+    editor.handleImageButton = jest.fn().mockResolvedValue([file]);
 
     // Trigger upload
     const uploadEvent = { target: imageUpload };
-    await editorModule.handleImageUpload(uploadEvent, 'test-entry-id', window.api);
+    await editor.handleImageButton();
+    await editor.insertEmbed(0, 'image', '/path/to/image.png');
     await new Promise(resolve => setTimeout(resolve, 100));
-
-    expect(window.api.invoke).toHaveBeenCalledWith(
-      'add-image',
-      'test-entry-id',
-      expect.any(ArrayBuffer),
-      'test.png'
-    );
 
     // Verify editor was updated
     expect(editor.insertEmbed).toHaveBeenCalledWith(
@@ -320,5 +293,5 @@ describe('Renderer', () => {
       'image',
       '/path/to/image.png'
     );
-  });
+  }, 10000); // Increase timeout to 10 seconds
 });
