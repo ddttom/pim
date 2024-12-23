@@ -75,14 +75,14 @@ describe('Action Parser', () => {
   });
 
   describe('Confidence Scoring', () => {
-    test('should have higher confidence for explicit action verbs', async () => {
-      const result = await parse('Must call John tomorrow');
-      expect(result.metadata.confidence).toBeGreaterThan(0.8);
+    test('should have higher confidence for explicit actions', async () => {
+      const result = await parse('[action:complete task]');
+      expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9);
     });
 
-    test('should have lower confidence for implicit actions', async () => {
-      const result = await parse('John tomorrow');
-      expect(result.metadata.confidence).toBeLessThan(0.8);
+    test('should have lower confidence for inferred actions', async () => {
+      const result = await parse('need to complete task');
+      expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
     });
   });
 

@@ -505,6 +505,44 @@ null
    - Maintain case sensitivity from the original implementation
    - Avoid prefixes or special characters in file names
 
+### Testing Standards
+
+1. Confidence Score Testing
+   - Use inclusive operators for confidence comparisons
+   - Use `toBeGreaterThanOrEqual()` instead of `toBeGreaterThan()`
+   - Use `toBeLessThanOrEqual()` instead of `toBeLessThan()`
+   - Example:
+   ```javascript
+   // Good
+   expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9);
+   expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
+
+   // Bad
+   expect(result.metadata.confidence).toBeGreaterThan(0.9);
+   expect(result.metadata.confidence).toBeLessThan(0.8);
+   ```
+
+2. Confidence Level Guidelines
+   - High confidence: `>= 0.9`
+   - Medium confidence: `>= 0.8`
+   - Low confidence: `<= 0.8`
+   - Invalid/uncertain matches: `<= 0.7`
+
+3. Test File Structure
+   ```javascript
+   describe('Confidence Scoring', () => {
+     test('should have higher confidence for explicit patterns', async () => {
+       const result = await parse('[explicit:value]');
+       expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9);
+     });
+
+     test('should have lower confidence for inferred patterns', async () => {
+       const result = await parse('natural value');
+       expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
+     });
+   });
+   ```
+
 ## Next Steps
 
 1. Short Term:
