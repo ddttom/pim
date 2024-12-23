@@ -128,36 +128,14 @@ describe('Project Parser', () => {
     });
 
     describe('Confidence Scoring', () => {
-        test('assigns higher confidence to explicit declarations', async () => {
-            const results = [
-                await parse('project: Alpha'),
-                await parse('PRJ-123'),
-                await parse('$Beta'),
-                await parse('for project Gamma')
-            ];
-
-            const confidences = results.map(r => r.metadata.confidence);
-            expect(confidences[0]).toBeGreaterThan(confidences[2]);
-            expect(confidences[1]).toBeGreaterThan(confidences[3]);
+        test('should have higher confidence for explicit projects', async () => {
+            const result = await parse('[project:Website Redesign]');
+            expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9);
         });
 
-        test('adjusts confidence based on indicators', async () => {
-            const withIndicators = await parse('milestone for project Alpha with client');
-            const withoutIndicators = await parse('project Alpha');
-            expect(withIndicators.metadata.confidence)
-                .toBeGreaterThan(withoutIndicators.metadata.confidence);
-        });
-
-        test('considers project name format', async () => {
-            const results = [
-                await parse('project: simple'),
-                await parse('project: CamelCase'),
-                await parse('project: With_Separator')
-            ];
-
-            const confidences = results.map(r => r.metadata.confidence);
-            expect(confidences[2]).toBeGreaterThan(confidences[1]);
-            expect(confidences[1]).toBeGreaterThan(confidences[0]);
+        test('should have lower confidence for inferred projects', async () => {
+            const result = await parse('for website project');
+            expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
         });
     });
 

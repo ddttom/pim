@@ -76,12 +76,12 @@ describe('Urgency Parser', () => {
   describe('Confidence Scoring', () => {
     test('should have higher confidence for explicit urgency', async () => {
       const result = await parse('[urgency:high]');
-      expect(result.metadata.confidence).toBeGreaterThan(0.8);
+      expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9);
     });
 
-    test('should have lower confidence for implicit urgency', async () => {
-      const result = await parse('need this soon');
-      expect(result.metadata.confidence).toBeLessThan(0.8);
+    test('should have lower confidence for keyword urgency', async () => {
+      const result = await parse('needs urgent attention');
+      expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
     });
   });
 

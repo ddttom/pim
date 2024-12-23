@@ -75,14 +75,14 @@ describe('Attendees Parser', () => {
   });
 
   describe('Confidence Scoring', () => {
-    test('should have higher confidence for @ mentions', async () => {
-      const result = await parse('Meeting with @john');
-      expect(result.metadata.confidence).toBeGreaterThan(0.8);
+    test('should have higher confidence for explicit attendees', async () => {
+      const result = await parse('[attendees:John, Sarah]');
+      expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9);
     });
 
     test('should have lower confidence for implicit attendees', async () => {
       const result = await parse('Meeting with John');
-      expect(result.metadata.confidence).toBeLessThan(0.8);
+      expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
     });
   });
 

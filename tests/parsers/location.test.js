@@ -76,13 +76,13 @@ describe('Location Parser', () => {
 
   describe('Confidence Scoring', () => {
     test('should have higher confidence for explicit locations', async () => {
-      const result = await parse('[location:Office]');
-      expect(result.metadata.confidence).toBeGreaterThan(0.8);
+      const result = await parse('[location:Conference Room A]');
+      expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9);
     });
 
-    test('should have lower confidence for implicit locations', async () => {
-      const result = await parse('at the office');
-      expect(result.metadata.confidence).toBeLessThan(0.8);
+    test('should have lower confidence for inferred locations', async () => {
+      const result = await parse('in the meeting room');
+      expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
     });
   });
 

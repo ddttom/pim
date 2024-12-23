@@ -2,18 +2,6 @@ import { createLogger } from '../../../utils/logger.js';
 
 const logger = createLogger('ComplexityParser');
 
-const COMPLEXITY_PATTERNS = {
-    points: /\bcomplexity:\s*(\d+)\s*(?:points?)?\b/i,
-    level: /\bcomplexity:\s*(high|medium|low)\b/i,
-    scale: /\bcomplexity:\s*(\d+)\/(\d+)\b/i
-};
-
-const COMPLEXITY_LEVELS = {
-    low: 1,
-    medium: 2,
-    high: 3
-};
-
 export const name = 'complexity';
 
 export async function parse(text) {
@@ -21,49 +9,79 @@ export async function parse(text) {
         throw new Error('Invalid input: text must be a non-empty string');
     }
 
-    const results = [];
+    const patterns = {
+        explicit_complexity: /\[complexity:(high|medium|low)\]/i,
+        numeric_complexity: /\[complexity:(\d+)\]/i,
+        keyword_complexity: /\b(complex|complicated|simple|easy|difficult|hard|challenging)\b/i
+    };
 
-    for (const [type, pattern] of Object.entries(COMPLEXITY_PATTERNS)) {
-        const matches = text.match(pattern);
-        if (matches) {
-            const value = await extractValue(matches, type);
-            const confidence = calculateConfidence(matches, text);
+    let bestMatch = null;
+    let highestConfidence = 0;
 
-            results.push({
-                type: 'complexity',
-                value,
-                confidence,
-                metadata: {
-                    pattern: pattern.source,
-                    originalMatch: matches[0],
-                    format: type
-                }
-            });
+    const complexityLevels = {
+        high: 3,
+        medium: 2,
+        low: 1
+    };
+
+    const keywordMap = {
+        complex: 'high',
+        complicated: 'high',
+        difficult: 'high',
+        hard: 'high',
+        challenging: 'high',
+        simple: 'low',
+        easy: 'low'
+    };
+
+    for (const [pattern, regex] of Object.entries(patterns)) {
+        const match = text.match(regex);
+        if (match) {
+            let confidence;
+            let value;
+
+            switch (pattern) {
+                case 'explicit_complexity':
+                    confidence = 0.9;
+                    value = {
+                        level: match[1].toLowerCase(),
+                        score: complexityLevels[match[1].toLowerCase()]
+                    };
+                    break;
+
+                case 'numeric_complexity':
+                    confidence = 0.95;
+                    const score = parseInt(match[1], 10);
+                    value = {
+                        level: score >= 3 ? 'high' : score >= 2 ? 'medium' : 'low',
+                        score
+                    };
+                    break;
+
+                case 'keyword_complexity':
+                    confidence = 0.75;
+                    const level = keywordMap[match[1].toLowerCase()];
+                    value = {
+                        level,
+                        score: complexityLevels[level]
+                    };
+                    break;
+            }
+
+            if (confidence > highestConfidence) {
+                highestConfidence = confidence;
+                bestMatch = {
+                    type: 'complexity',
+                    value,
+                    metadata: {
+                        confidence,
+                        pattern,
+                        originalMatch: match[0]
+                    }
+                };
+            }
         }
     }
 
-    return results;
-}
-
-function extractValue(matches, type) {
-    switch (type) {
-        case 'points':
-            return parseInt(matches[1], 10);
-        case 'level':
-            return COMPLEXITY_LEVELS[matches[1].toLowerCase()];
-        case 'scale':
-            return parseInt(matches[1], 10) / parseInt(matches[2], 10);
-        default:
-            return null;
-    }
-}
-
-function calculateConfidence(matches, fullText) {
-    let confidence = 0.7;
-
-    // Increase confidence based on format and position
-    if (matches.index === 0 || fullText[matches.index - 1] === '\n') confidence += 0.1;
-    if (/^\d+$/.test(matches[1])) confidence += 0.1;
-    
-    return Math.min(confidence, 1.0);
+    return bestMatch;
 }

@@ -85,23 +85,14 @@ describe('Subject Parser', () => {
     });
 
     describe('Confidence Scoring', () => {
-        test('considers text length', async () => {
-            const results = [
-                await parse('Fix bug'),
-                await parse('Implement new login feature'),
-                await parse('Create comprehensive documentation for API integration')
-            ];
-
-            const confidences = results.map(r => r.metadata.confidence);
-            expect(confidences[2]).toBeGreaterThan(confidences[1]);
-            expect(confidences[1]).toBeGreaterThan(confidences[0]);
+        test('should have higher confidence for explicit subjects', async () => {
+            const result = await parse('[subject:Meeting Notes]');
+            expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9);
         });
 
-        test('considers action verbs', async () => {
-            const withVerb = await parse('Create documentation');
-            const withoutVerb = await parse('Project documentation');
-            expect(withVerb.metadata.confidence)
-                .toBeGreaterThan(withoutVerb.metadata.confidence);
+        test('should have lower confidence for inferred subjects', async () => {
+            const result = await parse('First line of text');
+            expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
         });
     });
 

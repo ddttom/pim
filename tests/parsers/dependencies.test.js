@@ -77,13 +77,13 @@ describe('Dependencies Parser', () => {
 
   describe('Confidence Scoring', () => {
     test('should have higher confidence for explicit dependencies', async () => {
-      const result = await parse('depends on [task:123]');
-      expect(result.metadata.confidence).toBeGreaterThan(0.8);
+      const result = await parse('[task:123] depends on [task:456]');
+      expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9);
     });
 
     test('should have lower confidence for implicit dependencies', async () => {
-      const result = await parse('do this after that task');
-      expect(result.metadata.confidence).toBeLessThan(0.8);
+      const result = await parse('after task abc');
+      expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
     });
   });
 

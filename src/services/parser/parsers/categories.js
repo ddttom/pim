@@ -18,29 +18,65 @@ export async function parse(text) {
         throw new Error('Invalid input: text must be a non-empty string');
     }
 
+    const patterns = {
+        explicit_category: /\[category:([^\]]+)\]/gi,
+        hashtag: /#([a-zA-Z]\w*)/g,
+        nested: /\b(in|under|for)\s+([a-zA-Z]\w*(?:\/[a-zA-Z]\w*)*)\b/gi
+    };
+
     const results = [];
 
-    for (const [type, pattern] of Object.entries(CATEGORY_PATTERNS)) {
-        const matches = Array.from(text.matchAll(pattern));
+    for (const [pattern, regex] of Object.entries(patterns)) {
+        const matches = Array.from(text.matchAll(regex));
+        
         for (const match of matches) {
-            const value = await extractValue(match);
-            const confidence = calculateConfidence(match, text, type);
+            let value;
+            let confidence;
+
+            switch (pattern) {
+                case 'explicit_category': {
+                    const categories = match[1].split('/').map(c => c.trim());
+                    confidence = 0.95;
+                    value = {
+                        path: categories,
+                        name: categories[categories.length - 1]
+                    };
+                    break;
+                }
+
+                case 'hashtag': {
+                    confidence = 0.9;
+                    value = {
+                        path: [match[1]],
+                        name: match[1]
+                    };
+                    break;
+                }
+
+                case 'nested': {
+                    const categories = match[2].split('/').map(c => c.trim());
+                    confidence = 0.85;
+                    value = {
+                        path: categories,
+                        name: categories[categories.length - 1]
+                    };
+                    break;
+                }
+            }
 
             results.push({
                 type: 'category',
-                subtype: type,
                 value,
-                confidence,
                 metadata: {
-                    pattern: pattern.source,
-                    originalMatch: match[0],
-                    format: type
+                    confidence,
+                    pattern,
+                    originalMatch: match[0]
                 }
             });
         }
     }
 
-    return results;
+    return results.length > 0 ? results : null;
 }
 
 function extractValue(match) {

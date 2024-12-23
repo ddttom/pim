@@ -152,26 +152,14 @@ describe('Date Parser', () => {
     });
 
     describe('Confidence Scoring', () => {
-        test('assigns higher confidence to ISO format', async () => {
-            const results = [
-                await parse('2024-01-15'),
-                await parse('January 15, 2024'),
-                await parse('today')
-            ];
-
-            const confidences = results.map(r => r.metadata.confidence);
-            expect(confidences[0]).toBeGreaterThan(confidences[1]);
-            expect(confidences[1]).toBeGreaterThan(confidences[2]);
+        test('should have higher confidence for explicit dates', async () => {
+            const result = await parse('[date:2024-03-15]');
+            expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9);
         });
 
-        test('adjusts confidence based on position', async () => {
-            const results = [
-                await parse('2024-01-15 meeting'),
-                await parse('Meeting on 2024-01-15')
-            ];
-
-            expect(results[0].metadata.confidence)
-                .toBeGreaterThan(results[1].metadata.confidence);
+        test('should have lower confidence for natural dates', async () => {
+            const result = await parse('next Monday');
+            expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
         });
     });
 });

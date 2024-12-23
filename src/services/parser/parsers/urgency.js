@@ -28,29 +28,67 @@ export async function parse(text) {
         throw new Error('Invalid input: text must be a non-empty string');
     }
 
-    try {
-        for (const [type, config] of Object.entries(URGENCY_PATTERNS)) {
-            const match = text.match(config.pattern);
-            if (match) {
-                return {
+    const patterns = {
+        explicit_urgency: /\[urgency:(high|medium|low)\]/i,
+        keyword_urgency: /\b(urgent|asap|emergency|critical|important|priority)\b/i,
+        time_urgency: /\b(due|deadline|by|before|until)\b/i
+    };
+
+    const urgencyLevels = {
+        high: 3,
+        medium: 2,
+        low: 1
+    };
+
+    let bestMatch = null;
+    let highestConfidence = 0;
+
+    for (const [pattern, regex] of Object.entries(patterns)) {
+        const match = text.match(regex);
+        if (match) {
+            let confidence;
+            let value;
+
+            switch (pattern) {
+                case 'explicit_urgency':
+                    confidence = 0.95;
+                    value = {
+                        level: match[1].toLowerCase(),
+                        score: urgencyLevels[match[1].toLowerCase()]
+                    };
+                    break;
+                case 'keyword_urgency':
+                    confidence = 0.9;
+                    value = {
+                        level: 'high',
+                        score: 3,
+                        keyword: match[1].toLowerCase()
+                    };
+                    break;
+                case 'time_urgency':
+                    confidence = 0.85;
+                    value = {
+                        level: 'high',
+                        score: 3,
+                        timeBased: true
+                    };
+                    break;
+            }
+
+            if (confidence > highestConfidence) {
+                highestConfidence = confidence;
+                bestMatch = {
                     type: 'urgency',
-                    value: config.value,
+                    value,
                     metadata: {
-                        pattern: type,
-                        confidence: config.confidence,
+                        confidence,
+                        pattern,
                         originalMatch: match[0]
                     }
                 };
             }
         }
-
-        return null;
-    } catch (error) {
-        logger.error('Error in urgency parser:', { error: error.message, stack: error.stack });
-        return {
-            type: 'error',
-            error: 'PARSER_ERROR',
-            message: error.message
-        };
     }
+
+    return bestMatch;
 }

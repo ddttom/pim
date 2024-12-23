@@ -7,286 +7,267 @@ The parsing system consists of multiple specialized parsers that extract structu
 ## Common Features
 
 - Async/await support
-- Standardized error handling
-- Confidence scoring
+- Standardized error handling via error objects
+- Confidence scoring (0.95-0.75)
 - Metadata enrichment
 - Input validation
+- Pattern-based matching
+- Best match selection
 
-## Parser Types
+## Confidence Scoring Guidelines
 
-### Date Parser
+Parsers use a standardized confidence scoring system:
 
-Extracts date information in various formats:
+| Confidence Level | Score Range | Usage |
+|-----------------|-------------|--------|
+| High | >= 0.90 | Explicit patterns, exact matches |
+| Medium | >= 0.80 | Standard patterns, clear context |
+| Low | <= 0.80 | Implicit patterns, inferred context |
+| Invalid | <= 0.70 | Uncertain or weak matches |
 
-- ISO format (2024-01-15)
-- Natural language (January 15th, 2024)
-- Relative dates (tomorrow, next week)
+### Testing Confidence Scores
 
-### Time Parser
+When testing parser confidence levels:
+- Use `>=` instead of `>` for minimum thresholds
+- Use `<=` instead of `<` for maximum thresholds
+- Example: `expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9)`
 
-Extracts time information:
+## Error Handling
 
-- 12/24 hour format
-- Natural language (morning, afternoon)
-- Relative times (in 2 hours)
-
-### Project Parser
-
-Identifies project references:
-
-- Explicit declarations (project: name)
-- References (for project name)
-- Shorthand ($project)
-
-### Status Parser
-
-Detects task status:
-
-- Explicit status declarations
-- Progress indicators
-- State references
-- Contextual status
-
-### Tags Parser
-
-Extracts and categorizes tags:
-
-- Hashtags (#tag)
-- Categories (+category)
-- Topics (@topic)
-- Inline tags [tag]
-
-### Subject Parser
-
-Processes main task subject:
-
-- Removes metadata
-- Extracts key terms
-- Validates structure
-- Identifies action verbs
-
-### Recurring Parser
-
-Identifies recurring patterns:
-
-- Time intervals
-- Day patterns
-- End conditions
-
-### Reminders Parser
-
-Extracts reminder information:
-
-- Time-based reminders
-- Date-based reminders
-- Relative reminders
-
-### Priority Parser
-
-Detects priority levels:
-
-- Explicit priority
-- Shorthand notation
-- Contextual priority
-
-## Parser Standards
-
-### Parser Structure
-
-Each parser must follow these standards:
-
-1. File Organization:
-
-```javascript
-// Imports
-import { createLogger } from '../../../utils/logger.js';
-import { validatePatternMatch, calculateBaseConfidence } from '../utils/patterns.js';
-
-// Constants
-const logger = createLogger('ParserName');
-const PATTERNS = { /* ... */ };
-
-// Exports
-export const name = 'parsername';
-export async function parse(text) { /* ... */ }
-
-// Helper Functions
-async function extractValue() { /* ... */ }
-function calculateConfidence() { /* ... */ }
-```
-
-2. Required Exports:
-
-- `name`: String identifier for the parser
-- `parse`: Async function that processes input text
-
-3. Error Handling:
-
-```javascript
-try {
-    // Parser logic
-} catch (error) {
-    logger.error('Error in parser:', error);
-    return {
-        type: 'error',
-        error: 'PARSER_ERROR',
-        message: error.message
-    };
-}
-```
-
-### Return Format
-
-1. Success Response:
-
-```javascript
-{
-    type: 'parsertype',
-    value: {
-        // Parser-specific value structure
-    },
-    metadata: {
-        pattern: 'matched_pattern',
-        confidence: 0.0-1.0,
-        originalMatch: 'matched_text',
-        // Parser-specific metadata
-    }
-}
-```
-
-2. Error Response:
+All parsers should return a standard error object for invalid input:
 
 ```javascript
 {
     type: 'error',
-    error: 'ERROR_CODE',
-    message: 'Human readable message'
+    error: 'INVALID_INPUT',
+    message: 'Input must be a non-empty string'
 }
 ```
 
-3. No Match:
+## Base Parser Template
 
+All parsers should extend this base template (base.js):
+
+```javascript
+/**
+ * Base Parser Template
+ * 
+ * This template implements the standard parser structure that all parsers should follow.
+ * Key features:
+ * - Standardized error handling via exceptions
+ * - Consistent confidence scoring (0.0-1.0)
+ * - Pattern-based matching with priority
+ * - Rich metadata generation
+ * - Best match selection
+ */
+
+import { createLogger } from '../../../utils/logger.js';
+
+// Initialize logger at module level
+const logger = createLogger('ParserName');
+
+// Export parser name
+export const name = 'parsername';
+
+/**
+ * Main parse function
+ * @param {string} text - Input text to parse
+ * @returns {Object|Array|null} Parsed result(s) or null if no match
+ * @throws {Error} If input is invalid
+ */
+export async function parse(text) {
+    // Input validation
+    if (!text || typeof text !== 'string') {
+        throw new Error('Invalid input: text must be a non-empty string');
+    }
+
+    // Define patterns in order of confidence
+    const patterns = {
+        explicit_pattern: /\[type:([^\]]+)\]/i,     // Highest confidence (0.95)
+        standard_pattern: /\b(pattern)\b/i,         // Standard confidence (0.90)
+        implicit_pattern: /(.+)/i                   // Lowest confidence (0.80)
+    };
+
+    // For single-match parsers
+    let bestMatch = null;
+    let highestConfidence = 0;
+
+    // For multi-match parsers
+    const results = [];
+
+    // Pattern matching
+    for (const [pattern, regex] of Object.entries(patterns)) {
+        const match = text.match(regex);
+        if (match) {
+            let confidence;
+            let value;
+
+            // Pattern-specific processing
+            switch (pattern) {
+                case 'explicit_pattern': {
+                    confidence = 0.95;
+                    value = {
+                        // Parser-specific value structure
+                        field: match[1].trim()
+                    };
+                    break;
+                }
+                case 'standard_pattern': {
+                    confidence = 0.90;
+                    value = {
+                        field: match[1].trim()
+                    };
+                    break;
+                }
+                case 'implicit_pattern': {
+                    confidence = 0.80;
+                    value = {
+                        field: match[1].trim()
+                    };
+                    break;
+                }
+            }
+
+            // For single-match parsers: track best match
+            if (confidence > highestConfidence) {
+                highestConfidence = confidence;
+                bestMatch = {
+                    type: name,
+                    value,
+                    metadata: {
+                        confidence,
+                        pattern,
+                        originalMatch: match[0]
+                    }
+                };
+            }
+
+            // For multi-match parsers: collect all matches
+            results.push({
+                type: name,
+                value,
+                metadata: {
+                    confidence,
+                    pattern,
+                    originalMatch: match[0]
+                }
+            });
+        }
+    }
+
+    // Return based on parser type
+    // Single match: return bestMatch
+    return bestMatch;
+    // Multiple matches: return results.length > 0 ? results : null;
+}
+```
+
+## Parser Types
+
+Each parser type follows the base template but implements specific patterns and value structures:
+
+### Single-Match Parsers
+- Subject Parser
+- Priority Parser
+- Status Parser
+- TimeOfDay Parser
+- Urgency Parser
+- Complexity Parser
+
+### Multi-Match Parsers
+- Tags Parser
+- Links Parser
+- Categories Parser
+- Dependencies Parser
+- Attendees Parser
+
+## Return Format
+
+### Single Match Success
+```javascript
+{
+    type: 'parsertype',
+    value: {
+        // Parser-specific structure
+    },
+    metadata: {
+        confidence: Number,
+        pattern: String,
+        originalMatch: String
+    }
+}
+```
+
+### Multiple Matches Success
+```javascript
+[
+    {
+        type: 'parsertype',
+        value: {
+            // Parser-specific structure
+        },
+        metadata: {
+            confidence: Number,
+            pattern: String,
+            originalMatch: String
+        }
+    }
+]
+```
+
+### No Match
 ```javascript
 null
 ```
 
-### Test Standards
+### Error Handling
+```javascript
+throw new Error('Invalid input: text must be a non-empty string');
+```
 
-1. Test File Structure:
+## Test Standards
+
+Each parser must have comprehensive tests:
 
 ```javascript
-import { name, parse } from '../../src/services/parser/parsers/parser.js';
-
 describe('Parser Name', () => {
     describe('Input Validation', () => {
-        // Input validation tests
+        test('should handle null input', async () => {
+            await expect(parse(null)).rejects.toThrow('Invalid input');
+        });
     });
 
     describe('Pattern Matching', () => {
-        // Pattern-specific tests
+        test('should detect explicit patterns', async () => {
+            const result = await parse('[type:value]');
+            expect(result).toEqual({
+                type: 'parsertype',
+                value: expect.any(Object),
+                metadata: expect.any(Object)
+            });
+        });
     });
 
     describe('Confidence Scoring', () => {
-        // Confidence calculation tests
-    });
-
-    describe('Error Handling', () => {
-        // Error case tests
-    });
-});
-```
-
-2. Required Test Categories:
-
-- Input validation
-- Pattern matching
-- Edge cases
-- Error handling
-- Confidence scoring
-- Metadata validation
-
-3. Test Case Standards:
-
-```javascript
-test('descriptive test name', async () => {
-    const result = await parse('test input');
-    expect(result).toEqual({
-        type: 'expected_type',
-        value: expect.any(Object),
-        metadata: {
-            pattern: expect.any(String),
-            confidence: expect.any(Number),
-            // ...other expectations
-        }
+        test('should have higher confidence for explicit patterns', async () => {
+            const result = await parse('[explicit:value]');
+            expect(result.metadata.confidence).toBeGreaterThan(0.9);
+        });
     });
 });
 ```
 
-### Confidence Scoring
-
-1. Base Confidence:
-
-- Start with 0.7 base confidence
-- Add/subtract based on specific criteria
-- Cap at 1.0 maximum
-
-2. Common Factors:
+## Usage Example
 
 ```javascript
-function calculateConfidence(matches, text, type) {
-    let confidence = 0.7;
+import { parse } from './parsers/tags.js';
 
-    // Pattern-based confidence
-    switch (type) {
-        case 'explicit': confidence += 0.2; break;
-        case 'implicit': confidence += 0.1; break;
-        // ...
-    }
+const text = 'Task with #tag and [category:value]';
+const result = await parse(text);
 
-    // Position-based confidence
-    if (matches.index === 0) confidence += 0.1;
-    if (text[matches.index - 1] === ' ') confidence += 0.05;
-
-    return Math.min(confidence, 1.0);
+if (result) {
+    console.log('Type:', result.type);
+    console.log('Value:', result.value);
+    console.log('Confidence:', result.metadata.confidence);
 }
-```
-
-### Pattern Matching
-
-1. Pattern Organization:
-
-```javascript
-const PATTERNS = {
-    explicit: /\b(?:pattern):\s*(value)\b/i,
-    implicit: /\b(value)\b/i,
-    // ...
-};
-```
-
-2. Pattern Priorities:
-
-- Explicit patterns (highest confidence)
-- Structured patterns
-- Contextual patterns
-- Implicit patterns (lowest confidence)
-
-### Error Codes
-
-Standard error codes across all parsers:
-
-- `INVALID_INPUT`: Input validation failures
-- `PARSER_ERROR`: Internal parser errors
-- `VALIDATION_ERROR`: Pattern validation failures
-- `FORMAT_ERROR`: Format-specific errors
-
-## Usage
-
-```javascript
-import { parsers, parseAll } from './services/parser';
-
-// Parse specific type
-const dateResult = await parsers.date(text);
-
-// Parse all types
-const { results, errors } = await parseAll(text);
 ```

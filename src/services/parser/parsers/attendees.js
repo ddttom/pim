@@ -16,28 +16,76 @@ export async function parse(text) {
         throw new Error('Invalid input: text must be a non-empty string');
     }
 
-    const results = [];
+    const patterns = {
+        explicit_mentions: /@(\w+)(?:\s*,\s*@(\w+))*(?:\s*(?:and|&)\s*@(\w+))?/i,
+        role_mentions: /@(\w+)\s*\(([^)]+)\)(?:\s*(?:and|&)\s*@(\w+)\s*\(([^)]+)\))?/i,
+        single_mention: /@(\w+)\b/i
+    };
 
-    for (const [type, pattern] of Object.entries(ATTENDEE_PATTERNS)) {
-        const matches = text.match(pattern);
-        if (matches) {
-            const value = await extractValue(matches);
-            const confidence = calculateConfidence(matches, text);
+    let bestMatch = null;
+    let highestConfidence = 0;
 
-            results.push({
-                type: 'attendees',
-                value,
-                confidence,
-                metadata: {
-                    pattern: pattern.source,
-                    originalMatch: matches[0],
-                    attendeeCount: value.length
+    for (const [pattern, regex] of Object.entries(patterns)) {
+        const match = text.match(regex);
+        if (match) {
+            let confidence;
+            let value;
+
+            switch (pattern) {
+                case 'explicit_mentions': {
+                    confidence = 0.9;
+                    const attendees = match.slice(1).filter(Boolean);
+                    value = {
+                        attendees,
+                        count: attendees.length
+                    };
+                    break;
                 }
-            });
+
+                case 'role_mentions': {
+                    confidence = 0.95;
+                    const attendees = [];
+                    for (let i = 1; i < match.length; i += 2) {
+                        if (match[i]) {
+                            attendees.push({
+                                name: match[i],
+                                role: match[i + 1]
+                            });
+                        }
+                    }
+                    value = {
+                        attendees,
+                        count: attendees.length
+                    };
+                    break;
+                }
+
+                case 'single_mention': {
+                    confidence = 0.85;
+                    value = {
+                        attendees: [match[1]],
+                        count: 1
+                    };
+                    break;
+                }
+            }
+
+            if (confidence > highestConfidence) {
+                highestConfidence = confidence;
+                bestMatch = {
+                    type: 'attendees',
+                    value,
+                    metadata: {
+                        confidence,
+                        pattern,
+                        originalMatch: match[0]
+                    }
+                };
+            }
         }
     }
 
-    return results;
+    return bestMatch;
 }
 
 function extractValue(matches) {

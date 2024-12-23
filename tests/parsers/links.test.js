@@ -73,14 +73,14 @@ describe('Links Parser', () => {
   });
 
   describe('Confidence Scoring', () => {
-    test('should have higher confidence for explicit URLs', async () => {
-      const result = await parse('https://example.com');
-      expect(result.metadata.confidence).toBeGreaterThan(0.8);
+    test('should have higher confidence for explicit links', async () => {
+      const result = await parse('[file:document.pdf]');
+      expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9);
     });
 
-    test('should have lower confidence for implicit links', async () => {
-      const result = await parse('example.com');
-      expect(result.metadata.confidence).toBeLessThan(0.8);
+    test('should have lower confidence for inferred links', async () => {
+      const result = await parse('check example.com');
+      expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
     });
   });
 

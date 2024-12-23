@@ -28,117 +28,77 @@ export async function parse(text) {
         throw new Error('Invalid input: text must be a non-empty string');
     }
 
-    try {
-        for (const [type, pattern] of Object.entries(DEPENDENCY_PATTERNS)) {
-            const matches = text.match(pattern);
-            if (matches) {
-                const value = await extractDependencyValue(matches, type);
-                if (value) {
-                    const baseConfidence = calculateBaseConfidence(matches, text);
-                    const confidence = adjustConfidence(baseConfidence, type, value);
-                    return {
-                        type: 'dependency',
-                        value,
-                        metadata: {
-                            pattern: type,
-                            confidence,
-                            originalMatch: matches[0]
-                        }
+    const patterns = {
+        relationship_dependency: /\b(blocks|depends\s+on|requires)\s+\[task:([^\]]+)\]/i,
+        multiple_dependencies: /\bafter\s+\[task:([^\]]+)\]\s+and\s+\[task:([^\]]+)\]/i,
+        implicit_dependency: /\b(after|before|with)\s+task\s+([a-z0-9_-]+)\b/i
+    };
+
+    let bestMatch = null;
+    let highestConfidence = 0;
+
+    for (const [pattern, regex] of Object.entries(patterns)) {
+        const match = text.match(regex);
+        if (match) {
+            let confidence;
+            let value;
+
+            switch (pattern) {
+                case 'relationship_dependency': {
+                    confidence = 0.90;
+                    const relationship = match[1].toLowerCase().replace(/\s+/g, '_');
+                    value = {
+                        type: 'task',
+                        id: match[2],
+                        relationship
                     };
+                    break;
+                }
+
+                case 'multiple_dependencies': {
+                    confidence = 0.90;
+                    value = {
+                        dependencies: [
+                            {
+                                type: 'task',
+                                id: match[1],
+                                relationship: 'after'
+                            },
+                            {
+                                type: 'task',
+                                id: match[2],
+                                relationship: 'after'
+                            }
+                        ]
+                    };
+                    break;
+                }
+
+                case 'implicit_dependency': {
+                    confidence = 0.75;
+                    value = {
+                        type: 'task',
+                        id: match[2],
+                        relationship: match[1].toLowerCase()
+                    };
+                    break;
                 }
             }
+
+            if (confidence > highestConfidence) {
+                highestConfidence = confidence;
+                bestMatch = {
+                    type: 'dependency',
+                    value,
+                    metadata: {
+                        confidence,
+                        pattern,
+                        originalMatch: match[0]
+                    }
+                };
+            }
         }
-
-        return null;
-    } catch (error) {
-        logger.error('Error in dependencies parser:', error);
-        return {
-            type: 'error',
-            error: 'PARSER_ERROR',
-            message: error.message
-        };
-    }
-}
-
-async function extractDependencyValue(matches, type) {
-    try {
-        switch (type) {
-            case 'explicit': {
-                const relationship = matches[0].toLowerCase().match(/^(\w+(?:\s+\w+)?)/)[1];
-                return {
-                    type: 'task',
-                    relationship: RELATIONSHIP_TYPES[relationship] || 'depends_on',
-                    id: matches[1].trim()
-                };
-            }
-
-            case 'relationship': {
-                const relationship = matches[0].toLowerCase().match(/^(\w+(?:\s+\w+)?)/)[1];
-                return {
-                    type: 'task',
-                    relationship: RELATIONSHIP_TYPES[relationship] || 'depends_on',
-                    id: matches[1]
-                };
-            }
-
-            case 'multiple': {
-                return {
-                    dependencies: [
-                        {
-                            type: 'task',
-                            relationship: 'after',
-                            id: matches[1]
-                        },
-                        {
-                            type: 'task',
-                            relationship: 'after',
-                            id: matches[2]
-                        }
-                    ]
-                };
-            }
-
-            case 'implicit': {
-                const relationship = matches[0].toLowerCase().match(/^(\w+)/)[1];
-                return {
-                    type: 'task',
-                    relationship: RELATIONSHIP_TYPES[relationship] || 'depends_on',
-                    id: matches[1]
-                };
-            }
-
-            default:
-                return null;
-        }
-    } catch (error) {
-        logger.warn('Dependency extraction failed:', { matches, type, error });
-        return null;
-    }
-}
-
-function adjustConfidence(baseConfidence, type, value) {
-    let confidence = baseConfidence;
-
-    // Adjust based on pattern type
-    switch (type) {
-        case 'explicit':
-            confidence += 0.2;
-            break;
-        case 'relationship':
-            confidence += 0.15;
-            break;
-        case 'multiple':
-            confidence += value.dependencies?.length > 1 ? 0.15 : 0.1;
-            break;
-        case 'implicit':
-            confidence += 0.05;
-            break;
     }
 
-    // Adjust based on value quality
-    if (value.id && /^[a-z0-9_-]+$/i.test(value.id)) {
-        confidence += 0.1;
-    }
-
-    return Math.min(confidence, 1.0);
+    return bestMatch;
 }

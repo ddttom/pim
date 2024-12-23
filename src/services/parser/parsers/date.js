@@ -7,8 +7,8 @@ const DATE_PATTERNS = {
     iso: /\b(\d{4}-\d{2}-\d{2})\b/,
     natural: /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]* (\d{1,2})(?:st|nd|rd|th)?,? (\d{4})\b/i,
     relative: /\b(today|tomorrow|yesterday)\b/i,
-    deadline: /\bdue:?\s*([^:\n]+)(?:\n|$)/i,
-    scheduled: /\bscheduled?:?\s*([^:\n]+)(?:\n|$)/i
+    deadline: /\b(?:due|deadline):\s*([^.,\n]+)/i,
+    scheduled: /\b(?:scheduled|planned):\s*([^.,\n]+)/i
 };
 
 const MONTHS = {
@@ -81,10 +81,20 @@ async function extractDateValue(matches, type) {
                 return validateAndFormatDate(date);
             }
 
-            case 'deadline':
+            case 'deadline': {
+                const parsed = parseDate(matches[1]);
+                if (parsed) {
+                    return parsed;
+                }
+                break;
+            }
+
             case 'scheduled': {
-                const parsed = new Date(matches[1]);
-                return parsed.toString() !== 'Invalid Date' ? validateAndFormatDate(parsed) : null;
+                const parsed = parseDate(matches[1]);
+                if (parsed) {
+                    return parsed;
+                }
+                break;
             }
 
             default:
@@ -120,4 +130,24 @@ function calculateConfidence(matches, text, type) {
     if (text[matches.index - 1] === ' ') confidence += 0.05;
 
     return Math.min(confidence, 1.0);
+}
+
+function parseDate(dateStr) {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime()) || !isValidDate(date)) {
+        return null;
+    }
+    return date.toISOString().split('T')[0];
+}
+
+function isValidDate(date) {
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const year = date.getFullYear();
+    
+    // Check if date actually exists (handles Feb 30, etc)
+    const testDate = new Date(year, month - 1, day);
+    return testDate.getMonth() === month - 1 && 
+           testDate.getDate() === day &&
+           testDate.getFullYear() === year;
 }

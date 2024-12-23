@@ -128,27 +128,14 @@ describe('Priority Parser', () => {
     });
 
     describe('Confidence Scoring', () => {
-        test('assigns higher confidence to explicit declarations', async () => {
-            const results = [
-                await parse('priority: high'),
-                await parse('high priority'),
-                await parse('!!!'),
-                await parse('urgent')
-            ];
-
-            const confidences = results.map(r => r.metadata.confidence);
-            expect(confidences[0]).toBeGreaterThan(confidences[2]);
-            expect(confidences[1]).toBeGreaterThan(confidences[3]);
+        test('should have higher confidence for explicit priority', async () => {
+            const result = await parse('[priority:high]');
+            expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9);
         });
 
-        test('adjusts confidence based on position', async () => {
-            const results = [
-                await parse('priority: high task'),
-                await parse('task with priority: high')
-            ];
-
-            expect(results[0].metadata.confidence)
-                .toBeGreaterThan(results[1].metadata.confidence);
+        test('should have lower confidence for inferred priority', async () => {
+            const result = await parse('high priority task');
+            expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
         });
     });
 

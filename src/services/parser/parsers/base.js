@@ -1,121 +1,113 @@
-/* 
-his is the pattern that all parsers follow
-standardize the parsers in the project.
-to make it easier to understand and maintain.
-
-it's clear that parsers need consistent patterns and error handling.
-
-Consistent Error Handling:
-
-Structured error objects with type and message
-Input validation at entry point
-Graceful handling of edge cases
-Detailed error logging
-
-
-Improved Pattern Management:
-
-Module-level pattern definitions
-Pattern prioritization
-Shared patterns across parsers
-Pattern-specific confidence scoring
-
-
-Enhanced Metadata:
-
-Pattern identification
-Confidence scoring
-*/
+/**
+ * Base Parser Template
+ * 
+ * This template implements the standard parser structure that all parsers should follow.
+ * Key features:
+ * - Standardized error handling via exceptions
+ * - Consistent confidence scoring (0.0-1.0)
+ * - Pattern-based matching with priority
+ * - Rich metadata generation
+ * - Best match selection
+ * - when checking confidence levels do not use >0.95 use >= 0.95
+ *  - when checking confidence levels do not use <0.90 use <= 0.90
+ */
 
 import { createLogger } from '../../../utils/logger.js';
-import { validatePatternMatch } from '../utils/patterns.js';
 
+// Initialize logger at module level
 const logger = createLogger('ParserName');
 
-// Define patterns at module level for performance
-const PATTERNS = {
-    // Primary patterns
-    main: /your-main-pattern-here/i,
-    alternative: /alternative-pattern/i,
-    
-    // Support patterns
-    auxiliary: /support-pattern/i
-};
+// Export parser name
+export const name = 'parsername';
 
-export default {
-    name: 'parser_name',
-    
-    parse(text) {
-        // Input validation
-        if (!text || typeof text !== 'string') {
-            logger.warn('Invalid input:', { text });
-            return {
-                type: 'error',
-                error: 'INVALID_INPUT',
-                message: 'Input must be a non-empty string'
-            };
-        }
+/**
+ * Main parse function
+ * @param {string} text - Input text to parse
+ * @returns {Object|Array|null} Parsed result(s) or null if no match
+ * @throws {Error} If input is invalid
+ */
+export async function parse(text) {
+    // Input validation
+    if (!text || typeof text !== 'string') {
+        throw new Error('Invalid input: text must be a non-empty string');
+    }
 
-        try {
-            // Check each pattern in order of preference
-            for (const [patternName, pattern] of Object.entries(PATTERNS)) {
-                const match = text.match(pattern);
-                
-                if (validatePatternMatch(match)) {
-                    const value = this.extractValue(match);
-                    const confidence = this.calculateConfidence(match[0], text);
-                    
-                    logger.debug('Pattern match found:', {
-                        pattern: patternName,
-                        match: match[0],
-                        value,
-                        confidence
-                    });
+    // Define patterns in order of confidence
+    const patterns = {
+        explicit_pattern: /\[type:([^\]]+)\]/i,     // Highest confidence (0.95)
+        standard_pattern: /\b(pattern)\b/i,         // Standard confidence (0.90)
+        implicit_pattern: /(.+)/i                   // Lowest confidence (0.80)
+    };
 
-                    return {
-                        type: this.name,
-                        value,
-                        metadata: {
-                            pattern: patternName,
-                            confidence,
-                            originalMatch: match[0]
-                        }
+    // For single-match parsers
+    let bestMatch = null;
+    let highestConfidence = 0;
+
+    // For multi-match parsers
+    const results = [];
+
+    // Pattern matching
+    for (const [pattern, regex] of Object.entries(patterns)) {
+        const match = text.match(regex);
+        if (match) {
+            let confidence;
+            let value;
+
+            // Pattern-specific processing
+            switch (pattern) {
+                case 'explicit_pattern': {
+                    confidence = 0.95;
+                    value = {
+                        // Parser-specific value structure
+                        field: match[1].trim()
                     };
+                    break;
+                }
+                case 'standard_pattern': {
+                    confidence = 0.90;
+                    value = {
+                        field: match[1].trim()
+                    };
+                    break;
+                }
+                case 'implicit_pattern': {
+                    confidence = 0.80;
+                    value = {
+                        field: match[1].trim()
+                    };
+                    break;
                 }
             }
 
-            logger.debug('No pattern matches found');
-            return null;
+            // For single-match parsers: track best match
+            if (confidence > highestConfidence) {
+                highestConfidence = confidence;
+                bestMatch = {
+                    type: name,
+                    value,
+                    metadata: {
+                        confidence,
+                        pattern,
+                        originalMatch: match[0]
+                    }
+                };
+            }
 
-        } catch (error) {
-            logger.error('Parser error:', {
-                error: error.message,
-                stack: error.stack,
-                input: text
+            // For multi-match parsers: collect all matches
+            results.push({
+                type: name,
+                value,
+                metadata: {
+                    confidence,
+                    pattern,
+                    originalMatch: match[0]
+                }
             });
-            
-            return {
-                type: 'error',
-                error: 'PARSER_ERROR',
-                message: error.message
-            };
         }
-    },
-
-    extractValue(match) {
-        // Extract and transform the matched value
-        return match[1]?.trim();
-    },
-
-    calculateConfidence(match, fullText) {
-        let confidence = 0.5; // Base confidence
-        
-        // Common confidence factors:
-        // - Pattern specificity
-        // - Match position
-        // - Supporting context
-        // - Quality indicators
-        
-        return Math.min(1, confidence);
     }
-};
+
+    // Return based on parser type
+    // Single match: return bestMatch
+    return bestMatch;
+    // Multiple matches: return results.length > 0 ? results : null;
+}

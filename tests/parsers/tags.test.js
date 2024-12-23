@@ -96,24 +96,14 @@ describe('Tags Parser', () => {
     });
 
     describe('Confidence Scoring', () => {
-        test('adjusts confidence based on tag count', async () => {
-            const results = [
-                await parse('#single'),
-                await parse('#multiple #tags')
-            ];
-
-            expect(results[1].metadata.confidence)
-                .toBeGreaterThan(results[0].metadata.confidence);
+        test('should have higher confidence for explicit tags', async () => {
+            const result = await parse('[tag:important]');
+            expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9);
         });
 
-        test('considers tag variety', async () => {
-            const results = [
-                await parse('#tag1 #tag2'),
-                await parse('#tag1 @user +category')
-            ];
-
-            expect(results[1].metadata.confidence)
-                .toBeGreaterThan(results[0].metadata.confidence);
+        test('should have lower confidence for hashtag format', async () => {
+            const result = await parse('#important');
+            expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
         });
     });
 

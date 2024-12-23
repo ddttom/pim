@@ -35,55 +35,84 @@ export const name = 'subject';
 
 export async function parse(text) {
     if (!text || typeof text !== 'string') {
-        return {
-            type: 'error',
-            error: 'INVALID_INPUT',
-            message: 'Input must be a non-empty string'
-        };
+        throw new Error('Invalid input: text must be a non-empty string');
     }
 
-    try {
-        // Clean up text
-        const cleanedText = cleanText(text);
-        if (!validateSubject(cleanedText)) {
-            return null;
-        }
+    const patterns = {
+        explicit_subject: /\[subject:([^\]]+)\]/i,
+        topic: /\btopic:\s*([^.,\n]+)/i,
+        re_prefix: /\bre:\s*([^.,\n]+)/i,
+        first_sentence: /^([^.!?\n]+)[.!?\n]/
+    };
 
-        const keyTerms = extractKeyTerms(cleanedText);
-        const hasVerb = hasActionVerb(keyTerms);
-        const removedParts = getRemovedParts(text, cleanedText);
-        const confidence = calculateSubjectConfidence(cleanedText, hasVerb, removedParts);
+    let bestMatch = null;
+    let highestConfidence = 0;
 
-        return {
-            type: 'subject',
-            value: {
-                text: cleanedText,
-                keyTerms
-            },
-            metadata: {
-                confidence,
-                originalLength: text.length,
-                cleanedLength: cleanedText.length,
-                removedParts,
-                hasActionVerb: hasVerb
+    for (const [pattern, regex] of Object.entries(patterns)) {
+        const match = text.match(regex);
+        if (match) {
+            let confidence;
+            let value;
+
+            switch (pattern) {
+                case 'explicit_subject': {
+                    confidence = 0.95;
+                    value = {
+                        text: match[1].trim(),
+                        type: 'explicit'
+                    };
+                    break;
+                }
+
+                case 'topic': {
+                    confidence = 0.9;
+                    value = {
+                        text: match[1].trim(),
+                        type: 'topic'
+                    };
+                    break;
+                }
+
+                case 're_prefix': {
+                    confidence = 0.85;
+                    value = {
+                        text: match[1].trim(),
+                        type: 'reply',
+                        isReply: true
+                    };
+                    break;
+                }
+
+                case 'first_sentence': {
+                    confidence = 0.8;
+                    const sentence = match[1].trim();
+                    // Only use first sentence if it's reasonably sized
+                    if (sentence.length >= 3 && sentence.length <= 100) {
+                        value = {
+                            text: sentence,
+                            type: 'inferred'
+                        };
+                    }
+                    break;
+                }
             }
-        };
 
-    } catch (error) {
-        logger.error('Error in subject parser:', error);
-        if (error.message.includes('\0')) {
-            return {
-                type: 'error',
-                error: 'PARSER_ERROR',
-                message: 'Invalid character in input'
-            };
+            if (value && confidence > highestConfidence) {
+                highestConfidence = confidence;
+                bestMatch = {
+                    type: 'subject',
+                    value,
+                    metadata: {
+                        confidence,
+                        pattern,
+                        originalMatch: match[0]
+                    }
+                };
+            }
         }
-        return {
-            type: 'error',
-            error: 'PARSER_ERROR',
-            message: error.message
-        };
     }
+
+    return bestMatch;
 }
 
 function cleanText(text) {

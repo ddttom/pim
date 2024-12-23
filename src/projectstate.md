@@ -6,16 +6,68 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
 
 ### Parser Service Improvements
 
-- Refactored the parser service and individual parsers, enhancing maintainability and organization
-- Introduced standardized parser imports and improved performance tracking with parser statistics
 - Enhanced individual parsers with refined patterns, error handling, and robust input validation
 - Updated logging mechanisms across all parsers to ensure reliability and easier debugging
+- Standardized confidence scoring across all parsers (0.95-0.75 range)
+
+### Parser Testing Guidelines
+
+- Confidence comparisons should use inclusive operators (`>=`, `<=`) instead of strict comparisons
+- High confidence: `>= 0.9`
+- Medium confidence: `>= 0.8`
+- Low confidence: `<= 0.8`
+- Invalid/uncertain matches: `<= 0.7`
+
+### Parser Construction Guidelines
+
+All parsers in the system follow a standardized template (base.js) to ensure consistency:
+
+```javascript
+// 1. Required imports and logger initialization
+import { createLogger } from '../../../utils/logger.js';
+const logger = createLogger('ParserName');
+
+// 2. Parser name export
+export const name = 'parsername';
+
+// 3. Main parse function
+export async function parse(text) {
+    // Input validation
+    if (!text || typeof text !== 'string') {
+        return {
+            type: 'error',
+            error: 'INVALID_INPUT',
+            message: 'Input must be a non-empty string'
+        };
+    }
+
+    // Pattern definitions by confidence level
+    const patterns = {
+        explicit_pattern: /pattern1/i,    // 0.95 confidence
+        standard_pattern: /pattern2/i,    // 0.90 confidence
+        implicit_pattern: /pattern3/i     // 0.80 confidence
+    };
+
+    // Pattern matching and result generation
+    // ... implementation details in parsers.md
+}
+```
+
+Key Requirements:
+- Must return error object for invalid input
+- Must use standardized confidence levels (0.95-0.75)
+- Must include pattern, confidence, and originalMatch in metadata
+- Must return null for no matches
+- Must follow single/multi-match return format
+
+See [Parser Standards](parsers.md) for complete implementation details.
 
 ## Documentation
 
 - [User Manual](usermanual.md) - Guide for end users
 - [Project Status](projectstate.md) - Current state and roadmap
 - [Configuration](config.md) - Configuration system details
+- [Parser Standards](parsers.md) - Parser implementation standards and guidelines
 - [Plugin System](docs/plugin.md) - Plugin development guide
 - [Testing](docs/test.md) - Test suite documentation
 - [Contributing](CONTRIBUTING.md) - Development guidelines
@@ -37,7 +89,7 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
 │   │   ├── styles/      # CSS modules
 │   │   ├── sync/        # Sync functionality
 │   │   └── utils/       # Renderer utilities
-│   ├── scripts/      # Utility scripts
+│   ├─�� scripts/      # Utility scripts
 │   ├── services/     # Core services
 │   │   └── parser/      # Parser system
 │   │       ├── formatters/  # Text formatting

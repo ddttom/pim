@@ -75,14 +75,14 @@ describe('Contact Parser', () => {
   });
 
   describe('Confidence Scoring', () => {
-    test('should have higher confidence for explicit contact markers', async () => {
-      const result = await parse('[contact:John Doe]');
-      expect(result.metadata.confidence).toBeGreaterThan(0.8);
+    test('should have higher confidence for explicit contacts', async () => {
+      const result = await parse('[contact:John Smith]');
+      expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9);
     });
 
-    test('should have lower confidence for implicit contacts', async () => {
-      const result = await parse('John from accounting');
-      expect(result.metadata.confidence).toBeLessThan(0.8);
+    test('should have lower confidence for inferred contacts', async () => {
+      const result = await parse('call John');
+      expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
     });
   });
 

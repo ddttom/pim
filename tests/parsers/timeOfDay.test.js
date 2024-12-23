@@ -76,13 +76,13 @@ describe('TimeOfDay Parser', () => {
 
   describe('Confidence Scoring', () => {
     test('should have higher confidence for explicit times', async () => {
-      const result = await parse('[time:15:00]');
-      expect(result.metadata.confidence).toBeGreaterThan(0.8);
+      const result = await parse('[time:14:30]');
+      expect(result.metadata.confidence).toBeGreaterThanOrEqual(0.9);
     });
 
     test('should have lower confidence for approximate times', async () => {
       const result = await parse('in the evening');
-      expect(result.metadata.confidence).toBeLessThan(0.8);
+      expect(result.metadata.confidence).toBeLessThanOrEqual(0.8);
     });
   });
 

@@ -4,10 +4,10 @@ import { validatePatternMatch } from '../utils/patterns.js';
 const logger = createLogger('DurationParser');
 
 const DURATION_PATTERNS = {
-    explicit_duration: /\[duration:(\d+(?:h(?:\s*\d+m)?|m))\]/i,
-    natural_duration: /(\d+)\s*(?:hour|hr)s?\s+(?:and\s+)?(\d+)\s*(?:minute|min)s?\b|(\d+)\s*(?:hour|hr|minute|min|day)s?\b/i,
-    short_duration: /(\d+(?:\.\d+)?)\s*([hmd])\b/i,
-    implicit_duration: /(?:takes|lasts|duration|for)\s+(?:about|around|approximately)?\s*(?:a\s+)?(?:while|bit|moment|some\s+time)\b/i
+    explicit_duration: /\[duration:(\d+)(?:h(?:\s*(\d+)m)?|m)\]/i,
+    time_range: /(\d{1,2}):(\d{2})\s*(?:-|to)\s*(\d{1,2}):(\d{2})/i,
+    natural: /(\d+)\s*(hours?|minutes?|hrs?|mins?)(?:\s*(?:and|,)\s*(\d+)\s*(minutes?|mins?))?/i,
+    short_duration: /(\d+(?:\.\d+)?)(h|m)/i
 };
 
 const UNIT_MULTIPLIERS = {
@@ -20,46 +20,111 @@ export const name = 'duration';
 
 export async function parse(text) {
     if (!text || typeof text !== 'string') {
-        return {
-            type: 'error',
-            error: 'INVALID_INPUT',
-            message: 'Input must be a non-empty string'
-        };
+        throw new Error('Invalid input: text must be a non-empty string');
     }
 
-    try {
-        for (const [type, pattern] of Object.entries(DURATION_PATTERNS)) {
-            const matches = text.match(pattern);
-            if (matches) {
-                const value = extractDurationValue(matches, type);
-                if (value && validateDuration(value.totalMinutes)) {
-                    const confidence = getConfidence(type);
-                    return {
-                        type: 'duration',
-                        value: {
-                            hours: Math.floor(value.totalMinutes / 60),
-                            minutes: value.totalMinutes % 60,
-                            totalMinutes: value.totalMinutes
-                        },
-                        metadata: {
-                            pattern: type,
-                            confidence,
-                            originalMatch: matches[0]
-                        }
+    let bestMatch = null;
+    let highestConfidence = 0;
+
+    for (const [pattern, regex] of Object.entries(DURATION_PATTERNS)) {
+        const match = text.match(regex);
+        if (match) {
+            let confidence;
+            let value;
+
+            switch (pattern) {
+                case 'explicit_duration': {
+                    confidence = 0.95;
+                    const hours = parseInt(match[1], 10);
+                    const minutes = match[2] ? parseInt(match[2], 10) : 0;
+                    const totalMinutes = hours * 60 + minutes;
+                    value = { hours, minutes, totalMinutes };
+                    break;
+                }
+
+                case 'time_range': {
+                    confidence = 0.90;
+                    const startHour = parseInt(match[1], 10);
+                    const startMin = parseInt(match[2], 10);
+                    const endHour = parseInt(match[3], 10);
+                    const endMin = parseInt(match[4], 10);
+                    
+                    const startMins = startHour * 60 + startMin;
+                    const endMins = endHour * 60 + endMin;
+                    const totalMinutes = endMins - startMins;
+                    
+                    value = {
+                        hours: Math.floor(totalMinutes / 60),
+                        minutes: totalMinutes % 60,
+                        totalMinutes
                     };
+                    break;
+                }
+
+                case 'natural': {
+                    confidence = 0.85;
+                    const firstNum = parseInt(match[1], 10);
+                    const firstUnit = match[2].toLowerCase();
+                    const secondNum = match[3] ? parseInt(match[3], 10) : 0;
+                    
+                    let hours = 0;
+                    let minutes = 0;
+                    
+                    if (firstUnit.startsWith('h')) {
+                        hours = firstNum;
+                        minutes = secondNum;
+                    } else {
+                        minutes = firstNum + secondNum;
+                    }
+                    
+                    value = {
+                        hours,
+                        minutes,
+                        totalMinutes: hours * 60 + minutes
+                    };
+                    break;
+                }
+
+                case 'short_duration': {
+                    confidence = 0.90;
+                    const amount = parseFloat(match[1]);
+                    const unit = match[2].toLowerCase();
+                    
+                    if (unit === 'h') {
+                        const hours = Math.floor(amount);
+                        const minutes = Math.round((amount - hours) * 60);
+                        value = {
+                            hours,
+                            minutes,
+                            totalMinutes: hours * 60 + minutes
+                        };
+                    } else {
+                        value = {
+                            hours: 0,
+                            minutes: amount,
+                            totalMinutes: amount
+                        };
+                    }
+                    break;
                 }
             }
-        }
 
-        return null;
-    } catch (error) {
-        logger.error('Error in duration parser:', { error: error.message, stack: error.stack });
-        return {
-            type: 'error',
-            error: 'PARSER_ERROR',
-            message: error.message
-        };
+            if (value && confidence > highestConfidence) {
+                highestConfidence = confidence;
+                bestMatch = {
+                    type: 'duration',
+                    value,
+                    metadata: {
+                        confidence,
+                        pattern,
+                        originalMatch: match[0]
+                    }
+                };
+            }
+        }
     }
+
+    return bestMatch;
 }
 
 function extractDurationValue(matches, type) {
@@ -142,4 +207,8 @@ function getConfidence(type) {
         default:
             return 0.7;
     }
+}
+
+function isValidDuration(hours, minutes) {
+    return hours >= 0 && hours <= 24 && minutes >= 0 && minutes < 60;
 }

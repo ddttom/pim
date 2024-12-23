@@ -3,12 +3,6 @@ import { validatePatternMatch, calculateBaseConfidence } from '../utils/patterns
 
 const logger = createLogger('ParticipantsParser');
 
-const PARTICIPANT_PATTERNS = {
-    mention: /@(\w+)/g,
-    with: /\bwith\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g,
-    and: /\band\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g
-};
-
 export const name = 'participants';
 
 export async function parse(text) {
@@ -16,37 +10,84 @@ export async function parse(text) {
         throw new Error('Invalid input: text must be a non-empty string');
     }
 
-    try {
-        const participants = new Set();
-        const matches = [];
+    const patterns = {
+        explicit_list: /\[participants:([^\]]+)\]/i,
+        role_assignment: /\b(\w+)\s*\(([^)]+)\)(?:\s*(?:and|&)\s*(\w+)\s*\(([^)]+)\))?/i,
+        mentions: /@(\w+)(?:\s*(?:and|&)\s*@(\w+))?/i
+    };
 
-        for (const [type, pattern] of Object.entries(PARTICIPANT_PATTERNS)) {
-            const patternMatches = Array.from(text.matchAll(pattern));
-            for (const match of patternMatches) {
-                participants.add(match[1]);
-                matches.push(match[0]);
+    let bestMatch = null;
+    let highestConfidence = 0;
+
+    for (const [pattern, regex] of Object.entries(patterns)) {
+        const match = text.match(regex);
+        if (match) {
+            let confidence;
+            let value;
+
+            switch (pattern) {
+                case 'explicit_list': {
+                    confidence = 0.95;
+                    const participants = match[1]
+                        .split(/,\s*/)
+                        .map(p => p.trim())
+                        .filter(Boolean);
+                    value = {
+                        participants,
+                        count: participants.length
+                    };
+                    break;
+                }
+
+                case 'role_assignment': {
+                    confidence = 0.90;
+                    const participants = [];
+                    if (match[1]) {
+                        participants.push({
+                            name: match[1],
+                            role: match[2]
+                        });
+                    }
+                    if (match[3]) {
+                        participants.push({
+                            name: match[3],
+                            role: match[4]
+                        });
+                    }
+                    value = {
+                        participants,
+                        count: participants.length
+                    };
+                    break;
+                }
+
+                case 'mentions': {
+                    confidence = 0.90;
+                    const participants = [match[1], match[2]]
+                        .filter(Boolean)
+                        .map(p => p.toLowerCase());
+                    value = {
+                        participants,
+                        count: participants.length
+                    };
+                    break;
+                }
+            }
+
+            if (confidence > highestConfidence) {
+                highestConfidence = confidence;
+                bestMatch = {
+                    type: 'participants',
+                    value,
+                    metadata: {
+                        confidence,
+                        pattern,
+                        originalMatch: match[0]
+                    }
+                };
             }
         }
-
-        if (participants.size > 0) {
-            return {
-                type: 'participants',
-                value: Array.from(participants),
-                metadata: {
-                    confidence: calculateBaseConfidence(matches.join(' '), text),
-                    originalMatches: matches,
-                    count: participants.size
-                }
-            };
-        }
-
-        return null;
-    } catch (error) {
-        logger.error('Error in participants parser:', { error: error.message, stack: error.stack });
-        return {
-            type: 'error',
-            error: 'PARSER_ERROR',
-            message: error.message
-        };
     }
+
+    return bestMatch;
 }
