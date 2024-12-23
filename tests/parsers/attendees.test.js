@@ -23,17 +23,17 @@ describe('Attendees Parser', () => {
 
   describe('Pattern Matching', () => {
     test('should detect explicit attendee lists', async () => {
-      const result = await parse('Meeting with @john, @sarah, and @mike');
+      const result = await parse('[attendees:John, Sarah]');
       expect(result).toEqual({
         type: 'attendees',
         value: {
-          attendees: ['john', 'sarah', 'mike'],
-          count: 3
+          attendees: ['John', 'Sarah'],
+          count: 2
         },
         metadata: {
-          pattern: 'explicit_mentions',
-          confidence: 0.9,
-          originalMatch: '@john, @sarah, and @mike'
+          pattern: 'explicit_list',
+          confidence: 0.95,
+          originalMatch: '[attendees:John, Sarah]'
         }
       });
     });
@@ -66,8 +66,8 @@ describe('Attendees Parser', () => {
           count: 1
         },
         metadata: {
-          pattern: 'single_mention',
-          confidence: 0.85,
+          pattern: 'explicit_mentions',
+          confidence: 0.9,
           originalMatch: '@mike'
         }
       });

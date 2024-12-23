@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "electron .",
-    "test": "jest",
+    "test": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.js",
     "build": "electron-builder",
     "clean-db": "node --experimental-modules src/scripts/clean-db.js"
   },

@@ -13,7 +13,11 @@ export const name = 'attendees';
 
 export async function parse(text) {
     if (!text || typeof text !== 'string') {
-        throw new Error('Invalid input: text must be a non-empty string');
+        return {
+            type: 'error',
+            error: 'INVALID_INPUT',
+            message: 'Input must be a non-empty string'
+        };
     }
 
     const patterns = {

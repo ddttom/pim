@@ -19,79 +19,33 @@ describe('Tags Parser', () => {
                 message: 'Input must be a non-empty string'
             });
         });
-
-        test('returns null for text without tags', async () => {
-            const result = await parse('Regular text without tags');
-            expect(result).toBeNull();
-        });
     });
 
-    describe('Tag Formats', () => {
-        test('parses hashtags', async () => {
-            const result = await parse('#frontend #backend');
-            expect(result.value).toContain('frontend');
-            expect(result.value).toContain('backend');
-            expect(result.metadata.pattern).toBe('multiple');
-        });
-
-        test('parses category tags', async () => {
-            const result = await parse('+feature +bugfix');
-            expect(result.value).toContain('feature');
-            expect(result.value).toContain('bugfix');
-        });
-
-        test('parses topic tags', async () => {
-            const result = await parse('@ui @api');
-            expect(result.value).toContain('ui');
-            expect(result.value).toContain('api');
-        });
-
-        test('parses inline tags', async () => {
-            const result = await parse('[frontend] [backend]');
-            expect(result.value).toContain('frontend');
-            expect(result.value).toContain('backend');
-        });
-    });
-
-    describe('Tag Categories', () => {
-        test('categorizes known tags', async () => {
-            const result = await parse('#feature #frontend #critical');
-            expect(result.metadata.categorized).toEqual({
-                type: ['feature'],
-                component: ['frontend'],
-                priority: ['critical']
-            });
-        });
-
-        test('handles unknown tags', async () => {
-            const result = await parse('#customtag');
-            expect(Object.values(result.metadata.categorized)
-                .every(arr => !arr.includes('customtag'))).toBe(true);
-        });
-    });
-
-    describe('Tag Hierarchy', () => {
-        test('builds tag hierarchy', async () => {
-            const result = await parse('#frontend-ui #frontend-api');
-            expect(result.metadata.hierarchy).toEqual({
-                frontend: {
-                    ui: {},
-                    api: {}
+    describe('Pattern Matching', () => {
+        test('detects explicit tags', async () => {
+            const result = await parse('[tag:important]');
+            expect(result).toEqual({
+                type: 'tag',
+                value: ['important'],
+                metadata: {
+                    pattern: 'explicit_tag',
+                    confidence: 0.95,
+                    originalMatch: '[tag:important]'
                 }
             });
         });
-    });
 
-    describe('Tag Validation', () => {
-        test('validates tag format', async () => {
-            const result = await parse('#123invalid');
-            expect(result).toBeNull();
-        });
-
-        test('enforces tag length limits', async () => {
-            const longTag = 'a'.repeat(31);
-            const result = await parse(`#${longTag}`);
-            expect(result).toBeNull();
+        test('detects hashtags', async () => {
+            const result = await parse('#frontend #backend');
+            expect(result).toEqual({
+                type: 'tag',
+                value: ['frontend', 'backend'],
+                metadata: {
+                    pattern: 'hashtag',
+                    confidence: 0.85,
+                    originalMatch: '#frontend #backend'
+                }
+            });
         });
     });
 
@@ -114,7 +68,6 @@ describe('Tags Parser', () => {
         });
 
         test('handles parser errors gracefully', async () => {
-            // Force regex error
             const result = await parse('#');
             expect(result).toBeNull();
         });

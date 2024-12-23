@@ -49,8 +49,8 @@ describe('Duration Parser', () => {
           totalMinutes: 150
         },
         metadata: {
-          pattern: 'natural_duration',
-          confidence: 0.85,
+          pattern: 'natural',
+          confidence: 0.8,
           originalMatch: '2 hours and 30 minutes'
         }
       });

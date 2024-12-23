@@ -6,16 +6,12 @@ const TEST_DIR = path.join(process.cwd(), 'tests', '__test_data__');
 async function cleanTestDirectories() {
   try {
     // Remove existing test directory and its contents
-    await fs.rm(TEST_DIR, { recursive: true, force: true }).catch(() => {});
+    await fs.rm(TEST_DIR, { recursive: true, force: true });
     
-    // Create test directory
+    // Create test directory and subdirectories
     await fs.mkdir(TEST_DIR, { recursive: true });
-    
-    // Create subdirectories in sequence
-    const subdirs = ['media', 'backup'];
-    for (const dir of subdirs) {
-      await fs.mkdir(path.join(TEST_DIR, dir), { recursive: true });
-    }
+    await fs.mkdir(path.join(TEST_DIR, 'media'), { recursive: true });
+    await fs.mkdir(path.join(TEST_DIR, 'backup'), { recursive: true });
 
     // Create empty test database
     const dbPath = path.join(TEST_DIR, 'pim.test.json');

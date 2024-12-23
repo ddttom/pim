@@ -19,6 +19,22 @@ describe('Complexity Parser', () => {
         message: 'Input must be a non-empty string'
       });
     });
+
+    test('should detect complexity keywords', async () => {
+      const result = await parse('This is a complex task');
+      expect(result).toEqual({
+        type: 'complexity',
+        value: {
+          level: 'high',
+          score: 3
+        },
+        metadata: {
+          pattern: 'keyword_complexity',
+          confidence: 0.75,
+          originalMatch: 'complex'
+        }
+      });
+    });
   });
 
   describe('Pattern Matching', () => {
