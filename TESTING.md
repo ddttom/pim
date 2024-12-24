@@ -101,10 +101,61 @@ describe('Error Handling', () => {
 3. Pattern-specific confidence examples:
 
    ```javascript
+   // Action Parser
+   '[action:complete]'   -> 0.95  // explicit
+   'finish task'        -> 0.80  // verb
+
+   // Priority Parser
+   '[priority:high]'     -> 0.95  // explicit
+   'high priority'      -> 0.80  // prefix
+   '!!!'               -> 0.80  // shorthand
+
+   // Progress Parser
+   '[progress:75%]'      -> 0.95  // explicit
+   '75% complete'       -> 0.80  // inferred
+
+   // Project Parser
+   '[project:Frontend]'  -> 0.95  // explicit
+   'for project Alpha'  -> 0.80  // contextual
+
+   // Recurring Parser
+   '[recur:daily]'      -> 0.95  // explicit
+   'every Monday'       -> 0.90  // specific day
+   'every day'         -> 0.80  // natural
+
+   // Reminders Parser
+   '[remind:30min]'      -> 0.95  // explicit
+   'in 30 minutes'      -> 0.80  // relative
+
+   // Role Parser
+   '[role:developer]'    -> 0.95  // explicit
+   'as developer'       -> 0.80  // inferred
+
    // Status Parser
    '[status:done]'      -> 0.95  // explicit
    'marked as done'     -> 0.80  // state
    '50% complete'       -> 0.80  // progress
+
+   // Subject Parser
+   '[subject:Meeting]'   -> 0.95  // explicit
+   'Review docs'        -> 0.80  // inferred
+
+   // Tags Parser
+   '[tag:important]'     -> 0.95  // explicit
+   '#frontend'          -> 0.80  // hashtag
+
+   // Task Parser
+   '[task:123]'         -> 0.95  // explicit
+   'task 123'          -> 0.80  // inferred
+
+   // Team Parser
+   '[team:frontend]'     -> 0.95  // explicit
+   'frontend team'      -> 0.80  // inferred
+
+   // Time Parser
+   '[time:14:30]'       -> 0.95  // explicit
+   '2:30 PM'           -> 0.90  // 12h format
+   'in 2 hours'        -> 0.80  // relative
 
    // TimeOfDay Parser
    '[time:14:30]'       -> 0.95  // explicit
@@ -115,6 +166,10 @@ describe('Error Handling', () => {
    '[urgency:high]'     -> 0.95  // explicit
    'ASAP'              -> 0.85  // time-based
    'urgent'            -> 0.80  // keyword
+
+   // Version Parser
+   '[version:1.0.0]'    -> 0.95  // explicit
+   'version 1.0.0'     -> 0.80  // inferred
    ```
 
 ## Test File Organization
