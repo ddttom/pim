@@ -6,7 +6,11 @@ export const name = 'context';
 
 export async function parse(text) {
     if (!text || typeof text !== 'string') {
-        throw new Error('Invalid input: text must be a non-empty string');
+        return {
+            type: 'error',
+            error: 'INVALID_INPUT',
+            message: 'Input must be a non-empty string'
+        };
     }
 
     const patterns = {
@@ -70,11 +74,15 @@ function inferContextType(context) {
 }
 
 function calculateConfidence(type, context) {
-    let confidence = type === 'explicit' ? 0.95 : 0.8;
+    // Base confidence
+    let confidence = type === 'explicit' ? 0.95 : 0.75;
     
     // Boost confidence for well-known context types
     if (inferContextType(context) !== 'general') {
-        confidence = Math.min(confidence + 0.1, 1.0);
+        // For explicit patterns, can go above 0.9
+        // For inferred patterns, stay at or below 0.8
+        const maxConfidence = type === 'explicit' ? 1.0 : 0.8;
+        confidence = Math.min(confidence + 0.05, maxConfidence);
     }
     
     return confidence;
