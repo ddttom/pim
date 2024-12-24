@@ -16,7 +16,7 @@ const VALID_ROLES = new Set([
     'consultant'
 ]);
 
-function validateRole(role) {
+export function validateRole(role) {
     if (!role || typeof role !== 'string') return false;
     return VALID_ROLES.has(role.toLowerCase());
 }
@@ -45,7 +45,9 @@ export async function parse(text) {
                 let confidence;
                 const role = match[1].toLowerCase();
 
-                if (!validateRole(role)) {
+                // Call validateRole directly to allow error propagation
+                const isValid = parse.validateRole(role);
+                if (!isValid) {
                     continue;
                 }
 
@@ -88,3 +90,6 @@ export async function parse(text) {
         };
     }
 }
+
+// Make validateRole available for mocking in tests
+parse.validateRole = validateRole;

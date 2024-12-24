@@ -59,35 +59,36 @@ PIM (Personal Information Manager) is designed to be a lightweight, fast, and ef
      - Standardized confidence scoring
      - Rich metadata generation
    - ✅ Core parsers implemented and tested
-     - Status Parser (explicit 0.95, state 0.80, progress 0.80)
-     - Subject Parser (text cleanup, key terms, action verbs)
-     - Tags Parser (explicit 0.95, hashtags 0.80)
-     - Task Parser (explicit 0.95, inferred 0.80)
-     - Team Parser (explicit 0.95, inferred 0.80)
-     - TimeOfDay Parser (explicit 0.95, 12h 0.90, natural 0.80)
-     - Urgency Parser (explicit 0.95, time-based 0.85, keywords 0.80)
-     - Version Parser (explicit 0.95, inferred 0.80)
-   - ✅ Additional parsers ready for testing
      - Action Parser (verbs, completion)
      - Attendees Parser (lists, roles)
+     - Base Parser (common functionality)
      - Categories Parser (hierarchical, multiple)
      - Complexity Parser (levels, scoring)
      - Contact Parser (email, phone, references)
-     - Contexts Parser (location, tool, time)
+     - Context Parser (location, tool, time)
+     - Contexts Parser (multiple contexts)
+     - Cost Parser (amounts, currencies)
+     - Date Parser (explicit, natural language)
      - Dependencies Parser (tasks, relationships)
      - Duration Parser (explicit, natural)
      - Links Parser (URLs, files, markdown)
      - Location Parser (rooms, addresses)
      - Participants Parser (lists, roles)
-   - ✅ Comprehensive test coverage
-     - Input validation tests
-     - Pattern matching tests
-     - Edge case coverage
-     - Error handling tests
-     - Complete parser test suite
-     - Standardized test structure
-     - Confidence scoring validation
-     - Metadata verification
+     - Priority Parser (explicit 0.95, inferred 0.80)
+     - Progress Parser (explicit 0.95, percentage 0.80)
+     - Project Parser (explicit 0.95, inferred 0.80)
+     - Recurring Parser (explicit 0.95, natural 0.80)
+     - Reminders Parser (explicit 0.95, relative 0.80)
+     - Role Parser (explicit 0.95, inferred 0.80)
+     - Status Parser (explicit 0.95, state 0.80, progress 0.80)
+     - Subject Parser (text cleanup, key terms, action verbs)
+     - Tags Parser (explicit 0.95, hashtags 0.80)
+     - Task Parser (explicit 0.95, inferred 0.80)
+     - Team Parser (explicit 0.95, inferred 0.80)
+     - Time Parser (explicit 0.95, natural 0.80)
+     - TimeOfDay Parser (explicit 0.95, 12h 0.90, natural 0.80)
+     - Urgency Parser (explicit 0.95, time-based 0.85, keywords 0.80)
+     - Version Parser (explicit 0.95, inferred 0.80)
    - ✅ Pattern matching system
      - Regular expression optimization
      - Priority-based matching

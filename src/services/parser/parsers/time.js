@@ -1,5 +1,4 @@
 import { createLogger } from '../../../utils/logger.js';
-import { validatePatternMatch, calculateBaseConfidence } from '../utils/patterns.js';
 
 const logger = createLogger('TimeParser');
 
@@ -19,7 +18,11 @@ export const name = 'time';
 
 export async function parse(text) {
     if (!text || typeof text !== 'string') {
-        throw new Error('Invalid input: text must be a non-empty string');
+        return {
+            type: 'error',
+            error: 'INVALID_INPUT',
+            message: 'Input must be a non-empty string'
+        };
     }
 
     try {
@@ -49,17 +52,23 @@ export async function parse(text) {
         const timeMatch = text.match(TIME_PATTERNS.specific);
         if (timeMatch) {
             const timeValue = parseTimeComponents(timeMatch[1], timeMatch[2], timeMatch[3]);
-            if (timeValue) {
+            if (!timeValue) {
                 return {
-                    type: 'time',
-                    value: timeValue,
-                    metadata: {
-                        pattern: 'specific',
-                        confidence: calculateConfidence(timeMatch, text, 'specific'),
-                        originalMatch: timeMatch[0]
-                    }
+                    type: 'error',
+                    error: 'PARSER_ERROR',
+                    message: 'Invalid time values'
                 };
             }
+
+            return {
+                type: 'time',
+                value: timeValue,
+                metadata: {
+                    pattern: 'specific',
+                    confidence: calculateConfidence(timeMatch, text, 'specific'),
+                    originalMatch: timeMatch[0]
+                }
+            };
         }
 
         return null;
@@ -97,11 +106,11 @@ function parseTimeComponents(hours, minutes, meridian) {
             } else if (meridian.toLowerCase() === 'am' && parsedHours === 12) {
                 parsedHours = 0;
             }
-        } else {
-            // 24-hour format validation
-            if (parsedHours < 0 || parsedHours > 23) {
-                return null;
-            }
+        }
+
+        // 24-hour format validation
+        if (parsedHours < 0 || parsedHours > 23) {
+            return null;
         }
 
         // Minutes validation
@@ -126,19 +135,20 @@ function calculateConfidence(matches, text, type) {
     switch (type) {
         case 'specific':
             confidence = matches[2] ? 0.95 : 0.9; // Higher confidence with minutes specified
-            if (matches[3]) confidence += 0.05; // Additional boost for AM/PM
+            if (matches[3]) confidence += 0.02; // Additional boost for AM/PM
             break;
         case 'period':
-            confidence = matches[0].includes('in the') ? 0.95 : 0.9;
+            confidence = matches[0].includes('in the') ? 0.85 : 0.8;
             break;
         case 'action':
-            confidence = 0.8;
+            confidence = 0.75;
             break;
     }
 
     // Position-based confidence
-    if (matches.index === 0) confidence += 0.05;
-    if (text[matches.index - 1] === ' ') confidence += 0.05;
+    if (matches.index === 0) {
+        confidence = Math.min(confidence + 0.05, 1.0);
+    }
 
-    return Math.min(confidence, 1.0);
+    return confidence;
 }

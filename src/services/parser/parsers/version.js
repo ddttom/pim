@@ -4,7 +4,7 @@ const logger = createLogger('VersionParser');
 
 export const name = 'version';
 
-function validateVersion(version) {
+export function validateVersion(version) {
     if (!version || typeof version !== 'string') return false;
     // Semantic versioning: MAJOR.MINOR.PATCH
     return /^\d+\.\d+\.\d+$/.test(version);
@@ -29,7 +29,9 @@ export async function parse(text) {
         const explicitMatch = text.match(/\[version:([^\]]+)\]/i);
         if (explicitMatch) {
             const version = explicitMatch[1].trim();
-            if (!validateVersion(version)) return null;
+            // Call validateVersion directly to allow error propagation
+            const isValid = parse.validateVersion(version);
+            if (!isValid) return null;
 
             return {
                 type: 'version',
@@ -46,7 +48,9 @@ export async function parse(text) {
         const inferredMatch = text.match(/\b(?:version|v)\s*(\d+\.\d+\.\d+)\b/i);
         if (inferredMatch) {
             const version = inferredMatch[1];
-            if (!validateVersion(version)) return null;
+            // Call validateVersion directly to allow error propagation
+            const isValid = parse.validateVersion(version);
+            if (!isValid) return null;
 
             return {
                 type: 'version',
@@ -69,3 +73,6 @@ export async function parse(text) {
         };
     }
 }
+
+// Make validateVersion available for mocking in tests
+parse.validateVersion = validateVersion;

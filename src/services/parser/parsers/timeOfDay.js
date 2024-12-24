@@ -55,7 +55,7 @@ export async function parse(text) {
         }
 
         // Check for 12-hour format
-        const twelveHourMatch = text.match(/\b(\d{1,2}):(\d{2})\s*(am|pm)\b/i);
+        const twelveHourMatch = text.match(/\b(\d{1,2}):(\d{2})\s*(AM|PM)\b/i);
         if (twelveHourMatch) {
             const rawHour = parseInt(twelveHourMatch[1], 10);
             const minute = parseInt(twelveHourMatch[2], 10);
@@ -63,6 +63,7 @@ export async function parse(text) {
             
             if (rawHour < 1 || rawHour > 12) return null;
             if (!validateTime(rawHour, minute)) return null;
+            if (period !== 'AM' && period !== 'PM') return null;
 
             const hour = convertTo24Hour(rawHour, period);
 
@@ -76,16 +77,17 @@ export async function parse(text) {
                 },
                 metadata: {
                     pattern: '12h_time',
-                    confidence: 0.90,
+                    confidence: 0.9,
                     originalMatch: twelveHourMatch[0]
                 }
             };
         }
 
         // Check for natural time expressions
-        for (const [period, range] of Object.entries(NATURAL_PERIODS)) {
-            const naturalMatch = text.match(new RegExp(`\\b${period}\\b`, 'i'));
-            if (naturalMatch) {
+        const naturalMatch = text.match(/\b(?:in\s+the\s+)?(morning|afternoon|evening|night)\b/i);
+        if (naturalMatch) {
+            const period = naturalMatch[1].toLowerCase();
+            if (period in NATURAL_PERIODS) {
                 return {
                     type: 'timeofday',
                     value: {
@@ -94,8 +96,8 @@ export async function parse(text) {
                     },
                     metadata: {
                         pattern: 'natural_time',
-                        confidence: 0.80,
-                        originalMatch: naturalMatch[0]
+                        confidence: 0.8,
+                        originalMatch: naturalMatch[1]
                     }
                 };
             }

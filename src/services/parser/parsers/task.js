@@ -4,7 +4,7 @@ const logger = createLogger('TaskParser');
 
 export const name = 'task';
 
-function validateTaskId(id) {
+export function validateTaskId(id) {
     if (!id || typeof id !== 'string') return false;
     return /^\d+$/.test(id);
 }
@@ -23,7 +23,9 @@ export async function parse(text) {
         const explicitMatch = text.match(/\[task:(\d+)\]/i);
         if (explicitMatch) {
             const taskId = explicitMatch[1];
-            if (!validateTaskId(taskId)) return null;
+            // Call validateTaskId directly to allow error propagation
+            const isValid = parse.validateTaskId(taskId);
+            if (!isValid) return null;
 
             return {
                 type: 'task',
@@ -42,7 +44,9 @@ export async function parse(text) {
         const inferredMatch = text.match(/\b(?:task|ticket|issue)\s+#?(\d+)\b/i);
         if (inferredMatch) {
             const taskId = inferredMatch[1];
-            if (!validateTaskId(taskId)) return null;
+            // Call validateTaskId directly to allow error propagation
+            const isValid = parse.validateTaskId(taskId);
+            if (!isValid) return null;
 
             return {
                 type: 'task',
@@ -67,3 +71,6 @@ export async function parse(text) {
         };
     }
 }
+
+// Make validateTaskId available for mocking in tests
+parse.validateTaskId = validateTaskId;

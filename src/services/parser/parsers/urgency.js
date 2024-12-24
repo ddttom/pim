@@ -12,7 +12,6 @@ const URGENCY_LEVELS = {
 
 const URGENCY_KEYWORDS = {
     urgent: 'high',
-    asap: 'high',
     critical: 'high',
     important: 'high',
     priority: 'high',
@@ -24,13 +23,13 @@ const URGENCY_KEYWORDS = {
     routine: 'low'
 };
 
-const TIME_URGENCY = new Set([
-    'asap',
-    'immediately',
-    'right away',
-    'right now',
-    'as soon as possible'
-]);
+const TIME_URGENCY_PATTERNS = [
+    /\basap\b/i,
+    /\bimmediately\b/i,
+    /\bright away\b/i,
+    /\bright now\b/i,
+    /\bas soon as possible\b/i
+];
 
 function validateUrgencyLevel(level) {
     return level && typeof level === 'string' && level.toLowerCase() in URGENCY_LEVELS;
@@ -66,22 +65,40 @@ export async function parse(text) {
             };
         }
 
+        // Check for time-based urgency
+        for (const pattern of TIME_URGENCY_PATTERNS) {
+            const timeMatch = text.match(pattern);
+            if (timeMatch) {
+                return {
+                    type: 'urgency',
+                    value: {
+                        level: 'high',
+                        score: URGENCY_LEVELS.high,
+                        timeBased: true
+                    },
+                    metadata: {
+                        pattern: 'time_urgency',
+                        confidence: 0.85,
+                        originalMatch: timeMatch[0]
+                    }
+                };
+            }
+        }
+
         // Check for urgency keywords
-        const lowerText = text.toLowerCase();
         for (const [keyword, level] of Object.entries(URGENCY_KEYWORDS)) {
             const keywordMatch = text.match(new RegExp(`\\b${keyword}\\b`, 'i'));
             if (keywordMatch) {
-                const isTimeBased = TIME_URGENCY.has(keyword);
                 return {
                     type: 'urgency',
                     value: {
                         level,
                         score: URGENCY_LEVELS[level],
-                        ...(isTimeBased ? { timeBased: true } : { keyword })
+                        keyword: keyword.toLowerCase()
                     },
                     metadata: {
-                        pattern: isTimeBased ? 'time_urgency' : 'keyword_urgency',
-                        confidence: isTimeBased ? 0.85 : 0.80,
+                        pattern: 'keyword_urgency',
+                        confidence: 0.8,
                         originalMatch: keywordMatch[0]
                     }
                 };

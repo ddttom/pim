@@ -10,7 +10,9 @@ const ACTION_VERBS = new Set([
     'create', 'update', 'delete', 'review', 'implement',
     'fix', 'add', 'remove', 'change', 'test', 'write',
     'document', 'analyze', 'design', 'develop', 'build',
-    'deploy', 'configure', 'optimize', 'refactor', 'debug'
+    'deploy', 'configure', 'optimize', 'refactor', 'debug',
+    'submit', 'check', 'verify', 'validate', 'prepare',
+    'setup', 'install', 'migrate', 'monitor', 'maintain'
 ]);
 
 const CLEANUP_PATTERNS = [
@@ -21,7 +23,8 @@ const CLEANUP_PATTERNS = [
     // Project references
     /\b(?:for|in|under)\s+(?:project\s+)?[a-z0-9_-]+\b/i,
     // Priority markers
-    /\b(?:high|medium|low)\s+priority\b/i
+    /\b(?:high|medium|low)\s+priority\b/i,
+    /\b(?:priority:\s*(?:high|medium|low))\b/i
 ];
 
 const TAG_PATTERNS = [
@@ -65,7 +68,10 @@ function extractKeyTerms(text) {
         if (ACTION_VERBS.has(word)) {
             terms.add(word);
         } else if (word.length > 3 && !INVALID_START_WORDS.has(word)) {
-            terms.add(word);
+            // Add significant terms (nouns, adjectives, etc.)
+            if (!/^(?:and|but|or|if|then|else|when|what|where|how|why|who)$/i.test(word)) {
+                terms.add(word);
+            }
         }
     }
 
@@ -103,17 +109,18 @@ export async function parse(text) {
             const subjectText = explicitMatch[1].trim();
             if (!validateSubject(subjectText)) return null;
 
+            const keyTerms = extractKeyTerms(subjectText);
             return {
                 type: 'subject',
                 value: {
                     text: subjectText,
-                    keyTerms: extractKeyTerms(subjectText)
+                    keyTerms
                 },
                 metadata: {
                     confidence: 0.95,
                     pattern: 'explicit',
                     originalMatch: explicitMatch[0],
-                    hasActionVerb: extractKeyTerms(subjectText).some(term => ACTION_VERBS.has(term))
+                    hasActionVerb: keyTerms.some(term => ACTION_VERBS.has(term))
                 }
             };
         }

@@ -17,7 +17,7 @@ const VALID_TEAMS = new Set([
     'platform'
 ]);
 
-function validateTeam(team) {
+export function validateTeam(team) {
     if (!team || typeof team !== 'string') return false;
     return VALID_TEAMS.has(team.toLowerCase());
 }
@@ -36,7 +36,9 @@ export async function parse(text) {
         const explicitMatch = text.match(/\[team:([^\]]+)\]/i);
         if (explicitMatch) {
             const team = explicitMatch[1].trim();
-            if (!validateTeam(team)) return null;
+            // Call validateTeam directly to allow error propagation
+            const isValid = parse.validateTeam(team);
+            if (!isValid) return null;
 
             return {
                 type: 'team',
@@ -55,7 +57,9 @@ export async function parse(text) {
         const inferredMatch = text.match(/\b([a-z0-9_-]+)\s+team\b/i);
         if (inferredMatch) {
             const team = inferredMatch[1];
-            if (!validateTeam(team)) return null;
+            // Call validateTeam directly to allow error propagation
+            const isValid = parse.validateTeam(team);
+            if (!isValid) return null;
 
             return {
                 type: 'team',
@@ -80,3 +84,6 @@ export async function parse(text) {
         };
     }
 }
+
+// Make validateTeam available for mocking in tests
+parse.validateTeam = validateTeam;

@@ -15,7 +15,8 @@ const STATUS_LEVELS = {
 const STATUS_MAPPINGS = {
     waiting: 'blocked',
     done: 'completed',
-    finished: 'completed'
+    finished: 'completed',
+    cancelled: 'cancelled'  // Added explicit mapping
 };
 
 function validateStatus(status) {
@@ -43,10 +44,10 @@ export async function parse(text) {
 
     try {
         const patterns = {
-            explicit: /\b(?:\[status:|status:)\s*([a-z]+)\]?/i,
+            explicit: /\b(?:status:\s*|(?:\[status:))([a-z]+)(?:\]|\b)/i,
             shorthand: /[\[\(]([a-z]+)[\]\)]/i,
             state: /\b(?:is|marked\s+as)\s+([a-z]+)\b/i,
-            progress: /(\d+)%\s*complete\b/i,
+            progress: /\b(\d+)%\s*(?:complete|done|finished)\b/i,
             contextual: /\b(waiting|done|finished|cancelled)\b/i
         };
 

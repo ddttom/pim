@@ -9,7 +9,7 @@ const RECURRING_PATTERNS = {
     monthly: /\b(?:every|each)\s+(?:month|monthly)\b/i,
     weekday: /\b(?:every|each)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
     business: /\b(?:every|each)\s+(?:business|work(?:ing)?)\s+day\b/i,
-    interval: /\b(?:every|each)\s+(\d+)\s+(day|week|month|hour)s?\b/i,
+    interval: /\b(?:every|each)\s+(-?\d+)\s+(day|week|month|hour)s?\b/i,
     endCount: /\bfor\s+(\d+)\s+times\b/i,
     endDate: /\buntil\s+([^,\n]+)\b/i
 };
@@ -40,7 +40,7 @@ export async function parse(text) {
                 const value = await extractRecurringValue(matches, type);
                 if (value) {
                     const endCondition = await extractEndCondition(text);
-                    const confidence = calculateConfidence(type, endCondition);
+                    const confidence = calculateConfidence(type, endCondition, matches.index);
 
                     return {
                         type: 'recurring',
@@ -110,10 +110,10 @@ async function extractRecurringValue(matches, type) {
 
         case 'interval': {
             const interval = parseInt(matches[1], 10);
-            const unit = matches[2].toLowerCase();
             if (interval <= 0) {
                 throw new Error('Invalid interval value');
             }
+            const unit = matches[2].toLowerCase();
             return { type: unit, interval };
         }
 
@@ -137,7 +137,7 @@ async function extractEndCondition(text) {
     return null;
 }
 
-function calculateConfidence(type, endCondition) {
+function calculateConfidence(type, endCondition, position) {
     let confidence;
 
     switch (type) {
@@ -165,6 +165,11 @@ function calculateConfidence(type, endCondition) {
     // End condition increases confidence slightly
     if (endCondition) {
         confidence = Math.min(confidence + 0.05, 1.0);
+    }
+
+    // Position-based confidence adjustment
+    if (position === 0) {
+        confidence = Math.min(confidence + 0.1, 1.0);
     }
 
     return confidence;
