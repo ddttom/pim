@@ -1,6 +1,6 @@
 # PIM (Personal Information Manager)
 
-A desktop application for managing personal information with rich text editing capabilities.
+A desktop application for managing personal information with rich text editing capabilities, using modern javascript and css, no typescript or frameworks requiring build, except foe electron
 
 ## Screenshots
 
