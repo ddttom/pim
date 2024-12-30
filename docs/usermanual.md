@@ -4,7 +4,7 @@
 
 ### Main View
 
-![Main Interface](docs/images/main app screen.png)
+![Main Interface](images/main app screen.png)
 
 The main view displays your entries in a table format with sortable columns:
 
@@ -20,7 +20,7 @@ Click any column header to sort entries. Click again to reverse sort order.
 
 ### Sidebar Navigation
 
-![Sidebar](docs/images/sidebar showing on main.png)
+![Sidebar](images/sidebar showing on main.png)
 
 The sidebar provides quick access to filtered views:
 
@@ -117,7 +117,7 @@ All modals support:
 
 ### Settings
 
-![Settings](docs/images/settings modal.png)
+![Settings](images/settings modal.png)
 
 Access settings through the gear icon to configure:
 

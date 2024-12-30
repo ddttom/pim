@@ -3,24 +3,29 @@
 ## Development Setup
 
 ### Prerequisites
+
 - Node.js (v16 or higher)
 - npm (v7 or higher)
 - Git
 
 ### Getting Started
+
 1. Fork the repository
 2. Clone your fork:
+
 ```bash
 git clone https://github.com/yourusername/pim.git
 cd pim
 ```
 
 3. Install dependencies:
+
 ```bash
 npm install
 ```
 
 4. Create a branch for your feature:
+
 ```bash
 git checkout -b feature/your-feature-name
 ```
@@ -28,6 +33,7 @@ git checkout -b feature/your-feature-name
 ## Development Workflow
 
 ### Running the Application
+
 ```bash
 # Development mode with hot reload
 npm run dev
@@ -38,6 +44,7 @@ npm start
 ```
 
 ### Testing
+
 ```bash
 # Run all tests
 npm test
@@ -52,7 +59,9 @@ npm run test:watch
 ```
 
 ### Code Style
+
 We use ESLint with Airbnb style guide. Before committing:
+
 ```bash
 # Check code style
 npm run lint
@@ -63,7 +72,7 @@ npm run lint:fix
 
 ## Project Structure
 
-```
+```bash
 /src
 ├── main/           # Main process code
 ├── renderer/       # Renderer process code
@@ -77,16 +86,19 @@ npm run lint:fix
 ### Key Components
 
 #### Parser Service
+
 - Handles natural language processing
 - Extracts metadata from text
 - Plugin-based architecture
 
 #### Database Service
+
 - JSON-based storage
 - Transaction support
 - Backup/restore functionality
 
 #### Sync Service
+
 - Cloud provider integration
 - Data synchronization
 - Conflict resolution
@@ -100,6 +112,7 @@ npm run lint:fix
 5. Submit PR with description
 
 ### PR Checklist
+
 - [ ] Tests added/updated
 - [ ] Documentation updated
 - [ ] CHANGELOG.md updated
@@ -109,6 +122,7 @@ npm run lint:fix
 ## Release Process
 
 1. Version Bump
+
 ```bash
 npm version patch|minor|major
 ```
@@ -120,15 +134,14 @@ npm version patch|minor|major
 
 ## Additional Resources
 
-- [Issue Tracker](https://github.com/yourusername/pim/issues)
-- [Project Wiki](https://github.com/yourusername/pim/wiki)
-- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Issue Tracker](https://github.com/ddttom/pim/issues)
+- [Project Wiki](https://github.com/ddttom/pim/wiki)
 
 ## Questions?
 
 Feel free to:
-1. Open an issue
-2. Join our Discord server
-3. Contact maintainers
 
-Thank you for contributing to PIM! 
+1. Open an issue
+2. Contact maintainers
+
+Thank you for contributing to PIM!

@@ -84,4 +84,4 @@ UI Components
 - Security hardening
 - Documentation updates
 
-Note: The project maintains its focus on simplicity and performance through modern JavaScript and CSS, avoiding TypeScript and complex build requirements.
+Note: The project maintains its focus on simplicity and performance through modern JavaScript and CSS, avoiding TypeScript and complex build requirements. For complete requirements, see [Product Requirements](../docs/prd.md).

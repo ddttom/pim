@@ -2,7 +2,7 @@
 
 A desktop application for managing personal information with rich text editing capabilities, using modern JavaScript and CSS, no TypeScript or frameworks requiring build, except for Electron.
 
-For detailed product requirements and specifications, see [Product Requirements](prd.md).
+For detailed product requirements and specifications, see [Product Requirements](docs/prd.md).
 
 ## Screenshots
 
@@ -28,7 +28,7 @@ For detailed product requirements and specifications, see [Product Requirements]
 - Keyboard-driven interface
 - Cloud sync (coming soon)
 
-For complete feature details, see [User Manual](usermanual.md).
+For complete feature details, see [User Manual](docs/usermanual.md).
 
 ## Installation
 
@@ -122,13 +122,13 @@ The application uses a modular CSS system:
 5. Search content with `Ctrl+F`
 6. Access settings with `Ctrl+,`
 
-For complete keyboard shortcuts and features, see [User Manual](usermanual.md).
+For complete keyboard shortcuts and features, see [User Manual](docs/usermanual.md).
 
 ## Documentation
 
-- [User Manual](usermanual.md) - Guide for end users
-- [Project Status](projectstate.md) - Current state and roadmap
-- [Configuration](config.md) - Configuration system details
+- [User Manual](docs/usermanual.md) - Guide for end users
+- [Project Status](docs/projectstate.md) - Current state and roadmap
+- [Configuration](docs/config.md) - Configuration system details
 - [Plugin System](docs/plugin.md) - Plugin development guide
 - [Testing](docs/test.md) - Test suite documentation
 - [Contributing](CONTRIBUTING.md) - Development guidelines
