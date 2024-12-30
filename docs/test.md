@@ -192,13 +192,14 @@ npm test -- --coverage
 
 ## Adding New Tests
 
-1. Create test file in appropriate directory
-2. Import required modules and mocks
-3. Set up test data and mocks
-4. Write test cases
-5. Verify both success and failure scenarios
-6. Clean up test data
-7. Update test documentation
+1. Do not add tests unless the user requests them
+2. Create test file in appropriate directory, tests/....
+3. Import required modules and mocks
+4. Set up test data and mocks
+5. Write test cases
+6. Verify both success and failure scenarios
+7. Clean up test data
+8. Update test documentation
 
 ## Common Patterns
 

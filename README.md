@@ -1,6 +1,8 @@
 # PIM (Personal Information Manager)
 
-A desktop application for managing personal information with rich text editing capabilities, using modern javascript and css, no typescript or frameworks requiring build, except foe electron
+A desktop application for managing personal information with rich text editing capabilities, using modern JavaScript and CSS, no TypeScript or frameworks requiring build, except for Electron.
+
+For detailed product requirements and specifications, see [Product Requirements](prd.md).
 
 ## Screenshots
 
@@ -16,33 +18,17 @@ A desktop application for managing personal information with rich text editing c
 
 ![Sidebar](docs/images/sidebar showing on main.png)
 
-## Features
+## Key Features
 
-- Rich text editor with markdown support
-- Multiple content types:
-  - Note: General text entries
-  - Document: Formatted documents
-  - Template: Reusable templates
-  - HTML: Web content
-  - Record: Structured data entries
-  - Task: Action items or to-dos
-  - Event: Calendar events and meetings
-- Entry archiving system
-  - Archive old entries
-  - Separate archived view
-  - Visual distinction for archived items
-- Advanced modal system
-  - Dynamic creation and removal
-  - Context-aware positioning
-  - Full viewport editor
-  - Proper layering and scrolling
-  - Positioned modals for context actions
-  - Automatic scrollbars for overflow
-- Advanced settings management
+- Rich text editor with Markdown support
+- Multiple content types (Notes, Documents, Tasks, etc.)
+- Entry organization and archiving
+- Advanced search and filtering
 - Customizable themes
-- Keyboard shortcuts
-- Search and filter capabilities
-- Cloud sync support (coming soon)
+- Keyboard-driven interface
+- Cloud sync (coming soon)
+
+For complete feature details, see [User Manual](usermanual.md).
 
 ## Installation
 
@@ -127,55 +113,16 @@ The application uses a modular CSS system:
 - Dynamic style loading with smooth transitions
 - Proper z-index management for overlays
 
-## Usage
+## Quick Start Guide
 
-- Create new entries with Ctrl+N or the New Entry button
-- Save entries with Ctrl+S
-- Save As to change entry type
-- Archive old entries to keep workspace clean
-- Filter by type or archived status
-- Access settings via the gear icon or Ctrl+,
-- Use keyboard shortcuts for common actions
+1. Create entries with `Ctrl+N` or the New Entry button
+2. Use the rich text editor to write content
+3. Save with `Ctrl+S`
+4. Organize entries using the sidebar filters
+5. Search content with `Ctrl+F`
+6. Access settings with `Ctrl+,`
 
-## UI Features
-
-The application features a modern, efficient interface:
-
-### Main Layout
-
-- Streamlined toolbar with icon-only buttons and tooltips
-- Collapsible sidebar for maximizing workspace
-- Clean, organized table view for entries
-- Search bar with real-time filtering
-- Content type badges showing current entry type
-
-### Visual Design
-
-- Consistent button sizes (40x40px touch targets)
-- Proper spacing and alignment throughout
-- Hover effects and visual feedback
-- Theme-aware styling with light/dark modes
-- Smooth transitions for layout changes
-
-### Components
-
-- Dynamic modal system with context positioning
-- Full viewport editor for maximum workspace
-- Proper modal layering and scrolling
-- Toast notifications for user feedback
-- Proper z-index management for overlays
-- Tooltips with arrow indicators
-- Responsive layout adjustments
-
-## Keyboard Shortcuts
-
-- `Ctrl+N`: New entry
-- `Ctrl+S`: Save
-- `Ctrl+F`: Search
-- `Ctrl+,`: Settings
-- `Ctrl+B`: Bold
-- `Ctrl+I`: Italic
-- `Ctrl+U`: Underline
+For complete keyboard shortcuts and features, see [User Manual](usermanual.md).
 
 ## Documentation
 

@@ -26,7 +26,7 @@ PIM (Personal Information Manager) is a desktop application designed to help use
 2. Code Organization
    - Clear module structure
    - Comprehensive documentation
-   - Thorough testing, do not add tests until user requests
+   - Thorough testing
    - Consistent coding standards
    - Proper error handling
 
@@ -57,13 +57,87 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - Sort options
    - Archival system
 
+### User Interface
+
+1. Entry List View
+   - Table format with sortable columns:
+     - Content (with hover preview)
+     - Type (with color-coded badges)
+     - Date
+     - Project
+     - Priority
+     - Tags
+     - Deadline
+   - Click-to-sort functionality
+   - Column header controls
+   - Content preview on hover
+   - Visual indicators for entry status
+
+2. Layout Components
+   - Collapsible sidebar for filtered views:
+     - All Entries
+     - Overdue
+     - Priority levels
+     - Entry types
+     - Categories
+     - Status
+   - Toolbar with core actions:
+     - New Entry
+     - Copy DB
+     - Settings
+   - Search bar with real-time filtering
+   - Editor workspace
+   - Status bar
+   - Context menus
+
+3. Editor Interface
+   - Full viewport workspace
+   - Rich text toolbar
+   - Type indicator badge
+   - Navigation controls
+   - Save/Save As options
+   - Image attachment support
+   - Parser testing interface
+   - Archive controls
+   - Settings access
+
+4. Modal System
+   - Settings configuration
+   - Quick entry creation
+   - Type conversion
+   - Search interface
+   - Plugin management
+   - Help/documentation
+   - Escape key to close
+   - Click outside to dismiss
+   - Proper layering
+   - Scrollable content
+   - Keyboard focus management
+
+5. Visual Design
+   - Light/dark theme support
+   - Custom theme creation
+   - Consistent spacing
+   - Clear visual hierarchy
+   - Responsive design
+   - Touch targets (40x40px)
+   - Proper contrast ratios
+   - Color-coded type badges:
+     - Note (Green)
+     - Document (Blue)
+     - Template (Purple)
+     - HTML (Orange)
+     - Record (Brown)
+     - Task (Red)
+     - Event (Teal)
+
 ### Editor Requirements
 
 1. Rich Text Capabilities
-   - Basic formatting (bold, italic, underline)
+   - Headers (H1, H2, H3)
+   - Basic formatting (bold, italic, underline, strike-through)
    - Lists (ordered and unordered)
-   - Headers
-   - Links
+   - Links and blockquotes
    - Images
    - Tables
    - Code blocks
@@ -78,33 +152,11 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - Print support
    - Copy/paste handling
    - Drag and drop support
-
-### User Interface
-
-1. Layout Components
-   - Collapsible sidebar
-   - Entry list view
-   - Editor workspace
-   - Toolbar
-   - Status bar
-   - Context menus
-
-2. Modal System
-   - Settings configuration
-   - Quick entry creation
+   - Back to list navigation
    - Type conversion
-   - Search interface
-   - Plugin management
-   - Help/documentation
-
-3. Visual Design
-   - Light/dark theme support
-   - Custom theme creation
-   - Consistent spacing
-   - Clear visual hierarchy
-   - Responsive design
-   - Touch targets (40x40px)
-   - Proper contrast ratios
+   - Image attachments
+   - Parser testing
+   - Archive functionality
 
 ### System Features
 
@@ -123,6 +175,7 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - Media directory management
    - Database migration support
    - Data integrity checks
+   - Copy database to clipboard function
 
 2. Synchronization
    - Cloud sync support
@@ -146,6 +199,7 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - Search results < 500ms
    - Sync operations < 5 seconds
    - UI interactions < 16ms
+   - Real-time search updates
 
 2. Resource Usage
    - Memory usage < 200MB
@@ -153,6 +207,23 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - Storage efficiency
    - Battery optimization
    - Network efficiency
+
+### Input Requirements
+
+1. Keyboard Shortcuts
+   - Ctrl+N: New entry
+   - Ctrl+S: Save current entry
+   - Ctrl+F: Focus search
+   - Ctrl+,: Open settings
+   - Ctrl+\: Toggle sidebar
+   - Esc: Clear search/close modals
+
+2. Mouse Operations
+   - Column header clicking for sort
+   - Content hover for preview
+   - Modal dismissal
+   - Drag and drop support
+   - Context menu access
 
 ### Security Requirements
 
