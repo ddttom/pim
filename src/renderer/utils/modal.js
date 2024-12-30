@@ -1,12 +1,9 @@
-import modalStateManager from './modalStateManager.js';
-
 /**
- * Dynamic modal system with state management
+ * Dynamic modal system
  */
 export class Modal {
   constructor(options = {}) {
     this.options = {
-      id: options.id || `modal-${Date.now()}`,
       title: options.title || '',
       content: options.content || '',
       buttons: options.buttons || [],
@@ -15,75 +12,32 @@ export class Modal {
       height: options.height || 'auto',
       className: options.className || '',
       modalClassName: options.modalClassName || '',
-      position: options.position || null,
-      onClickOutside: options.onClickOutside || null
+      position: options.position || null
     };
     
     this.element = null;
-    this.container = null;
-    this.isDestroyed = false;
-    this.isUpdating = false;
-
-    // Register with state manager
-    this.zIndex = modalStateManager.registerModal(this.options.id, {
-      title: this.options.title,
-      className: this.options.className,
-      isVisible: false
-    });
-
-    // Subscribe to state changes
-    modalStateManager.subscribe(this.options.id, this.handleStateChange.bind(this));
+    this.createModal();
   }
 
-  /**
-   * Handle state changes from modal state manager
-   */
-  handleStateChange(action, state) {
-    if (this.isDestroyed || this.isUpdating) return;
-
-    try {
-      this.isUpdating = true;
-
-      switch (action) {
-        case 'update':
-          if (state.isVisible !== undefined && state.isVisible !== this.isVisible) {
-            state.isVisible ? this._show() : this._close();
-          }
-          break;
-        case 'unregister':
-          this.destroy();
-          break;
-      }
-    } finally {
-      this.isUpdating = false;
-    }
-  }
-
-  /**
-   * Create modal DOM elements
-   */
   createModal() {
-    if (this.element) return;
-
     // Create modal container
     this.element = document.createElement('div');
     this.element.className = `modal ${this.options.modalClassName}`;
-    this.element.style.zIndex = this.zIndex;
     
     // Create modal content
-    this.container = document.createElement('div');
-    this.container.className = `modal-container ${this.options.className}`;
-    this.container.style.width = this.options.width;
-    this.container.style.height = this.options.height;
+    const modalContainer = document.createElement('div');
+    modalContainer.className = `modal-container ${this.options.className}`;
+    modalContainer.style.width = this.options.width;
+    modalContainer.style.height = this.options.height;
     
     // Apply custom positioning if provided
     if (this.options.position) {
-      this.container.style.position = 'absolute';
-      if (this.options.position.top) this.container.style.top = this.options.position.top;
-      if (this.options.position.left) this.container.style.left = this.options.position.left;
-      if (this.options.position.right) this.container.style.right = this.options.position.right;
-      if (this.options.position.bottom) this.container.style.bottom = this.options.position.bottom;
-      this.container.style.transform = 'none';
+      modalContainer.style.position = 'absolute';
+      if (this.options.position.top) modalContainer.style.top = this.options.position.top;
+      if (this.options.position.left) modalContainer.style.left = this.options.position.left;
+      if (this.options.position.right) modalContainer.style.right = this.options.position.right;
+      if (this.options.position.bottom) modalContainer.style.bottom = this.options.position.bottom;
+      modalContainer.style.transform = 'none'; // Remove centering transform
     }
     
     // Create header
@@ -122,87 +76,46 @@ export class Modal {
     });
     
     // Assemble modal
-    this.container.appendChild(header);
-    this.container.appendChild(body);
+    modalContainer.appendChild(header);
+    modalContainer.appendChild(body);
     if (this.options.buttons.length > 0) {
-      this.container.appendChild(footer);
+      modalContainer.appendChild(footer);
     }
-    this.element.appendChild(this.container);
+    this.element.appendChild(modalContainer);
     
     // Add event listeners
-    const closeBtn = header.querySelector('.close-btn');
-    closeBtn.onclick = () => {
-      if (this.options.onClickOutside) {
-        this.options.onClickOutside();
-      } else {
-        this.close();
-      }
-    };
-
+    header.querySelector('.close-btn').onclick = () => this.close();
     this.element.onclick = (e) => {
-      if (e.target === this.element) {
-        if (this.options.onClickOutside) {
-          this.options.onClickOutside();
-        } else {
-          this.close();
-        }
-      }
+      if (e.target === this.element) this.close();
     };
   }
 
-  /**
-   * Internal show method
-   */
-  _show() {
-    this.createModal();
+  show() {
     document.body.appendChild(this.element);
+    // Prevent scrolling of background content
     document.body.classList.add('modal-open');
-    
+    // Add show class after a small delay to trigger transition
     requestAnimationFrame(() => {
       this.element.classList.add('show');
     });
   }
 
-  /**
-   * Public show method
-   */
-  show() {
-    if (this.isDestroyed) return;
-    modalStateManager.updateModalState(this.options.id, { isVisible: true });
-  }
-
-  /**
-   * Internal close method
-   */
-  _close() {
-    if (!this.element || this.isDestroyed) return;
-
-    this.element.classList.remove('show');
-    
-    setTimeout(() => {
-      if (this.element?.parentNode) {
+  close() {
+    if (this.element && this.element.parentNode) {
+      // Remove show class first to trigger transition
+      this.element.classList.remove('show');
+      // Wait for transition to complete
+      setTimeout(() => {
         this.element.parentNode.removeChild(this.element);
+        // Restore scrolling
         document.body.classList.remove('modal-open');
         if (this.options.onClose) this.options.onClose();
-      }
-    }, 200);
+      }, 200); // Match transition duration in CSS
+    }
   }
 
-  /**
-   * Public close method
-   */
-  close() {
-    if (this.isDestroyed) return;
-    modalStateManager.updateModalState(this.options.id, { isVisible: false });
-  }
-
-  /**
-   * Update modal content
-   */
   setContent(content) {
-    if (this.isDestroyed) return;
-
-    const body = this.element?.querySelector('.modal-body');
+    const body = this.element.querySelector('.modal-body');
     if (body) {
       body.innerHTML = '';
       if (typeof content === 'string') {
@@ -212,23 +125,26 @@ export class Modal {
       }
     }
   }
-
-  /**
-   * Clean up resources
-   */
-  destroy() {
-    if (this.isDestroyed) return;
-
-    // Close modal if open
-    this._close();
-
-    // Cleanup state
-    modalStateManager.unregisterModal(this.options.id);
-    modalStateManager.unsubscribe(this.options.id, this.handleStateChange);
-
-    // Mark as destroyed
-    this.isDestroyed = true;
-    this.element = null;
-    this.container = null;
-  }
 }
+
+// Example usage:
+/*
+const modal = new Modal({
+  title: 'Settings',
+  content: '<div>Settings content here</div>',
+  buttons: [
+    {
+      text: 'Cancel',
+      onClick: () => console.log('Cancel clicked')
+    },
+    {
+      text: 'Save',
+      primary: true,
+      onClick: () => console.log('Save clicked')
+    }
+  ],
+  onClose: () => console.log('Modal closed')
+});
+
+modal.show();
+*/

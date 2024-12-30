@@ -1,46 +1,45 @@
-// CSS Variables
-const cssVariables = {
-  // Colors
-  '--primary-color': '#007bff',
-  '--primary-color-dark': '#0056b3',
-  '--secondary-color': '#6c757d',
-  '--success-color': '#28a745',
-  '--success-color-dark': '#218838',
-  '--danger-color': '#dc3545',
-  '--warning-color': '#ffc107',
-  '--info-color': '#17a2b8',
-  '--background-color': '#ffffff',
-  '--text-color': '#212529',
-  '--border-color': '#dee2e6',
-  '--hover-color': '#f8f9fa',
-
-  // Spacing
-  '--spacing-xs': '4px',
-  '--spacing-sm': '8px',
-  '--spacing-md': '16px',
-  '--spacing-lg': '24px',
-  '--spacing-xl': '32px',
-
-  // Typography
-  '--font-family': 'system-ui, -apple-system, sans-serif',
-  '--font-size-sm': '12px',
-  '--font-size-md': '14px',
-  '--font-size-lg': '16px',
-  '--font-size-xl': '18px',
-
-  // Other
-  '--border-radius': '4px',
-  '--transition-speed': '0.2s',
-  '--transition-timing': 'ease'
-};
-
-// Apply CSS variables
-export function initializeStyles() {
-  const root = document.documentElement;
-  Object.entries(cssVariables).forEach(([key, value]) => {
-    root.style.setProperty(key, value);
+// Function to load CSS file
+function loadCSS(path) {
+  return new Promise((resolve) => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = path;
+    link.onload = () => resolve();
+    document.head.appendChild(link);
   });
 }
 
-// Initialize styles when imported
-initializeStyles();
+// Load all CSS files
+export async function initializeStyles() {
+  const styles = [
+    'styles/base.css',
+    'styles/ribbon.css',
+    'styles/sidebar.css',
+    'styles/entries.css',
+    'styles/editor.css',
+    'styles/modals.css',
+    'styles/theme.css'
+  ];
+
+  await Promise.all(styles.map(loadCSS));
+
+  // Apply theme based on system preference
+  const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (darkMode) {
+    document.body.classList.add('dark');
+  }
+}
+
+// Export a function to update theme
+export function updateTheme(isDark) {
+  if (isDark) {
+    document.body.classList.add('dark');
+  } else {
+    document.body.classList.remove('dark');
+  }
+}
+
+// Export a function to get current theme
+export function getCurrentTheme() {
+  return document.body.classList.contains('dark') ? 'dark' : 'light';
+}

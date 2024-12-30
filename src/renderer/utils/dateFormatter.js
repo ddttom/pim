@@ -1,72 +1,11 @@
-export function formatDate(dateString, format = 'system') {
+export function formatDate(dateString) {
   try {
     const date = new Date(dateString);
-    
-    // Get system locale
-    const systemLocale = navigator.language;
-    
-    // Format options based on selected format
-    switch (format) {
-      case 'system':
-        return date.toLocaleDateString();
-      
-      case 'us-short':
-        return date.toLocaleDateString('en-US', {
-          year: '2-digit',
-          month: '2-digit',
-          day: '2-digit'
-        });
-      
-      case 'us-medium':
-        return date.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        });
-      
-      case 'us-long':
-        return date.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
-      
-      case 'eu-short':
-        return date.toLocaleDateString('en-GB', {
-          year: '2-digit',
-          month: '2-digit',
-          day: '2-digit'
-        });
-      
-      case 'eu-medium':
-        return date.toLocaleDateString('en-GB', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        });
-      
-      case 'eu-long':
-        return date.toLocaleDateString('en-GB', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
-      
-      case 'iso':
-        return date.toISOString().split('T')[0];
-      
-      case 'jp':
-        return date.toLocaleDateString('ja-JP', {
-          year: 'numeric',
-          month: 'numeric',
-          day: 'numeric',
-          era: 'narrow'
-        });
-      
-      default:
-        // If format is not recognized, use system locale
-        return date.toLocaleDateString(systemLocale);
-    }
+    return date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   } catch (error) {
     console.error('Failed to format date:', error);
     return dateString;

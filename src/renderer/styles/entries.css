@@ -243,14 +243,5 @@
 
 .entries-table .deadline-cell {
   white-space: nowrap;
-  color: var(--text-color);
-}
-
-.entries-table .deadline-cell.future {
   color: var(--accent-color);
-}
-
-.entries-table .deadline-cell.overdue {
-  color: #e74c3c;
-  font-weight: 500;
 }

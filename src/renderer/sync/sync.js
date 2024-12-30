@@ -96,9 +96,7 @@ export async function restoreBackup(ipcRenderer, onRestore) {
 }
 
 export function setupAutoSync(settings, ipcRenderer) {
-  if (!settings.sync.enabled || !settings.sync.autoSync) {
-    return () => {}; // Return no-op cleanup if sync is disabled
-  }
+  if (!settings.sync.enabled || !settings.sync.autoSync) return;
 
   const intervals = {
     hourly: 60 * 60 * 1000,
@@ -108,8 +106,13 @@ export function setupAutoSync(settings, ipcRenderer) {
 
   const interval = intervals[settings.sync.syncInterval] || intervals.daily;
   
-  // Set up auto-sync interval
-  const autoSyncInterval = setInterval(async () => {
+  // Clear any existing auto-sync interval
+  if (window.autoSyncInterval) {
+    clearInterval(window.autoSyncInterval);
+  }
+  
+  // Set up new auto-sync interval
+  window.autoSyncInterval = setInterval(async () => {
     try {
       await syncNow(ipcRenderer, settings);
     } catch (error) {
@@ -126,10 +129,4 @@ export function setupAutoSync(settings, ipcRenderer) {
       console.error('Failed to update last sync time:', error);
     });
   }
-
-  // Return cleanup function
-  return () => {
-    console.log('[Sync] Cleaning up auto-sync');
-    clearInterval(autoSyncInterval);
-  };
 }

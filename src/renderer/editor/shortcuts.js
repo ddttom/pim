@@ -15,8 +15,7 @@ export function setupKeyboardShortcuts(settings = defaultSettings, ipcRenderer) 
   const shortcuts = settings?.shortcuts || defaultSettings.shortcuts;
   if (!shortcuts.enabled) return;
 
-  // Create handler function
-  const keydownHandler = (e) => {
+  document.addEventListener('keydown', (e) => {
     const keys = [];
     if (e.ctrlKey) keys.push('ctrl');
     if (e.shiftKey) keys.push('shift');
@@ -33,16 +32,7 @@ export function setupKeyboardShortcuts(settings = defaultSettings, ipcRenderer) 
       e.preventDefault();
       executeAction(action, ipcRenderer);
     }
-  };
-
-  // Add event listener
-  document.addEventListener('keydown', keydownHandler);
-
-  // Return cleanup function
-  return () => {
-    console.log('[Shortcuts] Cleaning up keyboard shortcuts');
-    document.removeEventListener('keydown', keydownHandler);
-  };
+  });
 }
 
 function executeAction(action, ipcRenderer) {
@@ -107,21 +97,8 @@ function handleEscape() {
 }
 
 export function setupShortcutRecording(settings = defaultSettings) {
-  // Track event handlers for cleanup
-  const eventHandlers = new Map();
-  
-  const addHandler = (element, event, handler) => {
-    if (!element) return;
-    element.addEventListener(event, handler);
-    if (!eventHandlers.has(element)) {
-      eventHandlers.set(element, new Map());
-    }
-    eventHandlers.get(element).set(event, handler);
-  };
-
-  // Setup recording buttons
   document.querySelectorAll('.record-shortcut-btn').forEach(btn => {
-    const recordHandler = function() {
+    btn.addEventListener('click', function() {
       const input = this.previousElementSibling;
       const action = input.dataset.action;
       
@@ -153,21 +130,6 @@ export function setupShortcutRecording(settings = defaultSettings) {
       }
       
       document.addEventListener('keydown', handleKeyDown);
-      // Track keydown handler for cleanup
-      eventHandlers.set(document, new Map([['keydown', handleKeyDown]]));
-    };
-
-    addHandler(btn, 'click', recordHandler);
-  });
-
-  // Return cleanup function
-  return () => {
-    console.log('[Shortcuts] Cleaning up shortcut recording');
-    eventHandlers.forEach((handlers, element) => {
-      handlers.forEach((handler, event) => {
-        element.removeEventListener(event, handler);
-      });
     });
-    eventHandlers.clear();
-  };
+  });
 }

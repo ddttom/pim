@@ -2,46 +2,35 @@ import { showToast } from '../utils/toast.js';
 import { EditorModal } from '../editor/EditorModal.js';
 import { loadEntriesList } from './entryList.js';
 import parser from '../../services/parser.js';
-import modalStateManager from '../utils/modalStateManager.js';
 
-// State management
-const state = {
-  currentEntryId: null,
-  editorModal: null,
-  cleanup: null
-};
+let currentEntryId = null;
+let editorModal = null;
 
 export function getCurrentEntryId() {
-  return state.currentEntryId;
+  return currentEntryId;
 }
 
 export async function createNewEntry(ipcRenderer) {
-  // Clean up existing editor if any
-  cleanup();
-
   // Reset current entry
-  state.currentEntryId = null;
+  currentEntryId = null;
 
   // Create new editor modal
-  state.editorModal = new EditorModal();
-  await state.editorModal.show({
+  editorModal = new EditorModal();
+  await editorModal.show({
     title: 'New Entry'
   });
 }
 
 export async function loadEntry(id, ipcRenderer) {
   try {
-    // Clean up existing editor if any
-    cleanup();
-
-    state.currentEntryId = id;
+    currentEntryId = id;
     const entries = await ipcRenderer.invoke('get-entries', { id });
     const entry = entries.find(e => e.id === id);
     if (!entry) throw new Error('Entry not found');
     
     // Create new editor modal with entry content
-    state.editorModal = new EditorModal();
-    await state.editorModal.show({
+    editorModal = new EditorModal();
+    await editorModal.show({
       title: `Edit Entry (${entry.type || 'note'})`,
       content: entry.html || entry.raw
     });
@@ -53,12 +42,12 @@ export async function loadEntry(id, ipcRenderer) {
 
 export async function saveEntry(ipcRenderer) {
   try {
-    if (!state.editorModal || !state.editorModal.getEditor()) {
+    if (!editorModal || !editorModal.getEditor()) {
       showToast('No active editor', 'error');
       return;
     }
 
-    const editor = state.editorModal.getEditor();
+    const editor = editorModal.getEditor();
     const editorContent = {
       raw: editor.getText(),
       html: editor.root.innerHTML
@@ -72,9 +61,9 @@ export async function saveEntry(ipcRenderer) {
 
     // Get current entry if editing to preserve type
     let currentEntry;
-    if (state.currentEntryId) {
-      const entries = await ipcRenderer.invoke('get-entries', { id: state.currentEntryId });
-      currentEntry = entries.find(e => e.id === state.currentEntryId);
+    if (currentEntryId) {
+      const entries = await ipcRenderer.invoke('get-entries', { id: currentEntryId });
+      currentEntry = entries.find(e => e.id === currentEntryId);
     }
 
     // Parse content and create entry object
@@ -86,17 +75,18 @@ export async function saveEntry(ipcRenderer) {
       ...parsedContent
     };
 
-    if (state.currentEntryId) {
-      await ipcRenderer.invoke('update-entry', state.currentEntryId, content);
+    if (currentEntryId) {
+      await ipcRenderer.invoke('update-entry', currentEntryId, content);
     } else {
-      state.currentEntryId = await ipcRenderer.invoke('add-entry', content);
+      currentEntryId = await ipcRenderer.invoke('add-entry', content);
     }
 
     showToast('Entry saved successfully');
     await loadEntriesList(ipcRenderer, (id) => loadEntry(id, ipcRenderer));
     
     // Close editor modal
-    cleanup();
+    editorModal.close();
+    editorModal = null;
   } catch (error) {
     console.error('Failed to save entry:', error);
     showToast('Failed to save entry: ' + error.message, 'error');
@@ -106,14 +96,7 @@ export async function saveEntry(ipcRenderer) {
 export async function deleteEntry(id, ipcRenderer) {
   const { Modal } = await import('../utils/modal.js');
   
-  const modalId = `delete-modal-${Date.now()}`;
-  modalStateManager.registerModal(modalId, {
-    type: 'confirmation',
-    title: 'Delete Entry'
-  });
-  
   const modal = new Modal({
-    id: modalId,
     title: 'Delete Entry',
     content: 'Are you sure you want to delete this entry? This action cannot be undone.',
     buttons: [
@@ -136,35 +119,32 @@ export async function deleteEntry(id, ipcRenderer) {
           }
         }
       }
-    ],
-    onClose: () => {
-      modalStateManager.unregisterModal(modalId);
-    }
+    ]
   });
   
   modal.show();
 }
 
 export async function duplicateCurrentEntry(ipcRenderer) {
-  if (!state.currentEntryId) {
+  if (!currentEntryId) {
     showToast('No entry selected to duplicate', 'warning');
     return;
   }
 
   try {
-    if (!state.editorModal || !state.editorModal.getEditor()) {
+    if (!editorModal || !editorModal.getEditor()) {
       showToast('No active editor', 'error');
       return;
     }
 
-    const editor = state.editorModal.getEditor();
+    const editor = editorModal.getEditor();
     const editorContent = {
       raw: editor.getText(),
       html: editor.root.innerHTML
     };
     // Get original entry to preserve type
-    const entries = await ipcRenderer.invoke('get-entries', { id: state.currentEntryId });
-    const originalEntry = entries.find(e => e.id === state.currentEntryId);
+    const entries = await ipcRenderer.invoke('get-entries', { id: currentEntryId });
+    const originalEntry = entries.find(e => e.id === currentEntryId);
     if (!originalEntry) throw new Error('Entry not found');
 
     const parsedContent = parser.parse(editorContent.raw);
@@ -174,7 +154,7 @@ export async function duplicateCurrentEntry(ipcRenderer) {
       type: originalEntry.type, // Preserve type from original entry
       ...parsedContent
     };
-    state.currentEntryId = await ipcRenderer.invoke('add-entry', content);
+    currentEntryId = await ipcRenderer.invoke('add-entry', content);
     showToast('Entry duplicated successfully');
     await loadEntriesList(ipcRenderer, (id) => loadEntry(id, ipcRenderer));
   } catch (error) {
@@ -184,35 +164,17 @@ export async function duplicateCurrentEntry(ipcRenderer) {
 }
 
 export async function archiveCurrentEntry(ipcRenderer) {
-  if (!state.currentEntryId) {
+  if (!currentEntryId) {
     showToast('No entry selected to archive', 'warning');
     return;
   }
 
   try {
-    await ipcRenderer.invoke('archive-entry', state.currentEntryId);
+    await ipcRenderer.invoke('archive-entry', currentEntryId);
     showToast('Entry archived successfully');
     await loadEntriesList(ipcRenderer, (id) => loadEntry(id, window.api));
-    cleanup();
   } catch (error) {
     console.error('Failed to archive entry:', error);
     showToast('Failed to archive entry', 'error');
   }
 }
-
-// Cleanup function
-function cleanup() {
-  console.log('[Entry Actions] Cleaning up');
-  if (state.editorModal) {
-    state.editorModal.close();
-    state.editorModal = null;
-  }
-  state.currentEntryId = null;
-  if (state.cleanup) {
-    state.cleanup();
-    state.cleanup = null;
-  }
-}
-
-// Export cleanup for external use
-export { cleanup };
