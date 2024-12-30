@@ -14,7 +14,10 @@ The main view displays your entries in a table format with sortable columns:
 - **Project**: Associated project name
 - **Priority**: Entry priority level (high/normal/low)
 - **Tags**: Associated tags shown as pills
-- **Deadline**: Due date if set
+- **Deadline**: Due date with status indicators:
+  - Green: Future deadlines
+  - Red: Overdue deadlines
+  - Default color: No deadline set
 
 Click any column header to sort entries. Click again to reverse sort order.
 
@@ -47,8 +50,9 @@ The sidebar provides quick access to filtered views:
 ### Toolbar
 
 - **New Entry**: Create a new document
+- **Filters**: Toggle sidebar visibility
+- **Settings**: Configure application settings (Ctrl+,)
 - **Copy DB**: Copy database contents to clipboard
-- **Settings**: Access application settings
 
 ### Search
 
@@ -67,7 +71,6 @@ The editor provides a full viewport workspace for creating and editing entries:
 - **Save As**: Save entry as a different type (appears below button)
 - **Add Images**: Attach images to your entry
 - **Test Parser**: Test entry parsing (appears below button)
-- **Settings**: Configure application settings (appears below button)
 - **Archive**: Move entry to archive (appears in archived view)
 
 The entry type is shown as a colored badge in the editor toolbar. Use Save As to change an entry's type:
@@ -90,21 +93,42 @@ The editor provides rich text formatting options:
 
 ### Modal System
 
-The application uses a dynamic modal system:
+The application uses an optimized dynamic modal system that efficiently manages system resources:
 
-- **Editor Modal**: Uses full viewport for maximum workspace
-- **Settings Modal**: Appears below settings button with scrollable content
-- **Save As Modal**: Appears below Save As button for type selection
-- **Test Parser Modal**: Appears below Test Parser button with scrollable results
-- **Confirmation Modals**: Centered on screen for important actions
+Modal Types:
+- **Editor Modal**: Full viewport workspace for document editing
+- **Settings Modal**: Configuration interface with multiple sections
+- **Save As Modal**: Type selection for document conversion
+- **Test Parser Modal**: Parser testing with results display
+- **Confirmation Modals**: Action confirmations and alerts
 
-All modals support:
+Performance Features:
+- Dynamic creation and cleanup
+- Memory optimization
+- Efficient state management
+- Resource cleanup on close
+- Background process optimization
 
-- Escape key to close
-- Click outside to dismiss
-- Proper layering with z-index management
-- Scrollbars for overflow content
-- Keyboard focus management
+Interaction Behavior:
+- Escape key closes and cleans up modal
+- Click outside dismisses and removes modal
+- Automatic focus management
+- Proper modal stacking
+- State preservation when needed
+
+Accessibility Features:
+- Focus trap within active modal
+- Focus restoration on close
+- Screen reader support
+- Keyboard navigation
+- ARIA label management
+
+State Management:
+- Preserves relevant settings
+- Maintains modal history
+- Syncs across components
+- Validates state changes
+- Cleans up on modal close
 
 ### Keyboard Shortcuts
 
@@ -119,13 +143,62 @@ All modals support:
 
 ![Settings](images/settings modal.png)
 
-Access settings through the gear icon to configure:
+Access settings through the gear icon in the main toolbar. The settings panel is organized into three main sections:
 
-- Editor preferences
-- Display options
-- Theme customization
-- Backup/restore options
-- Keyboard shortcuts
+#### Editor Settings
+- Auto-save entries
+- Spell check
+- Font family
+- Font size
+
+#### User Interface Settings
+- Theme selection (Light/Dark/System)
+- Date format preferences:
+  - System Default (uses your computer's locale)
+  - US formats (MM/DD/YY, MMM DD, YYYY, etc.)
+  - EU formats (DD/MM/YY, DD MMM YYYY, etc.)
+  - ISO 8601 (YYYY-MM-DD)
+  - Japanese (YYYY年MM月DD日)
+
+#### Advanced Settings
+- Cloud sync configuration
+- Backup and restore options
+
+The settings panel features:
+- Copy Settings button to export current configuration
+- Save button to apply changes
+- Cancel button to discard changes
+- Organized sections for better navigation
+
+Visual Feedback:
+- Button Actions:
+  - Success state shown with green background color
+  - Text updates to indicate completion:
+    * "Copy Settings" → "Copied"
+    * "Save" → "Saved"
+  - Color transitions smoothly between states
+  - Returns to original state after 2 seconds
+  - Toast notifications confirm actions
+
+Settings Actions:
+- Save Changes:
+  1. Click Save button
+  2. Button transitions to green success state
+  3. Text changes to "Saved"
+  4. Toast notification confirms save
+  5. Modal closes automatically
+
+- Copy Settings:
+  1. Click Copy Settings button
+  2. Button transitions to green success state
+  3. Text changes to "Copied"
+  4. Toast notification confirms copy
+  5. Settings copied to clipboard
+
+- Cancel Changes:
+  1. Click Cancel button
+  2. Modal closes immediately
+  3. Changes are discarded
 
 ## Tips & Tricks
 
