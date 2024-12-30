@@ -47,6 +47,15 @@ async function initializeApp() {
 
     // Apply settings
     modules.applySettings(settings);
+    
+    // Initialize date formatter settings
+    const { updateDateFormatSettings } = await import('./utils/dateFormatter.js');
+    console.log('Initializing date formatter with settings:', settings);
+    updateDateFormatSettings(settings);
+    
+    // Force refresh of entries list to apply date format
+    const { loadEntriesList } = await import('./entries/entryList.js');
+    await loadEntriesList(window.api);
 
     // Setup event listeners and features
     setupEventListeners(modules);
@@ -55,7 +64,7 @@ async function initializeApp() {
 
     // Show entries list and setup listeners
     document.getElementById('entries-container')?.classList.remove('hidden');
-    await modules.loadEntriesList(window.api, (id) => modules.loadEntry(id, window.api));
+    await modules.loadEntriesList(window.api);
     if (typeof modules.setupSearchListener === 'function') {
       modules.setupSearchListener(window.api, (id) => modules.loadEntry(id, window.api));
     }
@@ -164,6 +173,13 @@ function setupEventListeners(handlers) {
       }
     });
   }
+
+  const settingsBtn = document.getElementById('settings-btn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+      handlers.showSettingsModal();
+    });
+  }
   
   document.getElementById('back-btn')?.addEventListener('click', () => {
     // Show entries container and filters
@@ -193,11 +209,15 @@ function setupEventListeners(handlers) {
 }
 
 // Update settings loaded event listener
-window.api.on('settings-loaded', (loadedSettings) => {
+window.api.on('settings-loaded', async (loadedSettings) => {
   if (loadedSettings && modules) {
     settings = loadedSettings;
     window.settings = loadedSettings;
     modules.applySettings(settings);
+    
+    // Update date formatter settings
+    const { updateDateFormatSettings } = await import('./utils/dateFormatter.js');
+    updateDateFormatSettings(loadedSettings);
     
     // Initialize settings UI if modal is visible
     const modal = document.getElementById('settings-modal');
@@ -210,7 +230,7 @@ window.api.on('settings-loaded', (loadedSettings) => {
 // Listen for entries changes
 window.api.on('entries-changed', async () => {
   try {
-    await modules.loadEntriesList(window.api, (id) => modules.loadEntry(id, window.api));
+    await modules.loadEntriesList(window.api);
   } catch (error) {
     console.error('Failed to reload entries:', error);
     if (modules?.showToast) {

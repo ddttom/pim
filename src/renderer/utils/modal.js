@@ -7,6 +7,7 @@ export class Modal {
       title: options.title || '',
       content: options.content || '',
       buttons: options.buttons || [],
+      headerButtons: options.headerButtons || [],
       onClose: options.onClose || (() => {}),
       width: options.width || '500px',
       height: options.height || 'auto',
@@ -43,14 +44,39 @@ export class Modal {
     // Create header
     const header = document.createElement('div');
     header.className = 'modal-header';
-    header.innerHTML = `
-      <h2>${this.options.title}</h2>
-      <button class="close-btn">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" fill="currentColor"/>
-        </svg>
-      </button>
+    // Create title
+    const title = document.createElement('h2');
+    title.textContent = this.options.title;
+    header.appendChild(title);
+
+    // Create header buttons container
+    const headerButtonsContainer = document.createElement('div');
+    headerButtonsContainer.className = 'header-buttons';
+
+    // Add custom header buttons
+    this.options.headerButtons.forEach(button => {
+      const btn = document.createElement('button');
+      btn.id = button.id;
+      btn.className = button.className;
+      if (button.tooltip) {
+        btn.title = button.tooltip;
+      }
+      btn.innerHTML = button.icon;
+      btn.onclick = button.onClick;
+      headerButtonsContainer.appendChild(btn);
+    });
+
+    // Add close button
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'close-btn';
+    closeBtn.innerHTML = `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" fill="currentColor"/>
+      </svg>
     `;
+    headerButtonsContainer.appendChild(closeBtn);
+
+    header.appendChild(headerButtonsContainer);
     
     // Create body
     const body = document.createElement('div');
@@ -84,7 +110,7 @@ export class Modal {
     this.element.appendChild(modalContainer);
     
     // Add event listeners
-    header.querySelector('.close-btn').onclick = () => this.close();
+    closeBtn.onclick = () => this.close();
     this.element.onclick = (e) => {
       if (e.target === this.element) this.close();
     };
