@@ -1,7 +1,58 @@
-const CONFIG = require('../../../config/parser.config');
-const { createLogger } = require('../../../utils/logger');
+import CONFIG from '../../../config/parser.config.js';
+import { createLogger } from '../../../utils/logger.js';
 
 const logger = createLogger('DateUtils');
+
+/**
+ * Parse a date string into a Date object
+ * @param {string} dateStr - The date string to parse
+ * @returns {Date|null} The parsed date or null if invalid
+ */
+function parseDate(dateStr) {
+  try {
+    logger.debug('Parsing date string:', { dateStr });
+    
+    // Handle special keywords
+    const lowerStr = dateStr.toLowerCase();
+    const now = new Date();
+    
+    if (lowerStr === 'today') {
+      return now;
+    }
+    
+    if (lowerStr === 'tomorrow') {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      return tomorrow;
+    }
+    
+    if (lowerStr === 'yesterday') {
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      return yesterday;
+    }
+    
+    // Try parsing as ISO date
+    const date = new Date(dateStr);
+    if (!isNaN(date)) {
+      return date;
+    }
+    
+    // Try parsing with weekday calculation
+    const weekdayMatch = dateStr.match(/(?:next|last)?\s*(\w+)/i);
+    if (weekdayMatch) {
+      const [, dayName] = weekdayMatch;
+      const modifier = dateStr.match(/next|last/i)?.[0]?.toLowerCase();
+      return calculateWeekdayDate(now, dayName, modifier);
+    }
+    
+    logger.debug('Failed to parse date string');
+    return null;
+  } catch (error) {
+    logger.error('Error parsing date:', { error, dateStr });
+    return null;
+  }
+}
 
 /**
  * Normalize and validate date result
@@ -299,7 +350,8 @@ function findLastOccurrence(now, targetDay, timeframe) {
   }
 }
 
-module.exports = {
+export {
+  parseDate,
   calculateWeekdayDate,
   calculateWeekDate,
   calculateMonthDate,
@@ -307,5 +359,5 @@ module.exports = {
   calculateYearDate,
   findLastOccurrence,
   findLastWeekdayInMonth,
-  calculateWeekendDate,
-}; 
+  calculateWeekendDate
+};

@@ -34,6 +34,7 @@ The PIM plugin system allows extending the application's functionality through a
    - Graceful degradation
 
 2. Implementation
+
    ```javascript
    class MyPlugin {
      async performOperation(data) {
@@ -56,6 +57,7 @@ The PIM plugin system allows extending the application's functionality through a
 ### Logging System
 
 1. Logger Interface
+
    ```javascript
    class Plugin {
      constructor() {

@@ -68,21 +68,24 @@ The application supports plugins to extend its functionality. Plugins follow the
 ### Example Plugin Usage
 
 1. Calendar Integration Plugin:
-   ```
+
+   ```bash
    Enable: Settings > Plugins > Calendar > Enable
    Configure: Add calendar URL
    Use: Events automatically sync with calendar
    ```
 
 2. Custom Parser Plugin:
-   ```
+
+   ```bash
    Enable: Settings > Plugins > Custom Parser > Enable
    Configure: Set parsing rules
    Use: New metadata automatically extracted
    ```
 
 3. UI Extension Plugin:
-   ```
+
+   ```bash
    Enable: Settings > Plugins > UI Extension > Enable
    Configure: Choose view options
    Use: New interface elements available
@@ -100,6 +103,7 @@ The application supports plugins to extend its functionality. Plugins follow the
 ## Troubleshooting
 
 If you encounter issues:
+
 1. Check settings configuration
 2. Ensure entries are saved properly
 3. Verify search/filter combinations

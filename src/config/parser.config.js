@@ -2,6 +2,11 @@ const DEFAULT_CONFIG = {
   maxDepth: 3,
   ignoreFiles: ['.git', 'node_modules'],
   outputFormat: 'json',
+  days: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+  dateModifiers: {
+    endOf: 'end of',
+    beginningOf: 'beginning of'
+  },
   status: {
     values: ['None', 'Blocked', 'Complete', 'Started', 'Closed', 'Abandoned'],
     default: 'None',
@@ -15,5 +20,4 @@ const DEFAULT_CONFIG = {
   }
 };
 
-// Config gets exported directly
-module.exports = DEFAULT_CONFIG; 
+export default DEFAULT_CONFIG;
