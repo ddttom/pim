@@ -2,11 +2,66 @@
 
 ## Interface Overview
 
-### Main View
+### Views
+
+The application provides two main views for managing your entries:
+
+#### List View
 
 ![Main Interface](images/main app screen.png)
 
-The main view displays your entries in a table format with sortable columns:
+The list view displays your entries in a table format with sortable columns:
+
+#### Calendar View
+
+The calendar view provides three different ways to view your entries:
+
+- **Month View**: Traditional calendar grid showing entries per day
+- **Week View**: Detailed view of a single week with hourly slots
+- **Day View**: Full day view with detailed entry information
+
+Navigation controls include:
+
+- Year and month dropdown selectors
+- Previous/Next month buttons
+- Day/Week/Month view mode toggles
+
+Each day shows:
+
+- Date number
+- Entry count badge
+- Entry previews
+- Visual indicators for today/selected
+
+### Entry Interactions
+
+You can interact with entries in both list and calendar views:
+
+1. **Preview Entry**
+   - Single click an entry to show preview
+   - Preview shows:
+     - Entry type with color badge
+     - Creation and update dates
+     - Full entry content
+     - All metadata fields organized in sections
+   - Available actions:
+     - Edit (opens editor)
+     - Copy to clipboard
+     - Delete (with confirmation)
+     - Close preview
+   - Preview closes automatically when editing
+
+2. **Edit Entry**
+   - Double click an entry to edit directly
+   - Click Edit button in preview
+   - Full editor opens with all capabilities
+   - Changes saved automatically
+
+3. **Quick Actions**
+   - Copy entry text to clipboard
+   - Delete entry with confirmation
+   - Edit in full editor
+   - All actions available in preview modal
 
 - **Content**: First part of the entry text (hover to see full content)
 - **Type**: Entry type (Note/Document/Template/HTML/Record/Task/Event)

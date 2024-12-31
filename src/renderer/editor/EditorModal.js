@@ -123,7 +123,7 @@ export class EditorModal {
         return content;
     }
 
-    show(options = {}) {
+    async show(options = {}) {
         const content = this.createEditorContent();
         
     this.modal = new Modal({
@@ -144,8 +144,8 @@ export class EditorModal {
 
         // Initialize editor after modal is shown and rendered
         return new Promise((resolve) => {
-            requestAnimationFrame(() => {
-                this.editor = new Editor(content);
+            requestAnimationFrame(async () => {
+                this.editor = await new Editor(content).setup();
                 EditorModal.currentEditor = this.editor;
                 
                 // Set content if provided
@@ -162,8 +162,11 @@ export class EditorModal {
 
                 if (saveBtn) {
                     saveBtn.addEventListener('click', async () => {
-                        const { saveEntry } = await import('../entries/entryActions.js');
-                        saveEntry(window.api);
+                        if (await this.editor.saveEntry()) {
+                            // Refresh entries list
+                            const { loadEntriesList } = await import('../entries/entryList.js');
+                            await loadEntriesList(window.api);
+                        }
                     });
                 }
 
@@ -306,5 +309,27 @@ export class EditorModal {
 
     getEditor() {
         return this.editor;
+    }
+
+    async loadEntry(id) {
+        try {
+            const entry = await window.api.invoke('get-entry', id);
+            if (!entry) throw new Error('Entry not found');
+
+            // Show editor modal
+            await this.show({
+                title: `Edit ${entry.type || 'note'}`,
+                content: entry.html || entry.raw || ''
+            });
+
+            // Store entry ID for saving
+            this.editor.entryId = id;
+            
+            return this.editor;
+        } catch (error) {
+            console.error('Failed to load entry:', error);
+            const { showToast } = await import('../utils/toast.js');
+            showToast('Failed to load entry: ' + error.message, 'error');
+        }
     }
 }

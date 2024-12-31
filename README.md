@@ -22,6 +22,8 @@ For detailed product requirements and specifications, see [Product Requirements]
 
 - Rich text editor with Markdown support
 - Multiple content types (Notes, Documents, Tasks, etc.)
+- Calendar view with day/week/month modes
+- Entry preview and quick editing
 - Entry organization and archiving
 - Advanced search and filtering
 - Customizable themes

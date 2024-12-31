@@ -59,7 +59,17 @@ PIM (Personal Information Manager) is a desktop application designed to help use
 
 ### User Interface
 
-1. Entry List View
+1. Calendar View
+   - Month/Week/Day view modes
+   - Year and month dropdowns
+   - Navigation controls
+   - Entry previews in cells
+   - Visual indicators for today/selected
+   - Entry count badges
+   - Consistent entry interactions
+   - Smooth view transitions
+
+2. Entry List View
    - Table format with sortable columns:
      - Content (with hover preview)
      - Type (with color-coded badges)
@@ -73,7 +83,28 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - Content preview on hover
    - Visual indicators for entry status
 
-2. Layout Components
+3. Entry Interactions
+   - Preview Features:
+     - Single click to preview entry
+     - Full content display
+     - Creation/update timestamps
+     - Organized metadata sections
+     - Quick action buttons:
+       - Edit entry
+       - Copy to clipboard
+       - Delete with confirmation
+     - Color-coded type badges
+     - All list view fields
+   - Edit Features:
+     - Double click to edit entry
+     - Edit button in preview
+     - Full editor capabilities
+   - Consistent across views
+   - Smooth transitions
+   - Clear visual feedback
+   - Proper error handling
+
+4. Layout Components
    - Collapsible sidebar for filtered views:
      - All Entries
      - Overdue

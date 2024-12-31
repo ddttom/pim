@@ -107,3 +107,20 @@
 .ribbon-btn:active {
   transform: translateY(1px);
 }
+
+/* Calendar button active state */
+#calendar-btn.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+#calendar-btn.active .btn-icon svg {
+  color: white;
+  opacity: 1;
+}
+
+#calendar-btn.active:hover {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}

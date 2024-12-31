@@ -31,6 +31,9 @@ export class Modal {
     modalContainer.style.width = this.options.width;
     modalContainer.style.height = this.options.height;
     
+    // Store modal instance on container
+    modalContainer.__modal_instance = this;
+    
     // Apply custom positioning if provided
     if (this.options.position) {
       modalContainer.style.position = 'absolute';

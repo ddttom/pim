@@ -1,11 +1,16 @@
 /* Entries Container */
 #entries-container {
   background-color: #ffffff;
-  display: flex;
+  display: none;
   flex-direction: column;
   flex: 1;
   height: 100%;
   transition: all 0.3s ease;
+  position: relative;
+}
+
+#entries-container.ready {
+  display: flex;
 }
 
 /* When sidebar is visible, adjust entries container */
@@ -126,10 +131,32 @@
 .entries-table tbody tr {
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .entries-table tbody tr:hover {
   background-color: var(--background-color);
+}
+
+.entries-table tbody tr::after {
+  content: 'Double-click to edit';
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.8em;
+  color: var(--text-color);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.entries-table tbody tr:hover::after {
+  opacity: 0.5;
+}
+
+.entries-table tbody tr:active {
+  transform: translateY(1px);
 }
 
 .entries-table tbody tr.archived {

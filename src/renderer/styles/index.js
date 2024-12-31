@@ -18,7 +18,8 @@ export async function initializeStyles() {
     'styles/entries.css',
     'styles/editor.css',
     'styles/modals.css',
-    'styles/theme.css'
+    'styles/theme.css',
+    'styles/calendar.css'
   ];
 
   await Promise.all(styles.map(loadCSS));

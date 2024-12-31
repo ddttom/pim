@@ -29,13 +29,15 @@ async function initializeServices() {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1440,  // 1200 * 1.2
+    height: 960,  // 800 * 1.2
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.cjs')
-    }
+    },
+    minWidth: 1440,  // Set minimum size to match initial size
+    minHeight: 960
   });
 
   mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
@@ -156,6 +158,20 @@ ipcMain.handle('get-entry', async (event, id) => {
   }
 });
 
+ipcMain.handle('load-entry', async (event, id) => {
+  try {
+    const entry = await db.getEntry(id);
+    if (!entry) throw new Error('Entry not found');
+    
+    // Import and show editor modal in renderer process
+    event.sender.send('show-entry-preview', entry);
+    return entry;
+  } catch (error) {
+    console.error('Failed to load entry:', error);
+    throw error;
+  }
+});
+
 ipcMain.handle('update-entry', async (event, entry) => {
   try {
     const { id, ...updates } = entry;
@@ -206,5 +222,14 @@ ipcMain.handle('test-parser', async (event, text) => {
   } catch (error) {
     console.error('Failed to parse text:', error);
     throw error;
+  }
+});
+
+// Handle edit-entry events
+ipcMain.on('edit-entry', async (event, id) => {
+  try {
+    event.sender.send('edit-entry', id);
+  } catch (error) {
+    console.error('Failed to handle edit-entry:', error);
   }
 });

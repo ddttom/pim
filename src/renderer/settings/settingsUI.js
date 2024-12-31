@@ -84,6 +84,7 @@ export async function setupSettingsUI(container, settings, api) {
         <div class="settings-nav">
           <button class="settings-nav-item active" data-section="ui">User Interface</button>
           <button class="settings-nav-item" data-section="editor">Editor</button>
+          <button class="settings-nav-item" data-section="date">Date Format</button>
           <button class="settings-nav-item" data-section="advanced">Advanced</button>
         </div>
       </div>
@@ -136,25 +137,35 @@ export async function setupSettingsUI(container, settings, api) {
           </div>
         </div>
 
-        <div class="settings-panel" data-section="advanced">
+        <div class="settings-panel" data-section="date">
           <div class="settings-section">
-            <h3>Date & Time</h3>
+            <h3>Date Format</h3>
             <div class="setting-item">
-              <label>Date format:</label>
-              <select id="setting-date-format">
-                <option value="system" ${settings?.dateFormat === 'system' ? 'selected' : ''}>System Default (Based on Locale)</option>
-                <option value="EU" ${settings?.dateFormat === 'EU' ? 'selected' : ''}>European (DD/MM/YYYY)</option>
-                <option value="EU-medium" ${settings?.dateFormat === 'EU-medium' ? 'selected' : ''}>European Medium (DD MMM YYYY)</option>
-                <option value="US" ${settings?.dateFormat === 'US' ? 'selected' : ''}>US (MM/DD/YYYY)</option>
-                <option value="ISO" ${settings?.dateFormat === 'ISO' ? 'selected' : ''}>ISO (YYYY-MM-DD)</option>
-                <option value="short" ${settings?.dateFormat === 'short' ? 'selected' : ''}>Short (MM/DD/YY)</option>
-                <option value="medium" ${settings?.dateFormat === 'medium' ? 'selected' : ''}>Medium (MMM DD, YYYY)</option>
-                <option value="long" ${settings?.dateFormat === 'long' ? 'selected' : ''}>Long (MMMM DD, YYYY)</option>
-                <option value="full" ${settings?.dateFormat === 'full' ? 'selected' : ''}>Full (dddd, MMMM DD, YYYY)</option>
-              </select>
+              <div style="flex: 1;">
+                <label>Format:</label>
+                <select id="setting-date-format">
+                  <option value="system" ${settings?.dateFormat === 'system' ? 'selected' : ''}>System Default (Based on Locale)</option>
+                  <option value="EU" ${settings?.dateFormat === 'EU' ? 'selected' : ''}>European (DD/MM/YYYY)</option>
+                  <option value="EU-medium" ${settings?.dateFormat === 'EU-medium' ? 'selected' : ''}>European Medium (DD MMM YYYY)</option>
+                  <option value="US" ${settings?.dateFormat === 'US' ? 'selected' : ''}>US (MM/DD/YYYY)</option>
+                  <option value="ISO" ${settings?.dateFormat === 'ISO' ? 'selected' : ''}>ISO (YYYY-MM-DD)</option>
+                  <option value="short" ${settings?.dateFormat === 'short' ? 'selected' : ''}>Short (MM/DD/YY)</option>
+                  <option value="medium" ${settings?.dateFormat === 'medium' ? 'selected' : ''}>Medium (MMM DD, YYYY)</option>
+                  <option value="long" ${settings?.dateFormat === 'long' ? 'selected' : ''}>Long (MMMM DD, YYYY)</option>
+                  <option value="full" ${settings?.dateFormat === 'full' ? 'selected' : ''}>Full (dddd, MMMM DD, YYYY)</option>
+                </select>
+                <div id="date-format-preview" class="setting-preview"></div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <p class="setting-description">
+                Choose how dates are displayed throughout the application. Changes will apply to all dates including entry dates, deadlines, and timestamps.
+              </p>
             </div>
           </div>
+        </div>
 
+        <div class="settings-panel" data-section="advanced">
           <div class="settings-section">
             <h3>Sync</h3>
             <div class="setting-item">
@@ -204,7 +215,7 @@ export async function setupSettingsUI(container, settings, api) {
   setupSettingsEventHandlers(settings, api);
 }
 
-function setupSettingsEventHandlers(settings, api) {
+async function setupSettingsEventHandlers(settings, api) {
   // Settings navigation handlers
   const navItems = document.querySelectorAll('.settings-nav-item');
   navItems.forEach(item => {
@@ -252,6 +263,47 @@ function setupSettingsEventHandlers(settings, api) {
       fontSizeValue.textContent = `${e.target.value}px`;
     });
   }
+
+  // Date format preview handler
+  const dateFormatSelect = document.getElementById('setting-date-format');
+  const datePreview = document.getElementById('date-format-preview');
+  
+  if (dateFormatSelect && datePreview) {
+    // Import formatDate once
+    const { formatDate, updateDateFormatSettings } = await import('../utils/dateFormatter.js');
+    
+    // Function to update preview
+    const updatePreview = () => {
+      const today = new Date();
+      const formattedDate = formatDate(today);
+      datePreview.textContent = `Today: ${formattedDate}`;
+    };
+
+    // Update on format change
+    dateFormatSelect.addEventListener('change', () => {
+      updateDateFormatSettings({ ...settings, dateFormat: dateFormatSelect.value });
+      updatePreview();
+    });
+
+    // Initial preview
+    updatePreview();
+
+    // Keep preview updated
+    const previewInterval = setInterval(updatePreview, 1000);
+
+    // Cleanup interval when modal closes
+    const modalElement = dateFormatSelect.closest('.modal-container');
+    if (modalElement) {
+      const modal = modalElement.__modal_instance;
+      if (modal) {
+        const originalOnClose = modal.options.onClose;
+        modal.options.onClose = () => {
+          clearInterval(previewInterval);
+          if (originalOnClose) originalOnClose();
+        };
+      }
+    }
+  }
 }
 
 export async function saveSettings(settings, api) {
@@ -289,19 +341,21 @@ export async function saveSettings(settings, api) {
     await api.invoke('update-settings', updates);
     console.log('Settings saved successfully');
     
-    // Refresh views
-    const entriesList = document.getElementById('entries-list');
-    if (entriesList) {
-      const { loadEntriesList } = await import('../entries/entryList.js');
-      await loadEntriesList(api);
-    }
+    // Update date format settings first
+    const { updateDateFormatSettings } = await import('../utils/dateFormatter.js');
+    updateDateFormatSettings(updates);
 
     // Apply settings to update any UI elements
     const { applySettings } = await import('./settings.js');
-    const { updateDateFormatSettings } = await import('../utils/dateFormatter.js');
-    
     applySettings(updates);
-    updateDateFormatSettings(updates);
+
+    // Force re-render of entries list to update dates with new format
+    const entriesList = document.getElementById('entries-list');
+    if (entriesList) {
+      const { loadEntriesList } = await import('../entries/entryList.js');
+      console.log('Re-rendering entries list with new date format');
+      await loadEntriesList(api);
+    }
 
     showToast('Settings saved successfully');
     return updates;

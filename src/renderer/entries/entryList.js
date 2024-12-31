@@ -104,8 +104,8 @@ export function sortEntries(entries) {
   });
 }
 
-export function renderEntries(entries, onEntryClick) {
-  console.log('Rendering entries:', entries);
+export function renderEntries(entries) {
+  console.log('Rendering entries with current date format:', entries);
   const tbody = document.querySelector('#entries-list tbody');
   if (!tbody) return;
 
@@ -113,6 +113,13 @@ export function renderEntries(entries, onEntryClick) {
     // Handle dates properly
     const dateStr = entry.updatedAt || entry.created_at || entry.updated_at;
     const formattedDate = dateStr ? formatDate(dateStr) : '-';
+    const deadlineDate = entry.parsed?.final_deadline ? formatDate(entry.parsed.final_deadline) : '-';
+
+    console.log('Formatted dates:', {
+      entry: entry.id,
+      date: formattedDate,
+      deadline: deadlineDate
+    });
 
     return `
       <tr data-id="${entry.id}" class="${entry.archived ? 'archived' : ''}">
@@ -122,21 +129,32 @@ export function renderEntries(entries, onEntryClick) {
         <td class="project-cell">${entry.parsed?.project?.project || '-'}</td>
         <td class="priority-cell ${entry.parsed?.priority || 'normal'}">${entry.parsed?.priority || 'normal'}</td>
         <td class="tags-cell">${entry.parsed?.tags?.join(', ') || '-'}</td>
-        <td class="deadline-cell">${entry.parsed?.final_deadline ? formatDate(entry.parsed.final_deadline) : '-'}</td>
+        <td class="deadline-cell">${deadlineDate}</td>
       </tr>
     `;
   }).join('');
 
   // Add click handlers
   tbody.querySelectorAll('tr').forEach(row => {
+    // Single click to preview
     row.addEventListener('click', () => {
       const id = row.getAttribute('data-id');
-      if (id && onEntryClick) onEntryClick(id);
+      if (id) {
+        window.api.invoke('load-entry', id);
+      }
+    });
+
+    // Double click to edit
+    row.addEventListener('dblclick', () => {
+      const id = row.getAttribute('data-id');
+      if (id) {
+        window.api.send('edit-entry', id);
+      }
     });
   });
 }
 
-export async function loadEntriesList(ipcRenderer, onEntryClick) {
+export async function loadEntriesList(ipcRenderer) {
   try {
     const entriesList = document.getElementById('entries-list');
     if (!entriesList) {
@@ -169,7 +187,9 @@ export async function loadEntriesList(ipcRenderer, onEntryClick) {
     const sortedEntries = sortEntries(filteredEntries);
     console.log('Sorted entries:', sortedEntries);
     
-    renderEntries(sortedEntries, onEntryClick);
+    // Force re-render with current date format
+    console.log('Re-rendering entries with current date format');
+    renderEntries(sortedEntries);
   } catch (error) {
     console.error('Failed to load entries:', error);
     showToast('Failed to load entries', 'error');
@@ -194,9 +214,17 @@ export function showEntriesList() {
   if (sidebar) {
     sidebar.classList.remove('hidden');
   }
+
+  // Close any open modals
+  document.querySelectorAll('.modal').forEach(modalElement => {
+    const modalContainer = modalElement.querySelector('.modal-container');
+    if (modalContainer && modalContainer.__modal_instance) {
+      modalContainer.__modal_instance.close();
+    }
+  });
 }
 
-export function setupSearchListener(ipcRenderer, onEntryClick) {
+export function setupSearchListener(ipcRenderer) {
   const searchInput = document.getElementById('search-input');
   const clearButton = document.getElementById('clear-search');
   
@@ -205,7 +233,7 @@ export function setupSearchListener(ipcRenderer, onEntryClick) {
     searchInput.addEventListener('input', async (e) => {
       currentFilters.search = e.target.value;
       clearButton.classList.toggle('hidden', !e.target.value);
-      await loadEntriesList(ipcRenderer, onEntryClick);
+      await loadEntriesList(ipcRenderer);
     });
 
     // Clear button click
@@ -213,7 +241,7 @@ export function setupSearchListener(ipcRenderer, onEntryClick) {
       searchInput.value = '';
       currentFilters.search = '';
       clearButton.classList.add('hidden');
-      await loadEntriesList(ipcRenderer, onEntryClick);
+      await loadEntriesList(ipcRenderer);
       searchInput.focus();
     });
 
@@ -223,13 +251,13 @@ export function setupSearchListener(ipcRenderer, onEntryClick) {
         searchInput.value = '';
         currentFilters.search = '';
         clearButton.classList.add('hidden');
-        await loadEntriesList(ipcRenderer, onEntryClick);
+        await loadEntriesList(ipcRenderer);
       }
     });
   }
 }
 
-export function setupNavigationListener(ipcRenderer, onEntryClick) {
+export function setupNavigationListener(ipcRenderer) {
   const navItems = document.querySelectorAll('.nav-item');
   navItems.forEach(item => {
     item.addEventListener('click', async (e) => {
@@ -293,12 +321,12 @@ export function setupNavigationListener(ipcRenderer, onEntryClick) {
           break;
       }
 
-      await loadEntriesList(ipcRenderer, onEntryClick);
+      await loadEntriesList(ipcRenderer);
     });
   });
 }
 
-export function setupSortListener(ipcRenderer, onEntryClick) {
+export function setupSortListener(ipcRenderer) {
   const headers = document.querySelectorAll('.entries-table th.sortable');
   headers.forEach(header => {
     header.addEventListener('click', async () => {
@@ -309,7 +337,7 @@ export function setupSortListener(ipcRenderer, onEntryClick) {
       const newDirection = (column === currentColumn && direction === 'asc') ? 'desc' : 'asc';
       currentFilters.sort = `${column}-${newDirection}`;
 
-      await loadEntriesList(ipcRenderer, onEntryClick);
+      await loadEntriesList(ipcRenderer);
     });
   });
 }

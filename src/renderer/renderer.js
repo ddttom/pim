@@ -1,5 +1,6 @@
 // Import styles and components
 import { initializeStyles } from './styles/index.js';
+import { CalendarView } from './calendar/CalendarView.js';
 import { Modal } from './utils/modal.js';
 import { EditorModal } from './editor/EditorModal.js';
 
@@ -129,7 +130,7 @@ async function importModules() {
 
 function setupEventListeners(handlers) {
   // Clear existing event listeners first
-  ['new-entry-btn', 'save-btn', 'settings-btn', 'back-btn', 'filters-btn', 'copy-db-btn'].forEach(id => {
+  ['new-entry-btn', 'save-btn', 'settings-btn', 'back-btn', 'filters-btn', 'copy-db-btn', 'calendar-btn'].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) {
       const newBtn = btn.cloneNode(true);
@@ -141,6 +142,7 @@ function setupEventListeners(handlers) {
   const newEntryBtn = document.getElementById('new-entry-btn');
   const copyDbBtn = document.getElementById('copy-db-btn');
   const filtersBtn = document.getElementById('filters-btn');
+  const calendarBtn = document.getElementById('calendar-btn');
 
   if (newEntryBtn) {
     newEntryBtn.addEventListener('click', () => {
@@ -170,6 +172,47 @@ function setupEventListeners(handlers) {
       const sidebar = document.querySelector('.sidebar');
       if (sidebar) {
         sidebar.classList.toggle('hidden');
+      }
+    });
+  }
+
+  // Calendar view handler
+  let calendarView = null;
+  if (calendarBtn) {
+    calendarBtn.addEventListener('click', async () => {
+      console.log('Calendar button clicked');
+      const entriesContainer = document.getElementById('entries-container');
+      const calendarContainer = document.getElementById('calendar-container');
+      const isCalendarActive = calendarContainer.classList.contains('active');
+      
+      if (isCalendarActive) {
+        console.log('Switching to entries view');
+        // Switch to entries view
+        calendarContainer.classList.remove('active');
+        entriesContainer.classList.add('ready');
+        calendarBtn.classList.remove('active');
+        
+        // Refresh entries list
+        await handlers.loadEntriesList(window.api);
+      } else {
+        console.log('Switching to calendar view');
+        // Switch to calendar view
+        entriesContainer.classList.remove('ready');
+        calendarContainer.classList.add('active');
+        calendarBtn.classList.add('active');
+        
+        // Initialize calendar if needed
+        if (!calendarView) {
+          console.log('Initializing calendar view');
+          const entries = await window.api.invoke('get-entries');
+          calendarView = new CalendarView(calendarContainer, entries);
+        } else {
+          console.log('Refreshing calendar view');
+          // Refresh calendar with latest entries
+          const entries = await window.api.invoke('get-entries');
+          calendarView.entries = entries;
+          calendarView.render();
+        }
       }
     });
   }
@@ -237,6 +280,35 @@ window.api.on('entries-changed', async () => {
       modules.showToast('Failed to reload entries', 'error');
     }
   }
+});
+
+// Initialize modals
+let previewModal = null;
+let editorModal = null;
+
+// Handle entry preview events
+window.api.on('show-entry-preview', async (entry) => {
+  if (!previewModal) {
+    const { EntryPreviewModal } = await import('./entries/EntryPreviewModal.js');
+    previewModal = new EntryPreviewModal();
+  }
+  previewModal.showEntry(entry);
+});
+
+// Handle entry edit events
+window.api.on('edit-entry', async (id) => {
+  // Close preview modal if open
+  if (previewModal) {
+    previewModal.close();
+    previewModal = null;
+  }
+
+  // Open editor modal
+  if (!editorModal) {
+    const { EditorModal } = await import('./editor/EditorModal.js');
+    editorModal = new EditorModal();
+  }
+  await editorModal.loadEntry(id);
 });
 
 // Initialize when DOM is ready
