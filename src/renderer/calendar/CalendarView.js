@@ -46,13 +46,92 @@ export class CalendarView {
   }
 
   getEntriesForDate(date) {
+    const today = new Date();
     return this.entries.filter(entry => {
-      const entryDate = new Date(entry.created_at);
-      return (
-        entryDate.getFullYear() === date.getFullYear() &&
-        entryDate.getMonth() === date.getMonth() &&
-        entryDate.getDate() === date.getDate()
-      );
+      // If entry has a deadline, use that date
+      if (entry.parsed?.final_deadline) {
+        const deadlineDate = new Date(entry.parsed.final_deadline);
+        return (
+          deadlineDate.getFullYear() === date.getFullYear() &&
+          deadlineDate.getMonth() === date.getMonth() &&
+          deadlineDate.getDate() === date.getDate()
+        );
+      }
+      
+      // If no deadline and date is today, show the entry
+      if (!entry.parsed?.final_deadline && 
+          date.getFullYear() === today.getFullYear() &&
+          date.getMonth() === today.getMonth() &&
+          date.getDate() === today.getDate()) {
+        return true;
+      }
+
+      return false;
+    });
+  }
+
+  async updateEntryDeadline(entryId, newDate) {
+    try {
+      const entry = await window.api.invoke('get-entry', entryId);
+      if (!entry) return;
+
+      // Update the entry with the new deadline
+      const updatedEntry = {
+        ...entry,
+        parsed: {
+          ...entry.parsed,
+          final_deadline: newDate.toISOString()
+        }
+      };
+
+      await window.api.invoke('update-entry', updatedEntry);
+      
+      // Refresh entries
+      const entries = await window.api.invoke('get-entries');
+      this.entries = entries;
+      this.render();
+    } catch (error) {
+      console.error('Failed to update entry deadline:', error);
+      const { showToast } = await import('../utils/toast.js');
+      showToast('Failed to update entry deadline', 'error');
+    }
+  }
+
+  setupDragAndDrop(element, entry) {
+    element.draggable = true;
+    
+    element.addEventListener('dragstart', (e) => {
+      e.stopPropagation();
+      e.dataTransfer.setData('text/plain', entry.id);
+      e.dataTransfer.effectAllowed = 'move';
+      element.classList.add('dragging');
+    });
+
+    element.addEventListener('dragend', () => {
+      element.classList.remove('dragging');
+    });
+  }
+
+  setupDropZone(element, date) {
+    element.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      element.classList.add('drag-over');
+    });
+
+    element.addEventListener('dragleave', () => {
+      element.classList.remove('drag-over');
+    });
+
+    element.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      element.classList.remove('drag-over');
+      
+      const entryId = e.dataTransfer.getData('text/plain');
+      if (entryId) {
+        await this.updateEntryDeadline(entryId, date);
+      }
     });
   }
 
@@ -165,7 +244,7 @@ export class CalendarView {
                       <div class="entries-indicator">
                         <span class="count">${entries.length}</span>
                         ${entries.map(entry => `
-                          <div class="entry-preview ${entry.type || 'note'}" title="${entry.raw || ''}">
+                          <div class="entry-preview ${entry.type || 'note'}" title="${entry.raw || ''}" data-id="${entry.id}">
                             ${(entry.raw || '').substring(0, 30)}${(entry.raw || '').length > 30 ? '...' : ''}
                           </div>
                         `).join('')}
@@ -251,16 +330,13 @@ export class CalendarView {
       });
     });
 
-    // Entry click handlers
+    // Entry handlers
     this.container.querySelectorAll('[data-id]').forEach(el => {
-      // Single click to preview
-      el.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent day selection
-        const id = el.dataset.id;
-        if (id) {
-          window.api.invoke('load-entry', id);
-        }
-      });
+      const entry = this.entries.find(e => e.id === el.dataset.id);
+      if (!entry) return;
+
+      // Setup drag and drop
+      this.setupDragAndDrop(el, entry);
 
       // Double click to edit
       el.addEventListener('dblclick', (e) => {
@@ -270,15 +346,107 @@ export class CalendarView {
           window.api.send('edit-entry', id);
         }
       });
+
+      // Single click to start drag
+      el.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent day selection
+        // No additional action needed as draggable is already set
+      });
     });
 
-    // Day selection handlers
+    // Setup drop zones and day selection
     this.container.querySelectorAll('[data-date]').forEach(el => {
-      el.addEventListener('click', () => {
-        const date = new Date(el.dataset.date);
-        this.selectedDate = date;
-        this.currentDate = new Date(date);
-        this.render();
+      const date = new Date(el.dataset.date);
+      
+      // Setup drop zone
+      this.setupDropZone(el, date);
+      
+      // Day selection handler
+      el.addEventListener('click', (e) => {
+        // Only handle click if not dragging
+        if (!this.container.querySelector('.dragging')) {
+          this.selectedDate = date;
+          this.currentDate = new Date(date);
+          this.render();
+        }
+      });
+
+      // Context menu handler
+      el.addEventListener('contextmenu', async (e) => {
+        e.preventDefault();
+        
+        const menu = document.createElement('div');
+        menu.className = 'context-menu';
+        menu.innerHTML = `
+          <div class="menu-item" data-action="paste">Paste</div>
+          <div class="menu-item" data-action="new">Add New Entry</div>
+        `;
+        
+        // Position menu at click location
+        menu.style.position = 'fixed';
+        menu.style.left = e.clientX + 'px';
+        menu.style.top = e.clientY + 'px';
+        document.body.appendChild(menu);
+
+        // Handle menu item clicks
+        menu.addEventListener('click', async (menuEvent) => {
+          const action = menuEvent.target.dataset.action;
+          if (action === 'paste') {
+            try {
+              const clipText = await window.api.invoke('read-clipboard');
+              // Try to parse as JSON
+              const entry = JSON.parse(clipText);
+              if (entry.raw || entry.html) {
+                // Valid entry JSON, create new entry
+                const newEntry = {
+                  ...entry,
+                  parsed: {
+                    ...entry.parsed,
+                    final_deadline: date.toISOString()
+                  }
+                };
+                await window.api.invoke('add-entry', newEntry);
+                
+                // Refresh entries
+                const entries = await window.api.invoke('get-entries');
+                this.entries = entries;
+                this.render();
+              } else {
+                // Not valid JSON or invalid entry format, open editor with clipboard content
+                const { EditorModal } = await import('../editor/EditorModal.js');
+                const modal = new EditorModal();
+                await modal.show({
+                  title: 'New Entry',
+                  content: clipText
+                });
+                modal.editor.entryId = null; // Ensure it's a new entry
+              }
+            } catch (error) {
+              console.error('Failed to handle paste:', error);
+              const { showToast } = await import('../utils/toast.js');
+              showToast('Failed to paste content', 'error');
+            }
+          } else if (action === 'new') {
+            const { EditorModal } = await import('../editor/EditorModal.js');
+            const modal = new EditorModal();
+            await modal.show({
+              title: 'New Entry'
+            });
+            modal.editor.entryId = null;
+          }
+          
+          // Remove menu
+          document.body.removeChild(menu);
+        });
+
+        // Remove menu when clicking outside
+        const removeMenu = (e) => {
+          if (!menu.contains(e.target)) {
+            document.body.removeChild(menu);
+            document.removeEventListener('click', removeMenu);
+          }
+        };
+        document.addEventListener('click', removeMenu);
       });
     });
   }

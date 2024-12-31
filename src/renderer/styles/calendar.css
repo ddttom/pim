@@ -165,29 +165,13 @@
   background: var(--background-color);
   border: 1px solid var(--border-color);
   transition: all 0.2s ease;
-  cursor: pointer;
+  cursor: move;
   position: relative;
 }
 
 .day-entries .entry:hover {
   border-color: var(--primary-color);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.day-entries .entry::after {
-  content: 'Double-click to edit';
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.8em;
-  color: var(--text-color);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.day-entries .entry:hover::after {
-  opacity: 0.5;
 }
 
 .day-entries .no-entries {
@@ -340,6 +324,12 @@
   border-color: var(--primary-color);
 }
 
+.calendar-day.drag-over {
+  background-color: rgba(41, 128, 185, 0.15);
+  border-color: var(--primary-color);
+  border-style: dashed;
+}
+
 .date-number {
   font-size: 0.9em;
   font-weight: 500;
@@ -380,7 +370,7 @@
   font-size: 0.85em;
   background-color: rgba(0, 0, 0, 0.05);
   margin-bottom: 2px;
-  cursor: pointer;
+  cursor: move;
   transition: all 0.2s ease;
   position: relative;
 }
@@ -393,21 +383,10 @@
   transform: translateY(1px);
 }
 
-.entry-preview::after {
-  content: 'Double-click to edit';
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.8em;
-  color: var(--text-color);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  pointer-events: none;
-}
-
-.entry-preview:hover::after {
+.entry-preview.dragging {
   opacity: 0.5;
+  background-color: rgba(41, 128, 185, 0.2);
+  border: 1px dashed var(--primary-color);
 }
 
 .entry-preview.note { border-left: 2px solid #3498db; }
@@ -447,30 +426,13 @@
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.02);
   margin-bottom: 8px;
-  cursor: pointer;
+  cursor: move;
   transition: all 0.2s ease;
   position: relative;
 }
 
 .selected-date-entries .entry:hover {
   background: rgba(0, 0, 0, 0.05);
-}
-
-.selected-date-entries .entry::after {
-  content: 'Double-click to edit';
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.8em;
-  color: var(--text-color);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  pointer-events: none;
-}
-
-.selected-date-entries .entry:hover::after {
-  opacity: 0.5;
 }
 
 .selected-date-entries .entry-content {
@@ -510,4 +472,29 @@
 
 .selected-date-entries .entry-meta .tags {
   color: #9b59b6;
+}
+
+/* Context Menu */
+.context-menu {
+  position: fixed;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 4px 0;
+  min-width: 150px;
+  z-index: 1000;
+}
+
+.menu-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--text-color);
+  font-size: 0.9em;
+  transition: all 0.2s ease;
+}
+
+.menu-item:hover {
+  background-color: rgba(41, 128, 185, 0.1);
+  color: var(--primary-color);
 }

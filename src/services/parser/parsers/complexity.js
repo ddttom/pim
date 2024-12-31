@@ -3,26 +3,33 @@ import { createLogger } from '../../../utils/logger.js';
 const logger = createLogger('ComplexityParser');
 
 export default {
-    name: 'complexity',
-    parse(text, patterns) {
-        try {
-            const complexityMatch = text.match(/\b(complex|standard|quick|simple)\s+(?:task|review|work)\b/i);
-            if (complexityMatch) {
-                const level = complexityMatch[1].toLowerCase();
-                switch (level) {
-                    case 'complex':
-                        return { complexity: { level: 'high' } };
-                    case 'standard':
-                        return { complexity: { level: 'medium' } };
-                    case 'quick':
-                    case 'simple':
-                        return { complexity: { level: 'low' } };
-                }
-            }
-            return null;
-        } catch (error) {
-            logger.error('Error in complexity parser:', { error });
-            return null;
-        }
+  name: 'complexity',
+  parse(text) {
+    logger.debug('Entering complexity parser', { text });
+    try {
+      const complexityMatch = text.match(/complexity:\s*(low|medium|high|simple|complex|very complex)\b/i);
+      if (complexityMatch) {
+        const complexityMap = {
+          'low': 'low',
+          'simple': 'low',
+          'medium': 'medium',
+          'high': 'high',
+          'complex': 'high',
+          'very complex': 'high'
+        };
+        const result = {
+          complexity: complexityMap[complexityMatch[1].toLowerCase()]
+        };
+        logger.debug('Complexity parser found match', { result });
+        return result;
+      }
+      logger.debug('Complexity parser found no match');
+      return null;
+    } catch (error) {
+      logger.error('Error in complexity parser:', { error, text });
+      return null;
+    } finally {
+      logger.debug('Exiting complexity parser');
     }
+  }
 };

@@ -3,42 +3,35 @@ import { createLogger } from '../../../utils/logger.js';
 const logger = createLogger('DependenciesParser');
 
 export default {
-    name: 'dependencies',
-    parse(text, patterns) {
-        try {
-            const dependencies = [];
-            
-            // Match "after X" dependencies
-            const afterMatches = text.match(/after\s+([^,\.]+?)(?=\s*(?:,|\.|$|\s+(?:and|or)))/gi);
-            if (afterMatches) {
-                afterMatches.forEach(match => {
-                    const dep = match.replace(/^after\s+/i, '').trim();
-                    dependencies.push({ type: 'after', task: dep });
-                });
-            }
+  name: 'dependencies',
+  parse(text) {
+    logger.debug('Entering dependencies parser', { text });
+    try {
+      // Match dependencies like "depends on: #123, #456" or "after: #789"
+      const dependencyMatch = text.match(/(?:depends on|after|requires):\s*((?:#\d+(?:\s*,\s*#\d+)*)|(?:\d+(?:\s*,\s*\d+)*))/i);
+      if (dependencyMatch) {
+        // Extract and clean up dependency IDs
+        const deps = dependencyMatch[1]
+          .split(',')
+          .map(id => id.trim().replace('#', ''))
+          .map(id => parseInt(id, 10))
+          .filter(id => !isNaN(id));
 
-            // Match "before X" dependencies
-            const beforeMatches = text.match(/before\s+([^,\.]+?)(?=\s*(?:,|\.|$|\s+(?:and|or)))/gi);
-            if (beforeMatches) {
-                beforeMatches.forEach(match => {
-                    const dep = match.replace(/^before\s+/i, '').trim();
-                    dependencies.push({ type: 'before', task: dep });
-                });
-            }
-
-            // Match "depends on X" dependencies
-            const dependsMatches = text.match(/depends\s+on\s+([^,\.]+?)(?=\s*(?:,|\.|$|\s+(?:and|or)))/gi);
-            if (dependsMatches) {
-                dependsMatches.forEach(match => {
-                    const dep = match.replace(/^depends\s+on\s+/i, '').trim();
-                    dependencies.push({ type: 'depends', task: dep });
-                });
-            }
-
-            return dependencies.length > 0 ? { dependencies } : null;
-        } catch (error) {
-            logger.error('Error in dependencies parser:', { error });
-            return null;
+        if (deps.length > 0) {
+          const result = {
+            dependencies: deps
+          };
+          logger.debug('Dependencies parser found matches', { result });
+          return result;
         }
+      }
+      logger.debug('Dependencies parser found no matches');
+      return null;
+    } catch (error) {
+      logger.error('Error in dependencies parser:', { error, text });
+      return null;
+    } finally {
+      logger.debug('Exiting dependencies parser');
     }
+  }
 };

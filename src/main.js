@@ -137,6 +137,15 @@ ipcMain.handle('copy-to-clipboard', async (event, text) => {
   }
 });
 
+ipcMain.handle('read-clipboard', async () => {
+  try {
+    return clipboard.readText();
+  } catch (error) {
+    console.error('Failed to read clipboard:', error);
+    throw error;
+  }
+});
+
 ipcMain.handle('add-entry', async (event, entry) => {
   try {
     const id = await db.addEntry(entry);

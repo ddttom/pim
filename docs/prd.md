@@ -121,47 +121,6 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - Status bar
    - Context menus
 
-3. Editor Interface
-   - Full viewport workspace
-   - Rich text toolbar
-   - Type indicator badge
-   - Navigation controls
-   - Save/Save As options
-   - Image attachment support
-   - Parser testing interface
-   - Archive controls
-   - Settings access
-
-4. Modal System
-   - Settings configuration
-   - Quick entry creation
-   - Type conversion
-   - Search interface
-   - Plugin management
-   - Help/documentation
-   - Escape key to close
-   - Click outside to dismiss
-   - Proper layering
-   - Scrollable content
-   - Keyboard focus management
-
-5. Visual Design
-   - Light/dark theme support
-   - Custom theme creation
-   - Consistent spacing
-   - Clear visual hierarchy
-   - Responsive design
-   - Touch targets (40x40px)
-   - Proper contrast ratios
-   - Color-coded type badges:
-     - Note (Green)
-     - Document (Blue)
-     - Template (Purple)
-     - HTML (Orange)
-     - Record (Brown)
-     - Task (Red)
-     - Event (Teal)
-
 ### Editor Requirements
 
 1. Rich Text Capabilities
@@ -208,14 +167,50 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - Data integrity checks
    - Copy database to clipboard function
 
-2. Synchronization
+2. Parser System
+   - Modular parser architecture
+   - Individual parsers for each metadata type
+   - Consistent error handling across parsers:
+     - Return null on parse failure
+     - No error propagation to UI
+     - Detailed error logging for debugging
+   - Comprehensive logging system:
+     - Entry/exit logging for each parser
+     - Input text logging
+     - Match result logging
+     - Error details capture
+   - Parser types:
+     - Action parser (tasks, commands)
+     - Attendees parser (meeting participants)
+     - Categories parser (content organization)
+     - Complexity parser (task difficulty)
+     - Contact parser (email, phone)
+     - Contexts parser (@mentions)
+     - Date parser (deadlines, events)
+     - Dependencies parser (linked items)
+     - Duration parser (time spans)
+     - Links parser (URLs, references)
+     - Location parser (places, venues)
+     - Participants parser (people involved)
+     - Priority parser (importance levels)
+     - Project parser (project assignments)
+     - Recurring parser (repeated events)
+     - Reminders parser (notifications)
+     - Status parser (progress states)
+     - Subject parser (titles, topics)
+     - Tags parser (#tags)
+     - Time parser (specific times)
+     - Time of Day parser (morning/afternoon)
+     - Urgency parser (time sensitivity)
+
+3. Synchronization
    - Cloud sync support
    - Offline functionality
    - Multi-device sync
    - Conflict resolution
    - Backup integration
 
-3. Plugin System
+4. Plugin System
    - Custom content types
    - UI extensions
    - Custom parsers
@@ -272,7 +267,7 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - Dependency security
    - Audit logging
 
-## Accessibility Requirements
+### Accessibility Requirements
 
 1. Interface
    - Keyboard navigation
@@ -288,7 +283,7 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - Color contrast
    - Focus management
 
-## Integration Requirements
+### Integration Requirements
 
 1. External Services
    - Calendar integration
@@ -304,7 +299,7 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - Validation rules
    - Error handling
 
-## Success Metrics
+### Success Metrics
 
 1. Performance
    - Load times
@@ -327,7 +322,7 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - Backup success
    - Error recovery
 
-## Future Considerations
+### Future Considerations
 
 1. Platform Expansion
    - Mobile applications

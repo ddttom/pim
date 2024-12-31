@@ -3,34 +3,28 @@ import { createLogger } from '../../../utils/logger.js';
 const logger = createLogger('ProjectParser');
 
 export default {
-    name: 'project',
-    parse(text, patterns) {
-        try {
-            // Match Project Name with full capture including "Project"
-            const projectMatch = text.match(/Project\s+([A-Za-z][A-Za-z]+(?:\s*[A-Za-z][A-Za-z]+)*)/i);
-            if (projectMatch) {
-                const projectName = projectMatch[1].replace(/\s+/g, ' ').trim();
-                return {
-                    project: {
-                        project: `Project ${projectName}`
-                    }
-                };
-            }
-
-            // Match Context Tags
-            const contextMatches = Array.from(text.matchAll(/\$(\w+)/g));
-            if (contextMatches.length > 0) {
-                return {
-                    project: {
-                        contexts: contextMatches.map(match => match[1])
-                    }
-                };
-            }
-
-            return null;
-        } catch (error) {
-            logger.error('Error in project parser:', { error });
-            return null;
-        }
+  name: 'project',
+  parse(text) {
+    logger.debug('Entering project parser', { text });
+    try {
+      // Match project patterns like "project: ProjectName" or "for ProjectName"
+      const projectMatch = text.match(/(?:project|for):\s*([A-Z][a-zA-Z0-9_-]+)/i) ||
+                         text.match(/\bfor\s+([A-Z][a-zA-Z0-9_-]+)(?=\s*(?:,|\.|$|\s+(?:about|with)))/);
+      
+      if (projectMatch) {
+        const result = {
+          project: projectMatch[1].trim()
+        };
+        logger.debug('Project parser found match', { result });
+        return result;
+      }
+      logger.debug('Project parser found no match');
+      return null;
+    } catch (error) {
+      logger.error('Error in project parser:', { error, text });
+      return null;
+    } finally {
+      logger.debug('Exiting project parser');
     }
+  }
 };

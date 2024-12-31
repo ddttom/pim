@@ -1,67 +1,36 @@
-const CONFIG = require('../../../config/parser.config');
-const { createLogger } = require('../../../utils/logger');
+import { createLogger } from '../../../utils/logger.js';
+import { parseTime } from '../utils/timeUtils.js';
 
 const logger = createLogger('TimeParser');
 
-/**
- * Parse time of day from text
- * @param {string} text - Input text
- * @returns {Object|null} Time object
- */
-function parse(text) {
-  try {
-    logger.debug('Starting time parse:', { text });
-
-    // Check for period words first (morning, afternoon, evening)
-    for (const [period, config] of Object.entries(CONFIG.timeOfDay)) {
-      if (text.toLowerCase().includes(period)) {
-        logger.debug('Found period match:', { period, config });
-        return {
-          period,
-          start: config.start,
-          end: config.end,
-        };
-      }
-    }
-
-    // Parse specific time
-    const match = text.match(CONFIG.patterns.time);
-    if (match?.groups) {
-      const { hours, minutes, meridian } = match.groups;
-      let hour = parseInt(hours, 10);
+export default {
+  name: 'time',
+  parse(text) {
+    logger.debug('Entering time parser', { text });
+    try {
+      // Match time patterns like "time: 3:30pm" or "at 15:00"
+      const timeMatch = text.match(/(?:time|at):\s*([^,\n]+)/i) ||
+                       text.match(/\bat\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i);
       
-      logger.debug('Found specific time match:', { hours, minutes, meridian });
-      
-      // Convert to 24-hour format
-      if (meridian?.toLowerCase() === 'pm' && hour < 12) {
-        hour += 12;
-      } else if (meridian?.toLowerCase() === 'am' && hour === 12) {
-        hour = 0;
+      if (timeMatch) {
+        const timeStr = timeMatch[1].trim();
+        const parsedTime = parseTime(timeStr);
+        
+        if (parsedTime) {
+          const result = {
+            time: parsedTime.toISOString()
+          };
+          logger.debug('Time parser found match', { result });
+          return result;
+        }
       }
-
-      logger.debug('Converted to 24-hour format:', { hour });
-
-      return {
-        hour,
-        minute: parseInt(minutes || '0', 10),
-      };
+      logger.debug('Time parser found no match');
+      return null;
+    } catch (error) {
+      logger.error('Error in time parser:', { error, text });
+      return null;
+    } finally {
+      logger.debug('Exiting time parser');
     }
-
-    // Return default time for actions that require it
-    if (text.match(/\b(meet|call|text)\b/i)) {
-      logger.debug('Using default time for action');
-      return {
-        hour: 10,
-        minute: 0,
-      };
-    }
-
-    logger.debug('No time pattern found');
-    return null;
-  } catch (error) {
-    logger.error('Error parsing time of day:', error);
-    return null;
   }
-}
-
-module.exports = { parse }; 
+};

@@ -1,71 +1,54 @@
 import { createLogger } from '../../../utils/logger.js';
+import { parseDate } from '../utils/dateUtils.js';
 
 const logger = createLogger('RemindersParser');
 
 export default {
-    name: 'reminders',
-    parse(text, patterns) {
-        try {
-            logger.info('Parsing reminders from text:', { text });
-
-            // Split text on "and" to handle multiple reminders
-            const reminderParts = text.split(/\s+and\s+|\s*,\s*/);
-            logger.info('Split reminder parts:', { parts: reminderParts });
-
-            const allMinutes = [];
-            
-            // Process each part for reminders
-            reminderParts.forEach(part => {
-                // Simplified pattern that matches just the numbers and units
-                const reminderMatch = part.match(/(\d+)\s+(minutes?|mins?|hours?|hrs?|days?)\s+before/i);
-                if (reminderMatch) {
-                    const amount = parseInt(reminderMatch[1]);
-                    const unit = reminderMatch[2].toLowerCase();
-                    let converted;
-                    if (unit.startsWith('hour')) converted = amount * 60;
-                    else if (unit.startsWith('day')) converted = amount * 1440;
-                    else converted = amount;
-
-                    logger.info('Converting reminder:', { 
-                        amount, 
-                        unit, 
-                        converted 
-                    });
-
-                    allMinutes.push(converted);
-                }
-            });
-
-            if (allMinutes.length > 0) {
-                logger.info('Final reminder minutes:', { minutes: allMinutes });
-
-                // For single reminders, convert array to number to match test expectations
-                const reminderMinutes = allMinutes.length === 1 ? allMinutes[0] : allMinutes;
-
-                return {
-                    reminders: {
-                        reminderMinutes,
-                        type: 'custom'
-                    }
-                };
+  name: 'reminders',
+  parse(text) {
+    logger.debug('Entering reminders parser', { text });
+    try {
+      // Match reminder patterns like "remind: 1 hour before" or "reminder: 30 minutes before"
+      const reminderMatch = text.match(/(?:remind(?:er)?|alert):\s*(\d+)\s*(hour|minute)s?\s*before/i);
+      
+      if (reminderMatch) {
+        const count = parseInt(reminderMatch[1], 10);
+        const unit = reminderMatch[2].toLowerCase();
+        
+        // Convert to minutes
+        const minutes = unit === 'hour' ? count * 60 : count;
+        
+        const result = {
+          reminder: {
+            before: minutes
+          }
+        };
+        logger.debug('Reminders parser found match', { result });
+        return result;
+      }
+      
+      // Match absolute reminder time like "remind: 9am"
+      const timeMatch = text.match(/(?:remind(?:er)?|alert):\s*([^,\n]+)/i);
+      if (timeMatch) {
+        const reminderTime = parseDate(timeMatch[1].trim());
+        if (reminderTime) {
+          const result = {
+            reminder: {
+              at: reminderTime.toISOString()
             }
-
-            // Handle default meeting reminder
-            if (text.includes('meeting') && text.includes('reminder')) {
-                logger.info('Using default meeting reminder');
-                return {
-                    reminders: {
-                        reminderMinutes: 15,
-                        type: 'default'
-                    }
-                };
-            }
-
-            logger.info('No reminders found');
-            return null;
-        } catch (error) {
-            logger.error('Error in reminders parser:', { error });
-            return null;
+          };
+          logger.debug('Reminders parser found time match', { result });
+          return result;
         }
+      }
+      
+      logger.debug('Reminders parser found no match');
+      return null;
+    } catch (error) {
+      logger.error('Error in reminders parser:', { error, text });
+      return null;
+    } finally {
+      logger.debug('Exiting reminders parser');
     }
+  }
 };

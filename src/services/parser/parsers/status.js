@@ -5,29 +5,39 @@ const logger = createLogger('StatusParser');
 export default {
   name: 'status',
   parse(text) {
+    logger.debug('Entering status parser', { text });
     try {
-      const statusMatch = text.match(/\b(blocked|complete|started|closed|abandoned|pending)\b/i);
-      if (statusMatch) {
-        return {
-          status: statusMatch[1].charAt(0).toUpperCase() + statusMatch[1].slice(1).toLowerCase()
-        };
-      }
+      // Match status patterns like "status: in progress" or "state: completed"
+      const statusMatch = text.match(/(?:status|state):\s*(not started|in progress|completed|done|blocked|on hold|pending|cancelled)\b/i);
       
-      // Check for implicit pending status
-      if (text.toLowerCase().includes('next') || text.toLowerCase().includes('tomorrow')) {
-        return {
-          status: 'Pending'
+      if (statusMatch) {
+        let status = statusMatch[1].toLowerCase();
+        
+        // Normalize status values
+        const statusMap = {
+          'not started': 'not_started',
+          'in progress': 'in_progress',
+          'completed': 'completed',
+          'done': 'completed',
+          'blocked': 'blocked',
+          'on hold': 'on_hold',
+          'pending': 'pending',
+          'cancelled': 'cancelled'
         };
+        
+        status = statusMap[status] || status;
+        
+        const result = { status };
+        logger.debug('Status parser found match', { result });
+        return result;
       }
-
-      return {
-        status: 'None'
-      };
+      logger.debug('Status parser found no match');
+      return null;
     } catch (error) {
-      logger.error('Error in status parser:', { error });
-      return {
-        status: 'None'
-      };
+      logger.error('Error in status parser:', { error, text });
+      return null;
+    } finally {
+      logger.debug('Exiting status parser');
     }
   }
 };

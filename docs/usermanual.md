@@ -12,13 +12,23 @@ The application provides two main views for managing your entries:
 
 The list view displays your entries in a table format with sortable columns:
 
+- Content: First part of the entry text (hover to see full content)
+- Type: Entry type (Note/Document/Template/HTML/Record/Task/Event)
+- Date: Creation date of the entry
+- Project: Associated project name
+- Priority: Entry priority level (high/normal/low)
+- Tags: Associated tags shown as pills
+- Deadline: Due date if set
+
+Click any column header to sort entries. Click again to reverse sort order.
+
 #### Calendar View
 
 The calendar view provides three different ways to view your entries:
 
-- **Month View**: Traditional calendar grid showing entries per day
-- **Week View**: Detailed view of a single week with hourly slots
-- **Day View**: Full day view with detailed entry information
+- Month View: Traditional calendar grid showing entries per day
+- Week View: Detailed view of a single week with hourly slots
+- Day View: Full day view with detailed entry information
 
 Navigation controls include:
 
@@ -37,7 +47,7 @@ Each day shows:
 
 You can interact with entries in both list and calendar views:
 
-1. **Preview Entry**
+1. Preview Entry
    - Single click an entry to show preview
    - Preview shows:
      - Entry type with color badge
@@ -51,27 +61,17 @@ You can interact with entries in both list and calendar views:
      - Close preview
    - Preview closes automatically when editing
 
-2. **Edit Entry**
+2. Edit Entry
    - Double click an entry to edit directly
    - Click Edit button in preview
    - Full editor opens with all capabilities
    - Changes saved automatically
 
-3. **Quick Actions**
+3. Quick Actions
    - Copy entry text to clipboard
    - Delete entry with confirmation
    - Edit in full editor
    - All actions available in preview modal
-
-- **Content**: First part of the entry text (hover to see full content)
-- **Type**: Entry type (Note/Document/Template/HTML/Record/Task/Event)
-- **Date**: Creation date of the entry
-- **Project**: Associated project name
-- **Priority**: Entry priority level (high/normal/low)
-- **Tags**: Associated tags shown as pills
-- **Deadline**: Due date if set
-
-Click any column header to sort entries. Click again to reverse sort order.
 
 ### Sidebar Navigation
 
@@ -79,13 +79,13 @@ Click any column header to sort entries. Click again to reverse sort order.
 
 The sidebar provides quick access to filtered views:
 
-- **All Entries**: Show all entries
-- **Overdue**: Show entries past their deadline
-- **Priority**:
+- All Entries: Show all entries
+- Overdue: Show entries past their deadline
+- Priority:
   - High Priority
   - Normal Priority
   - Low Priority
-- **Type**:
+- Type:
   - Note: General text entries
   - Document: Formatted documents
   - Template: Reusable templates
@@ -93,17 +93,17 @@ The sidebar provides quick access to filtered views:
   - Record: Data records
   - Task: Action items or to-dos
   - Event: Calendar events or meetings
-- **Categories**:
+- Categories:
   - Projects: Show entries with projects
   - Tags: Show entries with tags
-- **Status**:
+- Status:
   - Archived: Show archived entries
 
 ### Toolbar
 
-- **New Entry**: Create a new document
-- **Copy DB**: Copy database contents to clipboard
-- **Settings**: Access application settings
+- New Entry: Create a new document
+- Copy DB: Copy database contents to clipboard
+- Settings: Access application settings
 
 ### Search
 
@@ -113,74 +113,126 @@ The search bar at the top allows you to:
 - Clear search with the (×) button or Escape key
 - See results update in real-time as you type
 
-### Editor
+## Text Parsing
 
-The editor provides a full viewport workspace for creating and editing entries:
+The application automatically extracts metadata from your text using various parsers. Each parser looks for specific patterns and returns structured data.
 
-- **Back to List**: Return to the main view
-- **Save**: Save your changes (with save icon)
-- **Save As**: Save entry as a different type (appears below button)
-- **Add Images**: Attach images to your entry
-- **Test Parser**: Test entry parsing (appears below button)
-- **Settings**: Configure application settings (appears below button)
-- **Archive**: Move entry to archive (appears in archived view)
+### Available Parsers
 
-The entry type is shown as a colored badge in the editor toolbar. Use Save As to change an entry's type:
+1. Action Parser
+   - Matches: "todo", "task", "action", "do"
+   - Example: "todo: Review document"
 
-- Note (Green): General text entries
-- Document (Blue): Formatted documents
-- Template (Purple): Reusable templates
-- HTML (Orange): HTML content
-- Record (Brown): Structured data entries
-- Task (Red): Action items or to-dos
-- Event (Teal): Calendar events and meetings
+2. Attendees/Participants
+   - Matches: "with: John, Mary" or "participants: Team Alpha"
+   - Example: "Meeting with John, Mary and Team Alpha"
 
-The editor provides rich text formatting options:
+3. Categories & Tags
+   - Matches: "category: Work" or "#project"
+   - Example: "category: Personal #health #exercise"
 
-- Headers (H1, H2, H3)
-- Bold, italic, underline, strike-through
-- Links and blockquotes
-- Code blocks
-- Ordered and unordered lists
+4. Complexity & Priority
+   - Matches: "complexity: high" or "priority: p1"
+   - Example: "complexity: medium priority: high"
 
-### Modal System
+5. Contact Information
+   - Matches: email addresses and phone numbers
+   - Example: "contact: <john@example.com> (123) 456-7890"
 
-The application uses a dynamic modal system:
+6. Dates & Times
+   - Matches: "due: tomorrow" or "at: 3pm"
+   - Example: "due: next Friday at 2:30pm"
 
-- **Editor Modal**: Uses full viewport for maximum workspace
-- **Settings Modal**: Appears below settings button with scrollable content
-- **Save As Modal**: Appears below Save As button for type selection
-- **Test Parser Modal**: Appears below Test Parser button with scrollable results
-- **Confirmation Modals**: Centered on screen for important actions
+7. Dependencies
+   - Matches: "depends on: #123" or "after: #456"
+   - Example: "depends on: #123, #456"
 
-All modals support:
+8. Duration
+   - Matches: "duration: 2h 30m" or "takes: 45m"
+   - Example: "duration: 1h 30m"
 
-- Escape key to close
-- Click outside to dismiss
-- Proper layering with z-index management
-- Scrollbars for overflow content
-- Keyboard focus management
+9. Links
+   - Matches: URLs and web references
+   - Example: "see: <https://example.com>"
 
-### Keyboard Shortcuts
+10. Location
+    - Matches: "at: Office" or "location: Room 101"
+    - Example: "meeting in Conference Room A"
 
-- `Ctrl+N`: New entry
-- `Ctrl+S`: Save current entry
-- `Ctrl+F`: Focus search
-- `Ctrl+,`: Open settings
-- `Ctrl+\`: Toggle sidebar
-- `Esc`: Clear search (when search is focused)
+11. Project
+    - Matches: "project: ProjectName" or "for: TeamAlpha"
+    - Example: "project: Website Redesign"
 
-### Settings
+12. Recurring
+    - Matches: "repeat: daily" or "every: 2 weeks"
+    - Example: "recurring: weekly"
 
-![Settings](images/settings modal.png)
+13. Reminders
+    - Matches: "remind: 30 minutes before"
+    - Example: "reminder: 1 hour before"
 
-Access settings through the gear icon to configure:
+14. Status
+    - Matches: "status: in progress" or "state: completed"
+    - Example: "status: pending"
 
-- Editor preferences
-- Display options
-- Theme customization
-- Backup/restore options
-- Keyboard shortcuts
+15. Subject
+    - Matches: "subject: Topic" or first line of text
+    - Example: "subject: Team Meeting Notes"
+
+16. Time of Day
+    - Matches: "in the morning" or "during afternoon"
+    - Example: "meeting in the afternoon"
+
+17. Urgency
+    - Matches: "urgent" or "urgency: high"
+    - Example: "urgency: high ASAP"
+
+### Parser Behavior
+
+- Parsers silently handle errors and continue processing
+- Failed matches return no results without affecting other parsers
+- Debug logs are available for troubleshooting
+- Multiple parsers can match in the same text
+- Results are combined into structured metadata
+
+### Examples
+
+1. Meeting Entry:
+
+   ```bash
+   Team Sync Meeting
+   with: John, Mary, Team Alpha
+   at: Conference Room B
+   time: 2pm
+   duration: 1h
+   recurring: weekly
+   project: Website Redesign
+   #meeting #sync
+   ```
+
+2. Task Entry:
+
+   ```bash
+   Review Documentation
+   priority: high
+   due: tomorrow at 5pm
+   status: in progress
+   depends on: #123
+   project: Documentation
+   remind: 1 hour before
+   #docs #review
+   ```
+
+3. Contact Entry:
+
+   ```bash
+   John Smith Contact Info
+   email: john@example.com
+   phone: (123) 456-7890
+   location: New York Office
+   category: Business
+   #contact
+   ```
 
 ## Tips & Tricks
 
@@ -200,6 +252,15 @@ Access settings through the gear icon to configure:
   - Records for structured data
   - Tasks for action items
   - Events for calendar entries
+
+## Keyboard Shortcuts
+
+- `Ctrl+N`: New entry
+- `Ctrl+S`: Save current entry
+- `Ctrl+F`: Focus search
+- `Ctrl+,`: Open settings
+- `Ctrl+\`: Toggle sidebar
+- `Esc`: Clear search (when search is focused)
 
 ## Troubleshooting
 
