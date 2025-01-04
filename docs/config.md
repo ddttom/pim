@@ -162,8 +162,6 @@ The test suite includes carefully crafted mocks for:
 - File system operations
 - IPC communication
 - DOM manipulation
-- Plugin system
-- Configuration management
 
 Example mock for editor:
 

@@ -70,41 +70,6 @@ class EntryService {
     }
   }
 
-  // Plugin data operations
-  async updatePluginData(entryId, pluginName, data) {
-    try {
-      const entry = await this.#db.getEntry(entryId);
-      if (!entry) {
-        throw new Error(`Entry with id ${entryId} not found`);
-      }
-
-      const updates = {
-        plugins: {
-          ...entry.plugins,
-          [pluginName]: data
-        }
-      };
-
-      return await this.#db.updateEntry(entryId, updates);
-    } catch (error) {
-      console.error('Failed to update plugin data:', error);
-      throw error;
-    }
-  }
-
-  async getPluginData(entryId, pluginName) {
-    try {
-      const entry = await this.#db.getEntry(entryId);
-      if (!entry) {
-        throw new Error(`Entry with id ${entryId} not found`);
-      }
-
-      return entry.plugins?.[pluginName] || null;
-    } catch (error) {
-      console.error('Failed to get plugin data:', error);
-      throw error;
-    }
-  }
 }
 
 module.exports = EntryService;

@@ -204,7 +204,7 @@ export class CalendarView {
                 </div>
                 <div class="day-entries">
                   ${entries.map(entry => `
-                    <div class="entry-preview ${entry.type || 'note'}" title="${entry.raw || ''}" data-id="${entry.id}">
+                    <div class="entry-preview ${entry.type || 'note'}" data-id="${entry.id}">
                       ${(entry.raw || '').substring(0, 30)}${(entry.raw || '').length > 30 ? '...' : ''}
                     </div>
                   `).join('')}
@@ -244,7 +244,7 @@ export class CalendarView {
                       <div class="entries-indicator">
                         <span class="count">${entries.length}</span>
                         ${entries.map(entry => `
-                          <div class="entry-preview ${entry.type || 'note'}" title="${entry.raw || ''}" data-id="${entry.id}">
+                          <div class="entry-preview ${entry.type || 'note'}" data-id="${entry.id}">
                             ${(entry.raw || '').substring(0, 30)}${(entry.raw || '').length > 30 ? '...' : ''}
                           </div>
                         `).join('')}

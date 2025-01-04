@@ -9,7 +9,6 @@ The project uses Jest for testing and includes comprehensive test suites coverin
 - Parser functionality
 - UI components
 - Rich text editor
-- Plugin system
 
 ## Test Environment
 
@@ -85,13 +84,6 @@ The test environment is configured in `tests/setup.js` to:
 - State management
 - Content persistence
 
-### Plugin Tests (`tests/plugins.test.js`)
-
-- Plugin loading
-- Plugin execution
-- Error handling
-- Plugin data persistence
-
 ## Mock Implementations
 
 ### Editor Mock
@@ -143,7 +135,6 @@ npm run test:db         # Database operations
 npm run test:parser     # Parser functionality
 npm run test:renderer   # UI components
 npm run test:rich-text  # Editor features
-npm run test:plugins    # Plugin system
 ```
 
 ### Watch Mode

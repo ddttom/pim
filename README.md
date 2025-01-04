@@ -91,7 +91,6 @@ npm run test:db         # Database operations
 npm run test:parser     # Parser functionality
 npm run test:renderer   # UI components
 npm run test:rich-text  # Editor features
-npm run test:plugins    # Plugin system
 ```
 
 ### Building

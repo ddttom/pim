@@ -323,7 +323,6 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - Feature usage
    - Entry creation
    - Search usage
-   - Plugin adoption
 
 3. Reliability
    - Uptime

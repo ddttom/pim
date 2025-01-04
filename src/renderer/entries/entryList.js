@@ -123,7 +123,7 @@ export function renderEntries(entries) {
 
     return `
       <tr data-id="${entry.id}" class="${entry.archived ? 'archived' : ''}">
-        <td class="content-cell" title="${entry.raw || ''}">${(entry.raw || '').substring(0, 50)}...</td>
+        <td class="content-cell">${(entry.raw || '').substring(0, 50)}...</td>
         <td class="type-cell ${entry.type || 'note'}">${entry.type || 'note'}</td>
         <td class="date-cell">${formattedDate}</td>
         <td class="project-cell">${entry.parsed?.project?.project || '-'}</td>
@@ -136,19 +136,11 @@ export function renderEntries(entries) {
 
   // Add click handlers
   tbody.querySelectorAll('tr').forEach(row => {
-    // Single click to preview
+    // Click to preview
     row.addEventListener('click', () => {
       const id = row.getAttribute('data-id');
       if (id) {
         window.api.invoke('load-entry', id);
-      }
-    });
-
-    // Double click to edit
-    row.addEventListener('dblclick', () => {
-      const id = row.getAttribute('data-id');
-      if (id) {
-        window.api.send('edit-entry', id);
       }
     });
   });

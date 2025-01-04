@@ -6,7 +6,7 @@ class DatabaseService {
         // Only parse if it's a note type
         const parsedEntry = type === 'note' 
             ? await this.parser.parse(entry.content)
-            : { original: entry.content, parsed: { text: entry.content, plugins: {} } };
+            : { original: entry.content, parsed: { text: entry.content } };
 
         const entryToSave = {
             ...entry,
