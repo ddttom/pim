@@ -89,7 +89,6 @@ npm run lint:fix
 
 - Handles natural language processing
 - Extracts metadata from text
-- Plugin-based architecture
 
 #### Database Service
 

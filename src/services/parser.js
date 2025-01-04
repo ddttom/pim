@@ -25,7 +25,7 @@ import timeOfDay from './parser/parsers/timeOfDay.js';
 import urgency from './parser/parsers/urgency.js';
 
 const logger = createLogger('Parser');
-const plugins = new Map();
+const parsers = new Map();
 const patterns = compilePatterns({
   action: /^(call|email|meet|review|follow up|schedule|book|arrange|organize|plan|prepare|write|draft|create|make|do|check|verify|confirm|send|share|update|modify|change|delete|remove|add|text)/i,
   contact: /@(\w+)|(?:call|email|meet|contact|text|with)\s+(\w+)(?:\s*,\s*|\s+and\s+|\s+|$)/i,
@@ -47,15 +47,15 @@ const patterns = compilePatterns({
   temporal: /\b(tomorrow|next|today|later|soon|after|before)\b/i
 });
 
-// Load plugins
+// Load parsers
 [
   action, attendees, categories, complexity, contact,
   contexts, date, dependencies, duration, links,
   location, participants, priority, project, recurring,
   reminders, status, subject, tags, timeOfDay, urgency
-].forEach(plugin => {
-  if (plugin?.name) {
-    plugins.set(plugin.name, plugin);
+].forEach(parser => {
+  if (parser?.name) {
+    parsers.set(parser.name, parser);
   }
 });
 
@@ -82,7 +82,7 @@ function parse(content) {
         participants: [],
         priority: 'normal',
         tags: [],
-        plugins: {}
+        parsers: {}
       }
     };
   }
@@ -92,20 +92,20 @@ function parse(content) {
     markdown: text,
     parsed: {
       text,
-      plugins: {}
+      parsers: {}
     }
   };
 
   try {
-    for (const [name, plugin] of plugins) {
+    for (const [name, parser] of parsers) {
       try {
-        result.parsed.plugins[name] = plugin.parse(text);
+        result.parsed.parsers[name] = parser.parse(text);
       } catch (error) {
-        logger.error('Plugin error:', { error });
+        logger.error('Parser error:', { error });
       }
     }
   } catch (error) {
-    logger.error('Error running plugins:', { error });
+    logger.error('Error running parsers:', { error });
   }
 
   return result;

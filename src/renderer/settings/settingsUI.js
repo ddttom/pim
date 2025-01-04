@@ -78,7 +78,6 @@ export async function setupSettingsUI(container, settings, api) {
           <button class="settings-nav-item active" data-section="ui">User Interface</button>
           <button class="settings-nav-item" data-section="editor">Editor</button>
           <button class="settings-nav-item" data-section="date">Date Format</button>
-          <button class="settings-nav-item" data-section="plugins">Plugins</button>
           <button class="settings-nav-item" data-section="advanced">Advanced</button>
         </div>
       </div>
@@ -154,80 +153,6 @@ export async function setupSettingsUI(container, settings, api) {
           </div>
         </div>
 
-        <div class="settings-panel" data-section="plugins">
-          <div class="settings-section">
-            <h3>Installed Plugins</h3>
-            <div class="setting-item">
-              <div class="plugin-list">
-                <div class="plugin-item">
-                  <div class="plugin-header">
-                    <label>
-                      <input type="checkbox" id="plugin-calendar" ${settings?.plugins?.calendar?.enabled ? 'checked' : ''}>
-                      Calendar Integration
-                    </label>
-                    <span class="plugin-version">v1.0.0</span>
-                  </div>
-                  <div class="plugin-config ${settings?.plugins?.calendar?.enabled ? '' : 'disabled'}">
-                    <label>Calendar URL:</label>
-                    <input type="text" id="plugin-calendar-url" 
-                           value="${settings?.plugins?.calendar?.url || ''}"
-                           placeholder="Enter calendar URL"
-                           ${settings?.plugins?.calendar?.enabled ? '' : 'disabled'}>
-                  </div>
-                </div>
-
-                <div class="plugin-item">
-                  <div class="plugin-header">
-                    <label>
-                      <input type="checkbox" id="plugin-custom-parser" ${settings?.plugins?.customParser?.enabled ? 'checked' : ''}>
-                      Custom Parser
-                    </label>
-                    <span class="plugin-version">v1.0.0</span>
-                  </div>
-                  <div class="plugin-config ${settings?.plugins?.customParser?.enabled ? '' : 'disabled'}">
-                    <label>Parser Rules:</label>
-                    <textarea id="plugin-custom-parser-rules" 
-                            placeholder="Enter parsing rules"
-                            ${settings?.plugins?.customParser?.enabled ? '' : 'disabled'}
-                    >${settings?.plugins?.customParser?.rules || ''}</textarea>
-                  </div>
-                </div>
-
-                <div class="plugin-item">
-                  <div class="plugin-header">
-                    <label>
-                      <input type="checkbox" id="plugin-ui-extension" ${settings?.plugins?.uiExtension?.enabled ? 'checked' : ''}>
-                      UI Extension
-                    </label>
-                    <span class="plugin-version">v1.0.0</span>
-                  </div>
-                  <div class="plugin-config ${settings?.plugins?.uiExtension?.enabled ? '' : 'disabled'}">
-                    <label>View Options:</label>
-                    <select id="plugin-ui-extension-view" ${settings?.plugins?.uiExtension?.enabled ? '' : 'disabled'}>
-                      <option value="default" ${settings?.plugins?.uiExtension?.view === 'default' ? 'selected' : ''}>Default View</option>
-                      <option value="compact" ${settings?.plugins?.uiExtension?.view === 'compact' ? 'selected' : ''}>Compact View</option>
-                      <option value="expanded" ${settings?.plugins?.uiExtension?.view === 'expanded' ? 'selected' : ''}>Expanded View</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="settings-section">
-            <h3>Plugin Management</h3>
-            <div class="setting-item">
-              <button id="refresh-plugins-btn" class="secondary-btn">Refresh Plugins</button>
-              <button id="install-plugin-btn" class="secondary-btn">Install New Plugin</button>
-            </div>
-            <div class="setting-item">
-              <p class="setting-description">
-                Manage installed plugins and their configurations. Changes to plugin settings require an application restart to take effect.
-              </p>
-            </div>
-          </div>
-        </div>
-
         <div class="settings-panel" data-section="advanced">
           <div class="settings-section">
             <h3>Sync</h3>
@@ -291,52 +216,6 @@ async function setupSettingsEventHandlers(settings, api) {
       document.querySelector(`.settings-panel[data-section="${section}"]`).classList.add('active');
     });
   });
-
-  // Plugin settings handlers
-  const pluginCheckboxes = document.querySelectorAll('.plugin-item input[type="checkbox"]');
-  pluginCheckboxes.forEach(checkbox => {
-    checkbox.addEventListener('change', (e) => {
-      const configSection = e.target.closest('.plugin-item').querySelector('.plugin-config');
-      const inputs = configSection.querySelectorAll('input, textarea, select');
-      
-      if (e.target.checked) {
-        configSection.classList.remove('disabled');
-        inputs.forEach(input => input.disabled = false);
-      } else {
-        configSection.classList.add('disabled');
-        inputs.forEach(input => input.disabled = true);
-      }
-    });
-  });
-
-  // Plugin management button handlers
-  const refreshPluginsBtn = document.getElementById('refresh-plugins-btn');
-  if (refreshPluginsBtn) {
-    refreshPluginsBtn.addEventListener('click', async () => {
-      try {
-        await api.invoke('refresh-plugins');
-        showToast('Plugins refreshed successfully');
-      } catch (error) {
-        console.error('Failed to refresh plugins:', error);
-        showToast('Failed to refresh plugins', 'error');
-      }
-    });
-  }
-
-  const installPluginBtn = document.getElementById('install-plugin-btn');
-  if (installPluginBtn) {
-    installPluginBtn.addEventListener('click', async () => {
-      try {
-        const result = await api.invoke('show-plugin-install-dialog');
-        if (result) {
-          showToast('Plugin installed successfully');
-        }
-      } catch (error) {
-        console.error('Failed to install plugin:', error);
-        showToast('Failed to install plugin', 'error');
-      }
-    });
-  }
 
   // Sync settings handlers
   const syncEnabled = document.getElementById('setting-sync-enabled');
@@ -433,20 +312,6 @@ export async function saveSettings(settings, api) {
         autoSync: document.getElementById('setting-autosync')?.checked ?? false,
         syncInterval: document.getElementById('setting-sync-interval')?.value || 'daily',
         lastSync: settings.sync?.lastSync || null
-      },
-      plugins: {
-        calendar: {
-          enabled: document.getElementById('plugin-calendar')?.checked ?? false,
-          url: document.getElementById('plugin-calendar-url')?.value || ''
-        },
-        customParser: {
-          enabled: document.getElementById('plugin-custom-parser')?.checked ?? false,
-          rules: document.getElementById('plugin-custom-parser-rules')?.value || ''
-        },
-        uiExtension: {
-          enabled: document.getElementById('plugin-ui-extension')?.checked ?? false,
-          view: document.getElementById('plugin-ui-extension-view')?.value || 'default'
-        }
       }
     };
 
