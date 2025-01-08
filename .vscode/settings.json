@@ -9,6 +9,7 @@
         "dotenv",
         "fieldsets",
         "fileupload",
+        "gramm",
         "headshot",
         "Imagecycle",
         "Multifield",

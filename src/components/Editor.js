@@ -1,4 +1,4 @@
-import { MarkdownEditor } from '../renderer/editor/markdown-editor.js';
+import { MarkdownEditor } from '../renderer/editor/MarkdownEditor.js';
 
 class Editor {
     constructor(container) {
@@ -14,14 +14,18 @@ class Editor {
         try {
             console.log('Initializing editor');
 
-            // Find editor div
+            // Find editor div and set direction
             const editorDiv = this.container.querySelector('#editor');
             if (!editorDiv) {
                 throw new Error('Editor div not found');
             }
+            editorDiv.setAttribute('dir', 'ltr');
+            editorDiv.style.direction = 'ltr';
+            editorDiv.style.unicodeBidi = 'isolate';
 
             // Initialize Markdown editor
             this.editor = new MarkdownEditor(editorDiv);
+            await this.editor.setup(); // Wait for editor setup
 
             // Set up image upload handler
             const imageUpload = this.container.querySelector('#image-upload');
@@ -38,26 +42,28 @@ class Editor {
     }
 
     getText() {
-        return this.editor.getText();
+        return this.editor?.editor?.getText() || '';
     }
 
     getContents() {
         return {
-            text: this.editor.getText(),
-            html: this.editor.preview.innerHTML
+            text: this.getText(),
+            html: this.editor?.editor?.preview?.innerHTML || ''
         };
     }
 
     setContents(content) {
+        if (!this.editor?.editor) return;
+        
         if (typeof content === 'string') {
-            this.editor.setText(content);
+            this.editor.editor.setText(content);
         } else if (content && content.text) {
-            this.editor.setText(content.text);
+            this.editor.editor.setText(content.text);
         }
     }
 
     get root() {
-        return this.editor.editor;
+        return this.editor?.editor?.preview;
     }
 
     get entryId() {
@@ -78,8 +84,18 @@ class Editor {
             
             // Insert image into editor using markdown syntax
             const imageMarkdown = `![${file.name}](${imageInfo.path})`;
-            const { start } = this.editor.getSelection();
-            this.editor.replaceSelection(imageMarkdown);
+            if (this.editor?.editor) {
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    const textNode = document.createTextNode(imageMarkdown);
+                    range.insertNode(textNode);
+                    range.setStartAfter(textNode);
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+            }
         }
     }
 
@@ -87,7 +103,7 @@ class Editor {
         try {
             const content = {
                 raw: this.getText(),
-                html: this.root.value
+                html: this.root?.innerHTML || ''
             };
 
             // Parse content

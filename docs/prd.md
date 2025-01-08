@@ -124,26 +124,42 @@ PIM (Personal Information Manager) is a desktop application designed to help use
 ### Editor Requirements
 
 1. Rich Text Capabilities
-   - Headers (H1-H6) with markdown syntax
-   - Basic formatting (bold, italic, underline, strike-through)
+   - Headers (H1-H6) with markdown syntax (#)
+   - Basic formatting:
+     - Bold text with double asterisks (**)
+     - Italic text with single asterisks (*)
+     - Code blocks with backticks (`)
+   - Tables with alignment:
+     - Column alignment syntax (|:---|:---:|---:|)
+     - Left alignment (|:---|)
+     - Center alignment (|:---:|)
+     - Right alignment (|---:|)
+     - Cell padding preservation
+     - Multi-line cell content
+   - Images with references:
+     - Reference syntax (![][ref])
+     - Base64 image support
+     - Reference definitions ([ref]: data:...)
+     - Alt text support
    - Lists (ordered and unordered)
    - Links and blockquotes
-   - Images with drag-and-drop
-   - Advanced table support:
-     - Row/column insertion
-     - Cell merging
-     - Context menu controls
-   - Code blocks with syntax highlighting
    - Real-time markdown preview
    - Seamless markdown/preview toggle
 
 2. Editor Features
+   - Markdown Preservation:
+     - Preserve heading syntax (#)
+     - Preserve table alignment (:---)
+     - Preserve image references
+     - Preserve bold/italic syntax
+   - Content Structure:
+     - Process nodes in document order
+     - Maintain content hierarchy
+     - Preserve spacing and formatting
+     - Clean up extra newlines
    - Autosave with state synchronization
    - Version history
-   - Enhanced clipboard operations:
-     - Markdown-aware copy/paste
-     - Format preservation
-     - Table structure handling
+   - Enhanced clipboard operations
    - Context-sensitive menus
    - Spell check
    - Word count
@@ -162,7 +178,10 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - CRUD operations for all entry types
    - Atomic operations with rollback support
    - Batch operations capability
-   - Image attachment handling
+   - Image attachment handling:
+     - Base64 storage
+     - Reference tracking
+     - Cleanup on delete
    - Automatic backups
    - Import/export functionality
    - Data validation and sanitization
@@ -177,15 +196,8 @@ PIM (Personal Information Manager) is a desktop application designed to help use
 2. Parser System
    - Modular parser architecture
    - Individual parsers for each metadata type
-   - Consistent error handling across parsers:
-     - Return null on parse failure
-     - No error propagation to UI
-     - Detailed error logging for debugging
-   - Comprehensive logging system:
-     - Entry/exit logging for each parser
-     - Input text logging
-     - Match result logging
-     - Error details capture
+   - Consistent error handling across parsers
+   - Comprehensive logging system
    - Parser types:
      - Action parser (tasks, commands)
      - Attendees parser (meeting participants)
@@ -217,23 +229,6 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - Conflict resolution
    - Backup integration
 
-4. Parser System
-   - Architecture:
-     - Modular parser system
-     - Individual parser isolation
-     - Standardized parser interface
-     - Dynamic loading/unloading
-   - Error Handling:
-     - Return null on parser operation failure
-     - No error propagation to UI
-     - Detailed error logging for debugging
-     - Clean failure recovery
-   - Logging System:
-     - Entry/exit logging for parser operations
-     - Input parameter logging
-     - Operation result logging
-     - Error details capture
-  
 ### Performance Requirements
 
 1. Speed Metrics

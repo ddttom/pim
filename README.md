@@ -20,7 +20,12 @@ For detailed product requirements and specifications, see [Product Requirements]
 
 ## Key Features
 
-- Rich text editor with Markdown support
+- Component-based rich text editor with:
+  - Markdown/HTML conversion
+  - Table management
+  - Context menus
+  - Clipboard operations
+  - Clean API
 - Multiple content types (Notes, Documents, Tasks, etc.)
 - Calendar view with day/week/month modes
 - Entry preview and quick editing
@@ -52,6 +57,13 @@ src/
 ├── config/           # Configuration management
 ├── renderer/         # Frontend UI components
 │   ├── editor/      # Rich text editor
+│   │   ├── components/   # Editor components
+│   │   │   ├── MarkdownConverter.js  # Markdown/HTML conversion
+│   │   │   ├── TableManager.js       # Table operations
+│   │   │   ├── ClipboardManager.js   # Copy/paste handling
+│   │   │   ├── ContextMenuManager.js # Context menu system
+│   │   │   └── EditorCore.js         # Core functionality
+│   │   └── MarkdownEditor.js   # Main editor integration
 │   ├── entries/     # Entry management
 │   ├── settings/    # Settings UI
 │   ├── styles/      # Component-specific styles
