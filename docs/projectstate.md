@@ -22,19 +22,19 @@ UI Components
 
 ## Recent Updates
 
-1. Entry Management
+1. Editor Enhancements
 
-- Archive system implementation
-- Enhanced content types
-- Improved type conversion
-- Better entry filtering
+- New markdown editor implementation
+- Rich text editing capabilities
+- Table manipulation features
+- Advanced clipboard handling
 
 2. Technical Improvements
 
-- Modal system refactor
-- Startup optimization
-- Module organization
-- Error handling
+- Editor component refactoring
+- Style system updates
+- Enhanced modal integration
+- Improved error handling
 
 ## Active Development
 
@@ -56,9 +56,9 @@ UI Components
 
 1. Critical
 
-- Editor state management
-- Search performance
-- Memory optimization
+- Editor state synchronization
+- Rich text performance
+- Markdown conversion accuracy
 
 1. UI/UX
 
@@ -71,10 +71,10 @@ UI Components
 
 1. Core Features
 
-- Backup/restore system
-- Advanced search
-- Offline support
-- Tag system
+- Enhanced markdown support
+- Table editing capabilities
+- Rich text formatting
+- Style customization
 
 2. Infrastructure
 

@@ -103,9 +103,213 @@ export class EditorModal {
         ribbon.appendChild(divider2);
         ribbon.appendChild(rightSection);
 
-        // Create editor div
-        const editorDiv = document.createElement('div');
-        editorDiv.id = 'editor';
+        // Create editor section
+        const editorSection = document.createElement('div');
+        editorSection.className = 'editor-section';
+
+        // Create formatting toolbar
+        const formatToolbar = document.createElement('div');
+        formatToolbar.className = 'editor-toolbar';
+
+        // Add Title button
+        const titleGroup = document.createElement('div');
+        titleGroup.className = 'toolbar-group';
+        const titleBtn = document.createElement('button');
+        titleBtn.textContent = 'Title';
+        titleBtn.className = 'toolbar-btn';
+        titleBtn.onclick = () => {
+            if (this.editor?.editor) {
+                const editor = this.editor.editor;
+                // Save current selection
+                const savedSelection = window.getSelection().getRangeAt(0).cloneRange();
+                // Move cursor to start
+                const range = document.createRange();
+                range.setStart(editor.preview, 0);
+                range.collapse(true);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+                // Insert title
+                editor.applyHeading(1);
+                // Restore previous selection
+                selection.removeAllRanges();
+                selection.addRange(savedSelection);
+            }
+        };
+        titleGroup.appendChild(titleBtn);
+        formatToolbar.appendChild(titleGroup);
+
+        // Add heading buttons
+        const headingGroup = document.createElement('div');
+        headingGroup.className = 'toolbar-group';
+        ['H1', 'H2', 'H3', 'H4', 'H5'].forEach(h => {
+            const btn = document.createElement('button');
+            btn.textContent = h;
+            btn.className = 'toolbar-btn';
+            btn.onclick = () => this.editor?.editor.applyHeading(parseInt(h.slice(1)));
+            headingGroup.appendChild(btn);
+        });
+        formatToolbar.appendChild(headingGroup);
+
+        // Add font selector
+        const fontGroup = document.createElement('div');
+        fontGroup.className = 'toolbar-group';
+        
+        const fontSelect = document.createElement('select');
+        fontSelect.className = 'toolbar-select';
+        fontSelect.innerHTML = `
+            <option value="normal">Normal</option>
+            <option value="courier">Courier</option>
+        `;
+        fontSelect.onchange = (e) => this.editor?.editor.applyFont(e.target.value);
+        fontGroup.appendChild(fontSelect);
+        formatToolbar.appendChild(fontGroup);
+
+        // Add table button with dropdown
+        const tableGroup = document.createElement('div');
+        tableGroup.className = 'toolbar-group';
+        const tableDropdown = document.createElement('div');
+        tableDropdown.className = 'table-dropdown';
+        tableDropdown.style.position = 'relative';
+        
+        const tableBtn = document.createElement('button');
+        tableBtn.className = 'toolbar-btn';
+        tableBtn.textContent = 'Insert Table';
+        tableBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropdownContent.style.display = dropdownContent.style.display === 'none' ? 'block' : 'none';
+        });
+
+        const dropdownContent = document.createElement('div');
+        dropdownContent.className = 'dropdown-content';
+        dropdownContent.style.display = 'none';
+        dropdownContent.style.position = 'absolute';
+        dropdownContent.style.backgroundColor = '#fff';
+        dropdownContent.style.border = '1px solid #ccc';
+        dropdownContent.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+        dropdownContent.style.zIndex = '1000';
+        dropdownContent.style.padding = '10px';
+        dropdownContent.style.top = '100%';
+        dropdownContent.style.left = '0';
+
+        // Add size indicator
+        const sizeIndicator = document.createElement('div');
+        sizeIndicator.style.textAlign = 'center';
+        sizeIndicator.style.marginBottom = '5px';
+        sizeIndicator.style.color = '#666';
+        sizeIndicator.textContent = '0 × 0';
+        dropdownContent.appendChild(sizeIndicator);
+        
+        // Create table grid
+        const tableGrid = document.createElement('div');
+        tableGrid.className = 'table-grid';
+        tableGrid.style.display = 'grid';
+        tableGrid.style.gridTemplateColumns = 'repeat(6, 20px)';
+        tableGrid.style.gap = '2px';
+        tableGrid.style.padding = '5px';
+        
+        // Setup table grid cells
+        for (let i = 0; i < 6; i++) {
+            for (let j = 0; j < 6; j++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+                cell.dataset.row = i + 1;
+                cell.dataset.col = j + 1;
+                cell.style.width = '20px';
+                cell.style.height = '20px';
+                cell.style.border = '1px solid #ccc';
+                cell.style.backgroundColor = '#fff';
+                cell.style.cursor = 'pointer';
+                
+                // Handle hover
+                cell.addEventListener('mouseenter', (e) => {
+                    const cells = tableGrid.querySelectorAll('.grid-cell');
+                    const targetRow = parseInt(e.target.dataset.row);
+                    const targetCol = parseInt(e.target.dataset.col);
+                    
+                    cells.forEach(cell => {
+                        const row = parseInt(cell.dataset.row);
+                        const col = parseInt(cell.dataset.col);
+                        if (row <= targetRow && col <= targetCol) {
+                            cell.style.backgroundColor = '#e6f3ff';
+                            cell.style.borderColor = '#99ccff';
+                            sizeIndicator.textContent = `${targetRow} × ${targetCol}`;
+                        } else {
+                            cell.style.backgroundColor = '#fff';
+                            cell.style.borderColor = '#ccc';
+                        }
+                    });
+                });
+
+                // Reset size indicator when leaving grid
+                tableGrid.addEventListener('mouseleave', () => {
+                    sizeIndicator.textContent = '0 × 0';
+                    const cells = tableGrid.querySelectorAll('.grid-cell');
+                    cells.forEach(cell => {
+                        cell.style.backgroundColor = '#fff';
+                        cell.style.borderColor = '#ccc';
+                    });
+                });
+                
+                // Handle click
+                cell.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const rows = parseInt(e.target.dataset.row);
+                    const cols = parseInt(e.target.dataset.col);
+                    
+                    // Insert table
+                    this.editor?.editor.insertTable(rows, cols);
+                    
+                    // Hide dropdown
+                    dropdownContent.style.display = 'none';
+                    
+                    // Focus editor
+                    this.editor?.editor.focus();
+                });
+                
+                tableGrid.appendChild(cell);
+            }
+        }
+        
+        dropdownContent.appendChild(tableGrid);
+        tableDropdown.appendChild(tableBtn);
+        tableDropdown.appendChild(dropdownContent);
+        tableGroup.appendChild(tableDropdown);
+        formatToolbar.appendChild(tableGroup);
+
+        // Add click outside handler to close dropdown
+        document.addEventListener('click', (e) => {
+            if (!tableDropdown.contains(e.target)) {
+                dropdownContent.style.display = 'none';
+            }
+        });
+
+        // Add View Markdown button
+        const viewGroup = document.createElement('div');
+        viewGroup.className = 'toolbar-group';
+        const viewBtn = document.createElement('button');
+        viewBtn.className = 'toolbar-btn';
+        viewBtn.textContent = 'Viewing Text';
+        viewBtn.onclick = () => {
+            const isMarkdownView = viewBtn.textContent === 'Viewing Text';
+            viewBtn.textContent = isMarkdownView ? 'Viewing Markdown' : 'Viewing Text';
+            viewBtn.style.backgroundColor = isMarkdownView ? '#e6f3ff' : '#f0f0f0';
+            viewBtn.style.borderColor = isMarkdownView ? '#99ccff' : '#ccc';
+            this.editor?.editor.toggleView();
+            this.editor?.editor.updateMarkdownFromPreview();
+        };
+        viewBtn.style.backgroundColor = '#f0f0f0';
+        viewBtn.style.borderColor = '#ccc';
+        viewGroup.appendChild(viewBtn);
+        formatToolbar.appendChild(viewGroup);
+
+        // Create editor container
+        const editorContainer = document.createElement('div');
+        editorContainer.id = 'editor';
+        editorContainer.className = 'editor-container';
 
         // Create image upload input
         const imageUpload = document.createElement('input');
@@ -115,10 +319,14 @@ export class EditorModal {
         imageUpload.multiple = true;
         imageUpload.style.display = 'none';
 
+        // Add elements to editor section
+        editorSection.appendChild(formatToolbar);
+        editorSection.appendChild(editorContainer);
+        editorSection.appendChild(imageUpload);
+
         // Add all elements to content
         content.appendChild(ribbon);
-        content.appendChild(editorDiv);
-        content.appendChild(imageUpload);
+        content.appendChild(editorSection);
 
         return content;
     }
@@ -126,19 +334,19 @@ export class EditorModal {
     async show(options = {}) {
         const content = this.createEditorContent();
         
-    this.modal = new Modal({
-        title: options.title || 'Editor',
-        content: content,
-        width: '100%',
-        height: '100%',
-        className: 'editor-modal',
-        modalClassName: 'editor-modal',
-        onClose: () => {
-            EditorModal.currentEditor = null;
-            this.editor = null;
-            this.modal = null;
-        }
-    });
+        this.modal = new Modal({
+            title: options.title || 'Editor',
+            content: content,
+            width: '100%',
+            height: '100%',
+            className: 'editor-modal',
+            modalClassName: 'editor-modal',
+            onClose: () => {
+                EditorModal.currentEditor = null;
+                this.editor = null;
+                this.modal = null;
+            }
+        });
 
         this.modal.show();
 
@@ -207,15 +415,10 @@ export class EditorModal {
                                             const typeSelect = content.querySelector('#type-select');
                                             const selectedType = typeSelect.value;
                                             
-                                            const editorContent = {
-                                                raw: this.editor.getText(),
-                                                html: this.editor.root.innerHTML
-                                            };
-
-                                            const parsedContent = await window.api.invoke('test-parser', editorContent.raw);
+                                            const markdownContent = this.editor.getText();
+                                            const parsedContent = await window.api.invoke('test-parser', markdownContent);
                                             const entry = {
-                                                raw: editorContent.raw,
-                                                html: editorContent.html,
+                                                raw: markdownContent,
                                                 type: selectedType,
                                                 ...parsedContent
                                             };
@@ -316,11 +519,16 @@ export class EditorModal {
             const entry = await window.api.invoke('get-entry', id);
             if (!entry) throw new Error('Entry not found');
 
-            // Show editor modal
+            // Show editor modal with markdown content
             await this.show({
                 title: `Edit ${entry.type || 'note'}`,
-                content: entry.html || entry.raw || ''
+                content: entry.raw || ''
             });
+
+            // Convert markdown to HTML for preview
+            if (this.editor?.editor) {
+                this.editor.editor.setText(entry.raw || '');
+            }
 
             // Store entry ID for saving
             this.editor.entryId = id;

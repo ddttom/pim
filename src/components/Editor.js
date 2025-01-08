@@ -1,3 +1,5 @@
+import { MarkdownEditor } from '../renderer/editor/markdown-editor.js';
+
 class Editor {
     constructor(container) {
         if (!container) {
@@ -8,7 +10,7 @@ class Editor {
         this._entryId = null;
     }
 
-    async initialize() {
+    async setup() {
         try {
             console.log('Initializing editor');
 
@@ -18,53 +20,21 @@ class Editor {
                 throw new Error('Editor div not found');
             }
 
-            // Load Quill styles
-            const quillStyles = document.createElement('link');
-            quillStyles.rel = 'stylesheet';
-            quillStyles.href = 'https://cdn.quilljs.com/1.3.6/quill.snow.css';
-            document.head.appendChild(quillStyles);
+            // Initialize Markdown editor
+            this.editor = new MarkdownEditor(editorDiv);
 
-            // Load Quill script
-            await new Promise((resolve, reject) => {
-                const quillScript = document.createElement('script');
-                quillScript.src = 'https://cdn.quilljs.com/1.3.6/quill.js';
-                quillScript.onload = resolve;
-                quillScript.onerror = reject;
-                document.head.appendChild(quillScript);
-            });
-
-            // Initialize Quill editor
-            this.editor = new window.Quill(editorDiv, {
-                theme: 'snow',
-                modules: {
-                    toolbar: [
-                        [{ 'header': [1, 2, 3, false] }],
-                        ['bold', 'italic', 'underline', 'strike'],
-                        ['blockquote', 'code-block'],
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                        [{ 'script': 'sub'}, { 'script': 'super' }],
-                        [{ 'indent': '-1'}, { 'indent': '+1' }],
-                        [{ 'direction': 'rtl' }],
-                        [{ 'size': ['small', false, 'large', 'huge'] }],
-                        [{ 'color': [] }, { 'background': [] }],
-                        [{ 'font': [] }],
-                        [{ 'align': [] }],
-                        ['clean']
-                    ]
-                }
-            });
+            // Set up image upload handler
+            const imageUpload = this.container.querySelector('#image-upload');
+            if (imageUpload) {
+                imageUpload.addEventListener('change', this.handleImageUpload.bind(this));
+            }
 
             console.log('Editor initialized successfully');
-            return this.editor;
+            return this;
         } catch (error) {
             console.error('Editor initialization failed:', error);
             throw error;
         }
-    }
-
-    async setup() {
-        await this.initialize();
-        return this;
     }
 
     getText() {
@@ -72,23 +42,22 @@ class Editor {
     }
 
     getContents() {
-        return this.editor.getContents();
+        return {
+            text: this.editor.getText(),
+            html: this.editor.preview.innerHTML
+        };
     }
 
     setContents(content) {
-        this.editor.setContents(content);
-    }
-
-    format(name, value) {
-        this.editor.format(name, value);
+        if (typeof content === 'string') {
+            this.editor.setText(content);
+        } else if (content && content.text) {
+            this.editor.setText(content.text);
+        }
     }
 
     get root() {
-        return this.editor.root;
-    }
-
-    get history() {
-        return this.editor.history;
+        return this.editor.editor;
     }
 
     get entryId() {
@@ -99,11 +68,26 @@ class Editor {
         this._entryId = id;
     }
 
+    async handleImageUpload(event) {
+        const files = event.target.files;
+        if (!files || files.length === 0 || !this.entryId) return;
+
+        for (const file of files) {
+            const buffer = await file.arrayBuffer();
+            const imageInfo = await window.api.invoke('add-image', this.entryId, buffer, file.name);
+            
+            // Insert image into editor using markdown syntax
+            const imageMarkdown = `![${file.name}](${imageInfo.path})`;
+            const { start } = this.editor.getSelection();
+            this.editor.replaceSelection(imageMarkdown);
+        }
+    }
+
     async saveEntry() {
         try {
             const content = {
                 raw: this.getText(),
-                html: this.root.innerHTML
+                html: this.root.value
             };
 
             // Parse content

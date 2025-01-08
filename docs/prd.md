@@ -124,28 +124,35 @@ PIM (Personal Information Manager) is a desktop application designed to help use
 ### Editor Requirements
 
 1. Rich Text Capabilities
-   - Headers (H1, H2, H3)
+   - Headers (H1-H6) with markdown syntax
    - Basic formatting (bold, italic, underline, strike-through)
    - Lists (ordered and unordered)
    - Links and blockquotes
-   - Images
-   - Tables
-   - Code blocks
-   - Markdown support
+   - Images with drag-and-drop
+   - Advanced table support:
+     - Row/column insertion
+     - Cell merging
+     - Context menu controls
+   - Code blocks with syntax highlighting
+   - Real-time markdown preview
+   - Seamless markdown/preview toggle
 
 2. Editor Features
-   - Autosave
+   - Autosave with state synchronization
    - Version history
-   - Find/replace
+   - Enhanced clipboard operations:
+     - Markdown-aware copy/paste
+     - Format preservation
+     - Table structure handling
+   - Context-sensitive menus
    - Spell check
    - Word count
    - Print support
-   - Copy/paste handling
    - Drag and drop support
    - Back to list navigation
    - Type conversion
    - Image attachments
-   - Parser testing
+   - Parser integration
    - Archive functionality
 
 ### System Features

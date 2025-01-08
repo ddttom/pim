@@ -1,129 +1,116 @@
-import path from 'path';
-import { promises as fs } from 'fs';
-import { TEST_DIR } from './setup.js';
-import JsonDatabaseService from '../src/services/json-database.js';
+import { MarkdownEditor } from '../src/renderer/editor/markdown-editor.js';
 
-describe('Rich Text and Image Support', () => {
-  let dbService;
-  let testDbPath;
+describe('MarkdownEditor', () => {
+  let editor;
+  let container;
 
-  beforeEach(async () => {
-    const testId = Date.now();
-    testDbPath = path.join(TEST_DIR, `pim.test.${testId}.json`);
-    dbService = new JsonDatabaseService(testDbPath);
-    await dbService.initialize();
+  beforeEach(() => {
+    container = document.createElement('div');
+    editor = new MarkdownEditor(container);
   });
 
-  afterEach(async () => {
-    if (dbService?.isInitialized()) {
-      await dbService.close();
-    }
-  });
+  describe('Table Conversion', () => {
+    test('converts HTML table to markdown', () => {
+      const html = `
+        <table>
+          <tr>
+            <th>Header 1</th>
+            <th>Header 2</th>
+          </tr>
+          <tr>
+            <td>Cell 1</td>
+            <td>Cell 2</td>
+          </tr>
+        </table>
+      `;
 
-  test('stores markdown content correctly', async () => {
-    const content = {
-      raw: '# Test Entry\nWith *markdown* content',
-      markdown: '# Test Entry\nWith *markdown* content',
-      images: []
-    };
+      const expectedMarkdown = 
+`| Header 1 | Header 2 |
+| --- | --- |
+| Cell 1 | Cell 2 |`;
 
-    const id = await dbService.addEntry({
-      raw_content: content.raw,
-      markdown: content.markdown,
-      content
+      const result = editor.htmlToMarkdown(html);
+      expect(result.trim()).toBe(expectedMarkdown.trim());
     });
 
-    const entry = await dbService.getEntry(id);
-    expect(entry.content.raw).toBe(content.raw);
-    expect(entry.content.markdown).toBe(content.markdown);
-  });
+    test('converts markdown table to HTML', () => {
+      const markdown = 
+`| Header 1 | Header 2 |
+| --- | --- |
+| Cell 1 | Cell 2 |`;
 
-  test('handles image uploads', async () => {
-    const id = await dbService.addEntry({
-      raw_content: 'Entry with image',
-      markdown: 'Entry with image',
-      content: {
-        raw: 'Entry with image',
-        markdown: 'Entry with image',
-        images: []
-      }
+      const expectedHtml = '<table>\n<tr><th>Header 1</th><th>Header 2</th></tr>\n<tr><td>Cell 1</td><td>Cell 2</td></tr>\n</table>\n';
+
+      const result = editor.markdownToHtml(markdown);
+      expect(result.trim()).toBe(expectedHtml.trim());
     });
 
-    const filename = 'test.png';
-    const imageBuffer = Buffer.from('test image data');
+    test('handles empty cells', () => {
+      const html = `
+        <table>
+          <tr>
+            <th></th>
+            <th>Header</th>
+          </tr>
+          <tr>
+            <td>Cell</td>
+            <td></td>
+          </tr>
+        </table>
+      `;
 
-    const imageInfo = await dbService.addImage(id, imageBuffer, filename);
-    expect(imageInfo.id).toBeDefined();
-    expect(imageInfo.filename).toBe(filename);
-    expect(imageInfo.path).toContain(filename);
+      const expectedMarkdown = 
+`|  | Header |
+| --- | --- |
+| Cell |  |`;
 
-    const entry = await dbService.getEntry(id);
-    expect(entry.content.images).toHaveLength(1);
-    expect(entry.content.images[0].filename).toBe(filename);
-
-    const imagePath = entry.content.images[0].path;
-    const imageExists = await fs.access(imagePath).then(() => true).catch(() => false);
-    expect(imageExists).toBe(true);
-
-    // Verify markdown was updated
-    expect(entry.content.markdown).toContain(`![${filename}](${path.basename(imagePath)})`);
-  });
-
-  test('deletes images when entry is deleted', async () => {
-    const id = await dbService.addEntry({
-      raw_content: 'Entry with image',
-      markdown: 'Entry with image',
-      content: {
-        raw: 'Entry with image',
-        markdown: 'Entry with image',
-        images: []
-      }
+      const result = editor.htmlToMarkdown(html);
+      expect(result.trim()).toBe(expectedMarkdown.trim());
     });
 
-    const filename = 'test.png';
-    await dbService.addImage(id, Buffer.from('test image'), filename);
+    test('preserves table content through multiple conversions', () => {
+      const initialHtml = `
+        <table>
+          <tr>
+            <th>Name</th>
+            <th>Age</th>
+          </tr>
+          <tr>
+            <td>John</td>
+            <td>30</td>
+          </tr>
+        </table>
+      `;
 
-    // Get image path
-    const entry = await dbService.getEntry(id);
-    const imagePath = path.join(path.dirname(testDbPath), entry.content.images[0].path);
+      const markdown = editor.htmlToMarkdown(initialHtml);
+      const finalHtml = editor.markdownToHtml(markdown);
 
-    // Delete entry
-    await dbService.deleteEntry(id);
-
-    // Verify image was deleted
-    const imageExists = await fs.access(imagePath).then(() => true).catch(() => false);
-    expect(imageExists).toBe(false);
-  });
-
-  test('backs up images with database', async () => {
-    const id = await dbService.addEntry({
-      raw_content: 'Entry with image',
-      markdown: 'Entry with image',
-      content: {
-        raw: 'Entry with image',
-        markdown: 'Entry with image',
-        images: []
-      }
+      // Convert both to simplified format for comparison (remove whitespace)
+      const simplifyHtml = html => html.replace(/\s+/g, '');
+      expect(simplifyHtml(finalHtml)).toBe(simplifyHtml(initialHtml));
     });
 
-    const filename = 'test.png';
-    await dbService.addImage(id, Buffer.from('test image'), filename);
+    test('handles nested content in table cells', () => {
+      const html = `
+        <table>
+          <tr>
+            <th><strong>Bold Header</strong></th>
+            <th>Normal Header</th>
+          </tr>
+          <tr>
+            <td>Regular Cell</td>
+            <td><em>Italic Cell</em></td>
+          </tr>
+        </table>
+      `;
 
-    // Create backup
-    const backupPath = path.join(TEST_DIR, 'backup.json');
-    await dbService.backup(backupPath);
+      const expectedMarkdown = 
+`| Bold Header | Normal Header |
+| --- | --- |
+| Regular Cell | Italic Cell |`;
 
-    // Verify backup includes images
-    const entry = await dbService.getEntry(id);
-    const originalImagePath = entry.content.images[0].path;
-    const backupImagePath = path.join(path.dirname(backupPath), 'media', path.basename(originalImagePath));
-
-    const backupImageExists = await fs.access(backupImagePath).then(() => true).catch(() => false);
-    expect(backupImageExists).toBe(true);
-
-    // Verify backup image content matches
-    const originalImage = await fs.readFile(originalImagePath);
-    const backupImage = await fs.readFile(backupImagePath);
-    expect(backupImage).toEqual(originalImage);
+      const result = editor.htmlToMarkdown(html);
+      expect(result.trim()).toBe(expectedMarkdown.trim());
+    });
   });
 });

@@ -1,128 +1,164 @@
-/* Editor Container */
+/* Editor Layout */
 .editor-container {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--background-color);
 }
 
-/* Editor Ribbon */
-.editor-container .ribbon {
-    padding: 8px;
-    border-bottom: 1px solid var(--border-color);
-    background-color: var(--background-color);
-}
-
-.editor-container .ribbon-section {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.editor-container .ribbon-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
-}
-
-.editor-container .ribbon-btn .btn-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-}
-
-.editor-container .ribbon-btn .btn-label {
-    font-size: 13px;
-    white-space: nowrap;
+.editor-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 /* Editor Content */
-#editor {
-    flex: 1;
-    overflow: auto;
-    padding: 20px;
-    background-color: #ffffff;
-    min-height: 400px;
+.editor-input {
+  flex: 1;
+  resize: none;
+  padding: 20px;
+  min-height: 300px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--background-color);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
-/* Type Badges */
-.editor-type-badge {
-    padding: 4px 12px;
-    border-radius: 16px;
-    font-size: 12px;
-    font-weight: 500;
-    text-transform: capitalize;
-    margin-left: auto;
+.modal .editor-input {
+  height: calc(90vh - 300px);
 }
 
-.editor-type-badge.note {
-    color: #4CAF50;
-    background: rgba(76, 175, 80, 0.1);
+/* Preview */
+.preview-content {
+  flex: 1;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--background-color);
+  overflow-y: auto;
 }
 
-.editor-type-badge.document {
-    color: #2196F3;
-    background: rgba(33, 150, 243, 0.1);
+/* Preview Content Styles */
+.preview-content h1 { font-size: 2em; margin: 0.67em 0; font-weight: bold; }
+.preview-content h2 { font-size: 1.75em; margin: 0.75em 0; font-weight: bold; }
+.preview-content h3 { font-size: 1.5em; margin: 0.83em 0; font-weight: bold; }
+.preview-content h4 { font-size: 1.25em; margin: 1em 0; font-weight: bold; }
+.preview-content h5 { font-size: 1.1em; margin: 1.17em 0; font-weight: bold; }
+
+.preview-content p {
+  margin: 1em 0;
+  line-height: 1.6;
 }
 
-.editor-type-badge.template {
-    color: #9C27B0;
-    background: rgba(156, 39, 176, 0.1);
+.preview-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
 }
 
-.editor-type-badge.html {
-    color: #FF9800;
-    background: rgba(255, 152, 0, 0.1);
+.preview-content th,
+.preview-content td {
+  border: 1px solid var(--border-color);
+  padding: 0.5rem;
+  text-align: left;
 }
 
-.editor-type-badge.record {
-    color: #795548;
-    background: rgba(121, 85, 72, 0.1);
+.preview-content th {
+  background: var(--toolbar-background);
+  font-weight: bold;
 }
 
-.editor-type-badge.task {
-    color: #F44336;
-    background: rgba(244, 67, 54, 0.1);
+.preview-content code {
+  font-family: 'Courier New', Courier, monospace;
+  background: var(--toolbar-background);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
 }
 
-.editor-type-badge.event {
-    color: #009688;
-    background: rgba(0, 150, 136, 0.1);
+/* Toolbar */
+.editor-toolbar {
+  display: flex;
+  gap: 1rem;
+  padding: 8px;
+  background: var(--toolbar-background);
+  border-bottom: 1px solid var(--border-color);
 }
 
-/* Quill Editor Overrides */
-.ql-toolbar.ql-snow {
-    border-color: var(--border-color);
+.toolbar-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
-.ql-container.ql-snow {
-    border-color: var(--border-color);
-    font-size: 16px;
-    font-family: var(--font-family);
+.toolbar-btn {
+  height: 32px;
+  padding: 0 12px;
+  background: var(--button-background);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-color);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
 }
 
-.ql-editor {
-    min-height: 300px;
-    max-height: calc(80vh - 200px);
+.toolbar-btn:hover {
+  background: var(--button-hover-background);
 }
 
-/* Modal-specific editor styles */
-.modal .editor-container {
-    height: calc(90vh - 100px);
-    max-width: 100%;
-    margin: 0;
+.toolbar-select {
+  height: 32px;
+  padding: 0 8px;
+  background: var(--button-background);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-color);
+  font-size: 14px;
+  cursor: pointer;
 }
 
-.modal .ql-editor {
-    height: calc(90vh - 300px);
-    max-height: none;
+/* Table Grid */
+.table-dropdown {
+  position: relative;
+  display: inline-block;
 }
 
-.ql-editor p {
-    margin-bottom: 1em;
+.table-dropdown .dropdown-content {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.5rem;
+  z-index: 1000;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.table-dropdown:hover .dropdown-content {
+  display: block;
+}
+
+.table-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+  padding: 4px;
+}
+
+.grid-cell {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border-color);
+  background: var(--background-color);
+  cursor: pointer;
+}
+
+.grid-cell.highlighted {
+  background: var(--highlight-color);
+  border-color: var(--accent-color);
 }

@@ -17,6 +17,7 @@ export async function initializeStyles() {
     'styles/sidebar.css',
     'styles/entries.css',
     'styles/editor.css',
+    'styles/markdown-editor.css',
     'styles/modals.css',
     'styles/theme.css',
     'styles/calendar.css'
