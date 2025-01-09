@@ -22,7 +22,8 @@ For detailed product requirements and specifications, see [Product Requirements]
 
 - Component-based rich text editor with:
   - Markdown/HTML conversion
-  - Table management
+  - Smart heading controls with empty line handling
+  - Interactive table grid with smooth transitions
   - Context menus
   - Clipboard operations
   - Clean API
@@ -128,7 +129,7 @@ The application uses a modular CSS system:
 ## Quick Start Guide
 
 1. Create entries with `Ctrl+N` or the New Entry button
-2. Use the rich text editor to write content
+2. Use the rich text update @prd.mdeditor to write content
 3. Save with `Ctrl+S`
 4. Organize entries using the sidebar filters
 5. Search content with `Ctrl+F`

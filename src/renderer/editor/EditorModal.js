@@ -49,11 +49,6 @@ export class EditorModal {
         editorSection.className = 'editor-section';
         editorSection.setAttribute('dir', 'ltr');
 
-        // Create formatting toolbar placeholder
-        const formatToolbar = document.createElement('div');
-        formatToolbar.className = 'editor-toolbar';
-        editorSection.appendChild(formatToolbar);
-
         // Create editor container
         const editorContainer = document.createElement('div');
         editorContainer.id = 'editor';
@@ -98,12 +93,9 @@ export class EditorModal {
         // Initialize editor after modal is shown and rendered
         return new Promise((resolve) => {
             requestAnimationFrame(async () => {
-                // Initialize editor
+                // Initialize editor and wait for setup
                 this.editor = await new Editor(content).setup();
                 EditorModal.currentEditor = this.editor;
-                
-                // Wait for editor to be fully initialized
-                await new Promise(resolve => setTimeout(resolve, 100));
                 
                 // Initialize managers
                 this.initializeManagers();
@@ -112,14 +104,12 @@ export class EditorModal {
                 const ribbon = this.managers.ribbon.createRibbon();
                 content.replaceChild(ribbon, content.querySelector('.ribbon'));
 
-                const formatToolbar = this.managers.toolbar.createToolbar();
-                formatToolbar.appendChild(this.managers.table.createTableGroup());
-                const editorSection = content.querySelector('.editor-section');
-                editorSection.replaceChild(formatToolbar, editorSection.querySelector('.editor-toolbar'));
-
                 const imageUpload = this.managers.image.createImageUpload();
-                const oldImageUpload = editorSection.querySelector('#image-upload');
-                editorSection.replaceChild(imageUpload, oldImageUpload);
+                const oldImageUpload = content.querySelector('#image-upload');
+                const editorSection = content.querySelector('.editor-section');
+                if (editorSection && oldImageUpload) {
+                    editorSection.replaceChild(imageUpload, oldImageUpload);
+                }
 
                 // Setup button handlers
                 const saveBtn = ribbon.querySelector('#save-btn');

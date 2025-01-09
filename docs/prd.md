@@ -147,11 +147,16 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - Seamless markdown/preview toggle
 
 2. Editor Features
-   - Markdown Preservation:
+   - Heading Controls:
+     - Smart empty line handling
      - Preserve heading syntax (#)
-     - Preserve table alignment (:---)
-     - Preserve image references
-     - Preserve bold/italic syntax
+     - Skip formatting on empty lines
+     - Maintain cursor position
+   - Table Features:
+     - Interactive grid with live preview
+     - Smooth transition animations
+     - Size indicator with dimensions
+     - Proper highlight states
    - Content Structure:
      - Process nodes in document order
      - Maintain content hierarchy

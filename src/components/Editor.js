@@ -62,6 +62,12 @@ class Editor {
         }
     }
 
+    applyStyle(style) {
+        if (this.editor?.editor) {
+            this.editor.editor.applyStyle(style);
+        }
+    }
+
     get root() {
         return this.editor?.editor?.preview;
     }

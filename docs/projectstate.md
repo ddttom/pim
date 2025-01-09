@@ -39,11 +39,18 @@ UI Components
   - Better error handling
   - Proper event handling
   - Fixed heading controls:
-    - Working title button
+    - Title button skips empty lines
+    - Heading buttons skip empty lines
+    - Remove Heading button skips empty lines
     - Working heading levels
-    - New "No Heading" button
     - Content preservation
     - State synchronization
+
+  - Fixed table grid:
+    - Proper cell highlighting on hover
+    - Smooth transition animations
+    - Highlight resets correctly
+    - Size indicator updates correctly
 
 - Content Management:
   - Direct view synchronization

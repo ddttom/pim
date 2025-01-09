@@ -3,25 +3,43 @@ import { TableManager } from './components/TableManager.js';
 import { ClipboardManager } from './components/ClipboardManager.js';
 import { ContextMenuManager } from './components/ContextMenuManager.js';
 import { EditorCore } from './components/EditorCore.js';
+import { ToolbarManager } from './components/managers/ToolbarManager.js';
 
 export class MarkdownEditor {
   constructor(container) {
+    // Store container reference
+    this.container = container;
+
     // Create converter first since other components need it
     const converter = new MarkdownConverter();
 
-    // Initialize core with converter
-    this.core = new EditorCore(container, converter);
-
-    // Initialize other components
+    // Initialize components
+    this.toolbarManager = new ToolbarManager(this);
     this.tableManager = new TableManager(this);
     this.clipboardManager = new ClipboardManager(this);
     this.contextMenuManager = new ContextMenuManager(this);
+
+    // Create editor container for core
+    const editorContainer = document.createElement('div');
+    editorContainer.className = 'editor-section';
+    container.appendChild(editorContainer);
+
+    // Initialize core with editor container
+    this.core = new EditorCore(editorContainer, converter);
   }
 
   // Setup editor
   async setup() {
+    // Create and add toolbar
+    const toolbar = this.toolbarManager.createToolbar();
+    this.container.insertBefore(toolbar, this.container.firstChild);
+
     // Initialize editor core
     this.core.init();
+    
+    // Set up core references
+    this.core.setEditor(this);
+    this.core.setToolbar(this.toolbarManager);
     
     // Add event listeners
     this.addEventListeners();
@@ -82,9 +100,18 @@ export class MarkdownEditor {
     this.core.applyFont(fontName);
   }
 
+  applyStyle(style) {
+    this.core.applyStyle(style);
+  }
+
   // For compatibility with EditorModal
   get editor() {
     return this.core;
+  }
+
+  // For toolbar access
+  get toolbar() {
+    return this.toolbarManager;
   }
 
   // Expose preview for direct access

@@ -120,6 +120,21 @@
   cursor: pointer;
 }
 
+.toolbar-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toolbar-select option:disabled {
+  color: var(--text-color);
+  font-weight: bold;
+}
+
+.toolbar-select option {
+  background: var(--background-color);
+  color: var(--text-color);
+}
+
 /* Table Grid */
 .table-dropdown {
   position: relative;
@@ -129,8 +144,9 @@
 .table-dropdown .dropdown-content {
   display: none;
   position: absolute;
-  top: 100%;
+  top: calc(100% + 4px); /* Add spacing from button */
   left: 0;
+  min-width: 150px; /* Ensure enough width for grid */
   background: var(--background-color);
   border: 1px solid var(--border-color);
   border-radius: 4px;
@@ -139,23 +155,35 @@
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
-.table-dropdown:hover .dropdown-content {
-  display: block;
+/* Size indicator styling */
+.table-dropdown .size-indicator {
+  text-align: center;
+  margin-bottom: 8px;
+  padding: 4px;
+  color: var(--text-color);
+  font-size: 14px;
+  border-bottom: 1px solid var(--border-color);
 }
+
+/* Remove hover display since we're using click */
 
 .table-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, 20px);
   gap: 2px;
   padding: 4px;
 }
 
 .grid-cell {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border: 1px solid var(--border-color);
-  background: var(--background-color);
+  background: var(--button-background);
   cursor: pointer;
+}
+
+.grid-cell:hover {
+  background: var(--button-hover-background);
 }
 
 .grid-cell.highlighted {
