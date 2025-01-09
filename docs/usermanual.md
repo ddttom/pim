@@ -14,6 +14,12 @@
 - Collapse the sidebar to maximize workspace
 - Use Copy DB to backup or share your data
 - Archive old entries to keep your main view clean
+
+### Editor Tips
+- Heading buttons skip empty lines for cleaner formatting
+- Use the table grid's live preview to visualize table size
+- Watch the size indicator when creating tables
+- Smooth transitions help track table cell selection
 - Use appropriate entry types for better organization:
   - Notes for general text and thoughts
   - Documents for formatted content
