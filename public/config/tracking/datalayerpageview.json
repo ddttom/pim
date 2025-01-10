@@ -1,0 +1,11 @@
+{
+    "event": "pageView", 
+    "page": { 
+        "pageName": "$meta:pagename$", 
+        "pageCategory": "$meta:category$", 
+        "pageURL": "$page:canonical$", 
+        "pagePath": "$page:path$", 
+        "platformVersion": "$system:version$", 
+        "platformPublishDate": "$system:isodate$"
+    }
+}

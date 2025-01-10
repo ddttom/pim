@@ -1,0 +1,190 @@
+.dashboard {
+  font-family: Arial, sans-serif;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-size: 14px;
+}
+
+.dashboard h1 {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.filter-container {
+  margin-bottom: 20px;
+}
+
+.filter-container label {
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.filter-container select {
+  padding: 5px;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.content-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.content-table th,
+.content-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.content-table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+  cursor: pointer;
+  position: relative;
+  padding-right: 20px; /* Make room for sort indicator */
+}
+
+.content-table th::after {
+  content: '\2195'; /* Unicode for up/down arrow */
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.8em;
+  color: #999;
+}
+
+.content-table th.asc::after {
+  content: '\2191'; /* Unicode for up arrow */
+  color: #333;
+}
+
+.content-table th.desc::after {
+  content: '\2193'; /* Unicode for down arrow */
+  color: #333;
+}
+
+.content-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.content-table tr:hover {
+  background-color: #f5f5f5;
+}
+
+.path-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.path-link {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.path-link:hover {
+  text-decoration: underline;
+}
+
+.date-cell {
+  white-space: nowrap;
+}
+
+.image-popup {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  padding: 5px;
+}
+
+.image-popup img {
+  max-width: 300px;
+  max-height: 300px;
+  display: block;
+}
+
+@media (max-width: 1023px) {
+  .card-layout {
+    border: none;
+  }
+
+  .card-layout thead {
+    display: none;
+  }
+
+  .card-layout,
+  .card-layout tbody,
+  .card-layout tr,
+  .card-layout td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .card-layout tr {
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+    background-color: #f9f9f9;
+  }
+
+  .card-layout td {
+    position: relative;
+    padding: 10px 10px 10px 120px;
+    min-height: 30px;
+    text-align: left;
+    border: none;
+    border-bottom: 1px solid #eee;
+  }
+
+  .card-layout td:last-child {
+    border-bottom: none;
+  }
+
+  .card-layout td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 6px;
+    width: 110px;
+    padding-right: 10px;
+    white-space: nowrap;
+    text-align: left;
+    font-weight: bold;
+  }
+
+  .card-layout .path-cell,
+  .card-layout .description-cell,
+  .card-layout .title-cell {
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    word-wrap: break-word;
+  }
+
+  .card-layout .path-link {
+    word-break: break-all;
+  }
+
+  .card-layout .date-cell {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    white-space: nowrap;
+  }
+}
+
+.green { background-color: #90EE90; }
+.amber { background-color: #FFBF00; }
+.red { background-color: #FF6347; }

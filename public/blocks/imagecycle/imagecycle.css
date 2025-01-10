@@ -1,0 +1,88 @@
+:root {
+  --imagecycle-bg-color: #ffebee;
+  --imagecycle-arrow-bg: #333;
+  --imagecycle-arrow-hover-bg: #555;
+}
+
+.imagecycle {
+  background-color: var(--imagecycle-bg-color);
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.imagecycle-carousel {
+  position: relative;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.imagecycle-image-container {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+
+.imagecycle-image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+  transition: opacity 0.3s ease;
+  will-change: opacity;
+}
+
+.imagecycle-indicators {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.imagecycle-indicators span {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #bbb;
+  margin: 0 5px;
+  cursor: pointer;
+}
+
+.imagecycle-indicators span.active {
+  background-color: #333;
+}
+
+.imagecycle-arrow-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.imagecycle-arrow {
+  background-color: var(--imagecycle-arrow-bg);
+  color: white;
+  border: none;
+  font-size: 18px;
+  padding: 10px 15px;
+  margin: 0 5px;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+  border-radius: 4px;
+}
+
+.imagecycle-arrow:hover,
+.imagecycle-arrow:focus {
+  background-color: var(--imagecycle-arrow-hover-bg);
+  outline: none;
+  transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+  .imagecycle {
+    padding: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .imagecycle-arrow {
+    font-size: 16px;
+    padding: 8px 12px;
+  }
+}

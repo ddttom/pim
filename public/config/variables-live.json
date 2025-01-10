@@ -1,0 +1,20 @@
+{
+    "total": 1,
+    "offset": 0,
+    "limit": 1,
+    "data": [
+      {
+        "Item": "$system:myenvname$",
+        "Value": "live environment"
+      },
+      {
+        "Item": "$system:enabletracking$",
+        "Value": "y"
+      },
+      {
+        "Item": "$system:enableslowtracking$",
+        "Value": "y"
+      }
+    ],
+    ":type": "fallback"
+  }

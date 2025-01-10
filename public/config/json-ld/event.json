@@ -1,0 +1,31 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Event",
+      "name": "$meta:eventname$",
+      "startDate": "$meta:eventstartdatetime$",
+      "endDate": "$meta:eventenddatetime$",
+      "location": {
+        "@type": "Place",
+        "name": "$meta:eventlocationname$",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "$meta:eventstreetaddress$",
+          "addressLocality": "$meta:eventcity$",
+          "addressRegion": "$meta:eventregion$",
+          "postalCode": "$meta:eventpostalcode$"
+        }
+      },
+      "image": "$meta:eventimageurl$",
+      "description": "$meta:eventdescription$",
+      "offers": {
+        "@type": "Offer",
+        "price": "$meta:price$",
+        "priceCurrency": "$meta:pricecurrency$",
+        "availability": "https://schema.org/InStock",
+        "url": "$meta:eventsignupurl$"
+      }
+    }
+  ]
+}

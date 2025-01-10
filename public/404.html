@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="llms-section" content="/llms.txt">
+        <meta name="ai-error-code" content="404">
+        <link rel="alternate" type="text/markdown" href="/error.md">
+        <title>404 Not Found</title>
+        <style>
+            body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+                font-family: Arial, sans-serif;
+                background-color: #f0f0f0;
+            }
+            .container {
+                text-align: center;
+            }
+            h1 {
+                font-size: 3em;
+                margin: 0;
+            }
+            p {
+                font-size: 1.2em;
+                color: #666;
+            }
+
+            a {
+                color: #007BFF;
+                text-decoration: none;
+            }
+            a:hover {
+
+                text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>404</h1>
+            <p>Page Not Found</p>
+            <p><a href="/">Go back to Home</a></p>
+            <!-- Machine-readable error info pointing to llms.txt -->
+            <script type="application/json" data-ai-error hidden>
+            {
+                "errorCode": 404,
+                "suggestedAction": "/llms.txt"
+            }
+            </script>
+        </div>
+    </body>
+</html>

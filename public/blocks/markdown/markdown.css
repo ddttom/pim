@@ -1,0 +1,50 @@
+.markdown {
+  --markdown-bg-color: #e6f3ff;
+  --markdown-border-color: #4a90e2;
+  --markdown-border-radius: 8px;
+  --markdown-padding: 20px;
+}
+
+.markdown-content {
+  background-color: var(--markdown-bg-color);
+  border: 2px solid var(--markdown-border-color);
+  border-radius: var(--markdown-border-radius);
+  padding: var(--markdown-padding);
+}
+
+.markdown-content > *:first-child {
+  margin-top: 0;
+}
+
+.markdown-content > *:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Syntax highlighting colors */
+.markdown-content .string { color: #a31515; }
+.markdown-content .keyword { color: #0000ff; }
+.markdown-content .comment { color: #008000; }
+.markdown-content .number { color: #09885a; }
+.markdown-content .function { color: #795e26; }
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .markdown-content {
+    padding: calc(var(--markdown-padding) / 2);
+  }
+}
+
+/* Removed background color from code blocks */
+.markdown-content pre code {
+  display: block;
+  padding: 10px;
+  border-radius: 4px;
+}

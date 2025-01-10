@@ -1,0 +1,46 @@
+
+.index {
+    background-color: #f5f5f5;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 10px;
+    cursor: pointer;
+}
+
+.index-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.arrow {
+    border: solid black;
+    border-width: 0 2px 2px 0;
+    display: inline-block;
+    padding: 3px;
+    transition: transform 0.3s;
+}
+
+.down {
+    -webkit-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+.index-content {
+    display: none;
+    margin-top: 10px;
+}
+
+.index-content ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.index-content ul li {
+    margin-bottom: 5px;
+}
+
+.index-content ul li a {
+    text-decoration: none;
+    color: #333;
+}

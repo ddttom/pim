@@ -1,0 +1,56 @@
+/* Theme Variables
+   ============================================ */
+.dam {
+  /* Colors */
+  --dam-background: var(--background-code, #f5f5f5);
+  --dam-text-color: var(--text-color, #333);
+  --dam-border-color: var(--border-color, #ddd);
+  
+  /* Spacing */
+  --dam-padding: var(--spacing-m, 1rem);
+  --dam-margin: var(--spacing-m, 1rem);
+  
+  /* Typography */
+  --dam-font-family: var(--fixed-font-family, monospace);
+  --dam-font-size: var(--body-font-size-s, 14px);
+  --dam-line-height: var(--body-line-height, 1.5);
+  
+  /* Layout */
+  --dam-border-radius: var(--border-radius, 4px);
+}
+
+/* Layout
+   ============================================ */
+.dam-wrapper {
+  margin: var(--dam-margin) 0;
+}
+
+/* Code Display
+   ============================================ */
+.dam .dam-code {
+  background-color: var(--dam-background);
+  color: var(--dam-text-color);
+  border: 1px solid var(--dam-border-color);
+  border-radius: var(--dam-border-radius);
+  padding: var(--dam-padding);
+  overflow-x: auto;
+  font-family: var(--dam-font-family);
+  line-height: var(--dam-line-height);
+  margin: 0;
+}
+
+/* Responsive Design
+   ============================================ */
+@media (max-width: 768px) {
+  .dam .dam-code {
+    font-size: var(--dam-font-size);
+    padding: calc(var(--dam-padding) / 2);
+  }
+}
+
+/* Accessibility Enhancements
+   ============================================ */
+.dam .dam-code:focus-visible {
+  outline: 2px solid var(--dam-text-color);
+  outline-offset: 2px;
+}

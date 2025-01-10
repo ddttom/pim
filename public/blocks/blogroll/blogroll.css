@@ -1,0 +1,256 @@
+:root {
+  --blogroll-font-family: Arial, sans-serif;
+  --blogroll-max-width: 800px;
+  --blogroll-padding: 20px;
+  --blogroll-title-color: #333;
+  --blogroll-border-color: #ddd;
+  --blogroll-link-color: #0066cc;
+  --blogroll-date-color: #666;
+  --blogroll-text-color: #444;
+  --blogroll-panel-bg-color: #f0f4f8; /* Light blue-gray background */
+  --blogroll-panel-text-color: #333; /* Dark gray text for contrast */
+  
+  --blogroll-icon-size: 40px;
+  --blogroll-icon-bg-color: #007bff;
+  --blogroll-icon-color: white;
+  --blogroll-panel-width: 300px;
+  --blogroll-panel-header-border-color: #d0d9e1;
+  --blogroll-panel-link-color: #0056b3;
+  --blogroll-panel-date-color: #555;
+}
+
+.blogroll-container {
+  font-family: var(--blogroll-font-family);
+  max-width: var(--blogroll-max-width);
+  margin: 0 auto;
+  padding: var(--blogroll-padding);
+}
+
+.blogroll-series {
+  margin-bottom: 30px;
+}
+
+.blogroll-series h2 {
+  font-size: 24px;
+  color: var(--blogroll-title-color);
+  border-bottom: 2px solid var(--blogroll-border-color);
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.blogroll-series ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.blogroll-series li {
+  margin-bottom: 15px;
+}
+
+.blogroll-series a {
+  font-size: 18px;
+  color: var(--blogroll-link-color);
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.blogroll-series a:hover {
+  text-decoration: underline;
+}
+
+.blogroll-date {
+  display: block;
+  font-size: 14px;
+  color: var(--blogroll-date-color);
+  margin: 5px 0;
+}
+
+.blogroll-series p {
+  font-size: 16px;
+  color: var(--blogroll-text-color);
+  margin: 5px 0 0 0;
+}
+
+/* Remove these styles completely as they're no longer needed */
+/* .blogroll-container.compact .blogroll-series li,
+.blogroll-container.compact .blogroll-series a,
+.blogroll-container.compact .blogroll-date {
+} */
+
+/* Modify the panel styles to be more specific */
+.blogroll-panel .blogroll-series li {
+  margin-bottom: 5px;
+}
+
+.blogroll-panel .blogroll-series a {
+  font-size: 14px;
+}
+
+.blogroll-panel .blogroll-date {
+  font-size: 12px;
+  margin: 0 0 0 10px;
+  display: inline;
+}
+
+.blogroll-icon {
+  width: var(--blogroll-icon-size);
+  height: var(--blogroll-icon-size);
+  background-color: var(--blogroll-icon-bg-color);
+  color: var(--blogroll-icon-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.blogroll-icon-text {
+  margin-left: 10px;
+  font-family: var(--blogroll-font-family);
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--blogroll-icon-bg-color);
+}
+
+.blogroll-icon-container {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  z-index: 1000;
+}
+
+.blogroll-panel {
+  position: fixed;
+  top: 0;
+  left: calc(-1 * var(--blogroll-panel-width));
+  width: var(--blogroll-panel-width);
+  height: 100vh;
+  background-color: var(--blogroll-panel-bg-color);
+  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  transition: left 0.3s ease;
+  z-index: 1001;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  color: var(--blogroll-panel-text-color);
+}
+
+.blogroll-panel.open {
+  left: 0;
+}
+
+.blogroll-panel-header {
+  position: sticky;
+  top: 0;
+  background-color: var(--blogroll-panel-bg-color);
+  padding: 15px 10px;
+  z-index: 1002;
+  border-bottom: 1px solid var(--blogroll-panel-header-border-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.blogroll-panel-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--blogroll-panel-text-color);
+}
+
+.blogroll-panel-close {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--blogroll-panel-text-color);
+  padding: 5px;
+  line-height: 1;
+  transition: color 0.3s ease;
+}
+
+.blogroll-panel-content {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 20px;
+  font-size: 14px; /* Base font size */
+}
+
+.blogroll-panel .blogroll-series {
+  margin-bottom: 20px;
+}
+
+.blogroll-panel h3 {
+  margin-bottom: 10px;
+  font-size: 18px; /* Increased heading size */
+  color: var(--blogroll-title-color);
+}
+
+.blogroll-panel ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.blogroll-panel li {
+  margin-bottom: 10px;
+}
+
+.blogroll-panel a {
+  font-weight: bold;
+  font-size: 14px; /* Same as base font size */
+  color: var(--blogroll-panel-link-color); /* Darker blue for better contrast on the new background */
+  text-decoration: none;
+}
+
+.blogroll-panel a:hover {
+  text-decoration: underline;
+}
+
+.blogroll-panel .blogroll-date {
+  display: block;
+  font-size: 12px; /* Slightly smaller than base font */
+  color: var(--blogroll-panel-date-color); /* Slightly darker than before for better contrast */
+  margin-top: 2px;
+}
+
+.blogroll-show-all {
+  position: sticky;
+  bottom: 0;
+  background-color: var(--blogroll-panel-bg-color);
+  padding: 10px;
+  text-align: center;
+  border-top: 1px solid var(--blogroll-panel-header-border-color);
+}
+
+.blogroll-show-all button {
+  background-color: var(--blogroll-icon-bg-color);
+  color: var(--blogroll-icon-color);
+  border: none;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.blogroll-show-all button:hover {
+  background-color: var(--blogroll-link-color);
+}
+
+.blogroll-entry {
+  /* Add a thin outline */
+  border: 1px solid var(--blogroll-entry-border-color, #e0e0e0);
+  /* Add some padding to prevent content from touching the border */
+  padding: 10px;
+  /* Add some margin between entries */
+  margin-bottom: 15px;
+  /* Optional: add a subtle border radius for a softer look */
+  border-radius: 4px;
+}

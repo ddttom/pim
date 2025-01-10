@@ -1,0 +1,24 @@
+{
+    "total": 4,
+    "offset": 0,
+    "limit": 1,
+    "data": [
+      {
+        "Item": "$system:trackingscript$",
+        "Value": "https://www.googletagmanager.com/gtag/js?id=G-PEWZ87XQN0"
+      },
+      {
+        "Item": "$system:gtmid$",
+        "Value": "G-PEWZ87XQN0"
+      },
+      {
+        "Item": "$meta:enableprofilevariables$",
+        "Value": "y"
+      },
+      {
+        "Item": "$meta:enablecontentops$",
+        "Value": "y"
+      }
+    ],
+    ":type": "fallback"
+  }

@@ -1,0 +1,36 @@
+:root {
+  --linkedin-blue: #0a66c2;
+  --linkedin-light-blue: #e8f3ff;
+  --linkedin-gray: #86888a;
+  --linkedin-light-gray: #f3f2ef;
+  --linkedin-text: #191919;
+  --linkedin-font: -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', 'Fira Sans', Ubuntu, Oxygen, 'Oxygen Sans', Cantarell, 'Droid Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Lucida Grande', Helvetica, Arial, sans-serif;
+}
+
+body {
+  font-family: var(--linkedin-font);
+  color: var(--linkedin-text);
+  background-color: var(--linkedin-light-gray);
+  margin: 0;
+  padding: 0;
+}
+
+.button {
+  border-radius: 16px;
+  font-weight: 600;
+  padding: 6px 16px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.primary-button {
+  background-color: var(--linkedin-blue);
+  color: white;
+  border: none;
+}
+
+.secondary-button {
+  background-color: white;
+  color: var(--linkedin-blue);
+  border: 1px solid var(--linkedin-blue);
+}

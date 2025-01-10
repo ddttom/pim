@@ -1,0 +1,102 @@
+/* Block specific CSS */
+
+/* Hero container styles */
+main .hero-container > div {
+    max-width: unset;
+}
+
+main .hero-container {
+    padding: 0;
+}
+
+/* General hero styles */
+main .hero {
+    position: relative;
+    padding: 32px;
+    min-height: 1000px;
+    display: flex;
+    justify-content: flex-start; /* Align items to the start horizontally */
+    align-items: center; /* Center items vertically */
+    text-align: left; /* Align text to the left */
+}
+
+/* Hero picture styles */
+main .hero picture {
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    object-fit: cover;
+    box-sizing: border-box;
+}
+
+/* Hero image styles */
+main .hero img {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+}
+body.techem .hero-wrapper, .hero-wrapper * {
+    color: white;
+}
+
+body.techem hero-wrapper a {
+    color: white;
+}
+
+
+/* Styles for .hero.manual */
+.hero-wrapper .hero.manual {
+    color: white; /* Text color */
+    padding-top: 100px; /* Top padding */
+    /* Additional styles for .hero.Manual */
+}
+
+
+.hero-wrapper .hero.manual > div:last-child h2 {
+    line-height: 69px;
+    margin: 0;
+    padding-inline: 0;
+}
+
+/* Additional general hero styles */
+.section .hero-wrapper {
+    max-width: 120rem;
+    margin-top: 5rem;
+    margin-inline: auto;
+}
+.hero-wrapper .hero {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 32.5rem;
+    min-height: auto;
+}
+
+
+.hero-wrapper .hero > div:last-child h2 {
+    line-height: 69px;
+    margin: 0;
+    padding-inline: 0.5rem;
+}
+
+.hero.embolden{
+    font-weight: bolder;
+}
+
+.hero.techem {
+    text-align: center;
+}
+
+.hero.techem > div > div {
+    max-width: 77pc;
+    margin-inline: auto;
+}
+
+.hero.techem h3 {
+    font-size: 3rem;
+    line-height: 4rem;
+    margin-bottom: 0;
+}

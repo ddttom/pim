@@ -1,0 +1,25 @@
+.dynamic {
+  position: relative;
+  margin: 0;
+} 
+
+.dynamic.blog {
+  background-color: var(--color-white);
+  box-shadow: none;
+}
+
+.dynamic.flexible-cards ul {
+  column-count: 1;
+}
+
+@media (width >= 700px) {
+  .dynamic.flexible-cards ul {
+    column-count: 2;
+  }
+}
+
+@media (width >= 900px) {
+  .dynamic.flexible-cards ul {
+    column-count: 3;
+  }
+}

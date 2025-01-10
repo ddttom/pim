@@ -1,0 +1,23 @@
+.tags {
+    margin-bottom: var(--spacing-s);
+}
+
+.card-tag {
+    color: var(--color-heart-red);
+    border: 1px solid var(--color-heart-red);
+    padding: 0.3rem 1rem;
+    border-radius: 20px;
+    font-family: var(--semibold-font-family);
+    font-size: var(--heading-font-size-xs);
+    margin-right: var(--spacing-xxs);
+    line-height: 1;
+    display: inline-block;
+    margin-bottom: 0.5rem;
+    text-transform: capitalize;
+}
+
+.card-tag.alt {
+    border: 1px solid var(--color-dark-blue);
+    color: var(--color-dark-blue);
+    margin-right: 0;
+}

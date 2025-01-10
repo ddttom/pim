@@ -1,0 +1,32 @@
+{
+  "@context": "https://schema.org/",
+  "@graph": [
+    {
+      "@type": "Article",
+      "headline": "$page:title$",
+      "description": "$meta:longdescription$",
+      "author": {
+        "@type": "Person",
+        "name": "$meta:author$"
+      },
+      "datePublished": "$system:dateinenglish$",
+      "image": {
+        "@type": "ImageObject",
+        "url": "$twitter:image$",
+        "description": "$twitter:description$"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "$company:name$",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "$company:logo$"
+        }
+      },
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "$page:canonical$"
+      }
+    }
+  ]
+}
