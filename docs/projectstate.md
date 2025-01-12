@@ -50,6 +50,7 @@ PIM now includes an integrated web server that allows you to:
 2. The web server will automatically start on port 3000
 3. Access your content at <http://localhost:3000>
 4. For network access, use your computer's IP address (e.g., <http://192.168.1.100:3000>)
+5. Use the "Open Browser" button in the toolbar to quickly open the web interface
 
 ### Security Features
 

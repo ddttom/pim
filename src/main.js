@@ -59,8 +59,33 @@ app.whenReady().then(async () => {
   createWindow();
 });
 
+// Handle application quit
+let isQuitting = false;
+
+app.on('before-quit', async (event) => {
+  if (isQuitting) return;
+  
+  // Prevent default quit behavior
+  event.preventDefault();
+  isQuitting = true;
+  
+  try {
+    // Stop web server
+    await webServer.stop();
+    app.quit();
+  } catch (error) {
+    console.error('Error during quit:', error);
+    app.quit();
+  }
+});
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    webServer.stop().then(() => {
+      app.quit();
+    });
+  } else {
+    // On macOS, quit when all windows are closed
     webServer.stop().then(() => {
       app.quit();
     });
@@ -151,6 +176,17 @@ ipcMain.handle('read-clipboard', async () => {
     return clipboard.readText();
   } catch (error) {
     console.error('Failed to read clipboard:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('open-browser', async (event, url) => {
+  try {
+    const { shell } = await import('electron');
+    await shell.openExternal(url);
+    return true;
+  } catch (error) {
+    console.error('Failed to open browser:', error);
     throw error;
   }
 });

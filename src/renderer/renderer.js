@@ -143,6 +143,19 @@ function setupEventListeners(handlers) {
   const copyDbBtn = document.getElementById('copy-db-btn');
   const filtersBtn = document.getElementById('filters-btn');
   const calendarBtn = document.getElementById('calendar-btn');
+  const openBrowserBtn = document.getElementById('open-browser-btn');
+
+  if (openBrowserBtn) {
+    openBrowserBtn.addEventListener('click', async () => {
+      try {
+        await window.api.invoke('open-browser', 'http://localhost:3000');
+        handlers.showToast('Opened browser at localhost:3000', 'success');
+      } catch (error) {
+        console.error('Failed to open browser:', error);
+        handlers.showToast('Failed to open browser', 'error');
+      }
+    });
+  }
 
   if (newEntryBtn) {
     newEntryBtn.addEventListener('click', () => {
