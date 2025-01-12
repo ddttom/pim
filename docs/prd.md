@@ -167,7 +167,55 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - Data integrity checks
    - Copy database to clipboard function
 
-2. Parser System
+2. Configuration System
+   - Multi-layered configuration with clear priority:
+     1. Environment Variables
+     2. Settings File (settings.json)
+     3. User Config File (config.json)
+     4. Default Values
+   - Environment Profiles Support:
+     - Development profile
+     - Testing profile
+     - Production profile
+   - User Preferences:
+     - Personal settings persistence
+     - Override rules
+     - Profile-specific options
+   - Debug Configuration:
+     - Logging levels
+     - Performance monitoring
+     - Error tracking options
+
+   - File Structure:
+
+     ```bash
+     config/                 # Configuration templates
+     data/                  # Application data
+     ├── pim.db            # Main database
+     └── settings.json     # User settings
+     db/                   # Database configuration
+     └── config.json       # Database settings
+     src/config/           # Configuration management
+     ├── ConfigManager.js  # Core configuration logic
+     └── parser.config.js  # Parser-specific config
+     ```
+
+   - Service Responsibilities:
+     - JsonDatabaseService: Manages entries, CRUD operations, filtering, sorting, batch operations
+     - SettingsService: Manages runtime settings, user preferences, settings file I/O, atomic setting updates
+     - ConfigManager: Coordinates configuration loading, validates settings, applies environment variables, manages defaults
+
+   - Environment Variables:
+     - Prefix: `pim.`
+     - Format: `pim.category.setting=value`
+     - Examples:
+
+       ```bash
+       pim.parser.maxDepth=5
+       pim.reminders.defaultMinutes=30
+       ```
+
+3. Parser System
    - Modular parser architecture
    - Individual parsers for each metadata type
    - Consistent error handling across parsers:
@@ -203,14 +251,14 @@ PIM (Personal Information Manager) is a desktop application designed to help use
      - Time of Day parser (morning/afternoon)
      - Urgency parser (time sensitivity)
 
-3. Synchronization
+4. Synchronization
    - Cloud sync support
    - Offline functionality
    - Multi-device sync
    - Conflict resolution
    - Backup integration
 
-4. Plugin System
+5. Plugin System
    - Architecture:
      - Modular plugin system
      - Individual plugin isolation
@@ -243,6 +291,62 @@ PIM (Personal Information Manager) is a desktop application designed to help use
      - Dependency resolution
      - Resource cleanup
 
+### Testing Requirements
+
+1. Test Environment Setup
+   - Use jsdom for DOM manipulation tests
+   - Create isolated test directories
+   - Clean up test data automatically
+   - Reset mocks between tests
+   - Handle file system operations safely
+
+2. Test Coverage
+   - Configuration Tests: Settings management, environment variables, validation
+   - Database Tests: CRUD operations, entry filtering, batch operations
+   - Parser Tests: Message parsing, complex scenarios, data persistence
+   - UI Component Tests: Rendering, event handling, user interactions
+   - Rich Text Tests: Editor features, image handling, state management
+   - Plugin Tests: Loading, execution, error handling
+
+3. Test Data Management
+   - Use isolated test directory: `tests/__test_data__/`
+   - Unique filenames with timestamps
+   - Automatic directory creation and cleanup
+   - Safe concurrent test execution
+
+4. Mock Implementation Requirements
+   - Editor functionality mocks
+   - File system operation mocks
+   - IPC communication mocks
+   - DOM manipulation mocks
+   - Configuration management mocks
+
+### Error Handling Requirements
+
+1. Configuration Errors
+   - Settings validation errors include:
+     - Category
+     - Invalid value
+     - Validation rule
+     - File integrity checks
+     - Environment variable validation
+   - Database errors maintain atomicity
+   - Failed batch operations roll back
+   - Settings file permissions handling
+   - JSON format validation
+   - Environment variable format verification
+
+2. Plugin Error Handling
+   - Return null on plugin operation failure
+   - No error propagation to UI
+   - Detailed error logging for debugging
+   - Clean failure recovery
+
+3. Parser Error Handling
+   - Return null on parse failure
+   - No error propagation to UI
+   - Detailed error logging for debugging
+
 ### Performance Requirements
 
 1. Speed Metrics
@@ -263,12 +367,24 @@ PIM (Personal Information Manager) is a desktop application designed to help use
 ### Input Requirements
 
 1. Keyboard Shortcuts
-   - Ctrl+N: New entry
-   - Ctrl+S: Save current entry
-   - Ctrl+F: Focus search
-   - Ctrl+,: Open settings
-   - Ctrl+\: Toggle sidebar
-   - Esc: Clear search/close modals
+   - Global Shortcuts
+     - Ctrl+N: New entry
+     - Ctrl+S: Save current entry
+     - Ctrl+F: Focus search
+     - Ctrl+,: Open settings
+     - Ctrl+\: Toggle sidebar
+     - Ctrl+B: Toggle sidebar
+     - Ctrl+R: Refresh view
+     - Ctrl+Alt+S: Force sync
+     - Esc: Clear search/close modals
+   - Editor Shortcuts
+     - Ctrl+B: Bold
+     - Ctrl+I: Italic
+     - Ctrl+U: Underline
+     - Ctrl+K: Insert link
+     - Ctrl+L: Create list
+     - Ctrl+1-3: Heading levels
+     - Tab/Shift+Tab: Indent/outdent
 
 2. Mouse Operations
    - Column header clicking for sort
