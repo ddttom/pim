@@ -95,17 +95,87 @@ Example settings:
 }
 ```
 
-#### Advanced Configuration
+### Working with Entries
 
-For advanced users, you can use environment variables to temporarily override settings:
+#### Entry Types
 
-- Format: `pim.category.setting=value`
-- Examples:
+- Notes: General text entries
+- Documents: Long-form content
+- Templates: Reusable structures
+- HTML: Web content
+- Records: Structured data
+- Tasks: Action items
+- Events: Calendar entries
 
-  ```bash
-  pim.parser.maxDepth=5
-  pim.reminders.defaultMinutes=30
-  ```
+#### Editor Tips
+
+- Use keyboard shortcuts for common actions
+- Heading buttons skip empty lines for cleaner formatting
+- Use the table grid's live preview to visualize table size
+- Watch the size indicator when creating tables
+- Smooth transitions help track table cell selection
+- Use appropriate entry types for better organization
+
+#### Organization Tips
+
+- Use the sidebar filters for quick access
+- Sort columns to organize your view
+- Use tags for categorization
+- Hover over truncated content to see full text
+- Use Copy DB to backup or share your data
+- Archive old entries to maintain clarity
+
+## Keyboard Shortcuts
+
+### Global Shortcuts
+
+- `Ctrl+N`: New entry
+- `Ctrl+S`: Save current entry
+- `Ctrl+F`: Focus search
+- `Ctrl+,`: Open settings
+- `Ctrl+\`: Toggle sidebar
+- `Ctrl+B`: Toggle sidebar
+- `Ctrl+R`: Refresh view
+- `Ctrl+Alt+S`: Force sync
+- `Esc`: Clear search/close modals
+
+### Editor Shortcuts
+
+- `Ctrl+B`: Bold
+- `Ctrl+I`: Italic
+- `Ctrl+U`: Underline
+- `Ctrl+K`: Insert link
+- `Ctrl+L`: Create list
+- `Ctrl+1-3`: Heading levels
+- `Tab/Shift+Tab`: Indent/outdent
+
+## Advanced Features
+
+### Web Server
+
+PIM includes an integrated web server for remote access to your content:
+
+#### Basic Usage
+
+1. Start PIM application
+2. Web server automatically starts on port 3000
+3. Access locally at <http://localhost:3000>
+4. Network access via your computer's IP (e.g., <http://192.168.1.100:3000>)
+
+#### Security Features
+
+- CORS protection enabled
+- Content Security Policy enforced
+- XSS protection headers
+- Frame protection headers
+- Automatic server shutdown on app close
+
+#### Tips
+
+- Use for accessing content from other devices
+- Ideal for presentations or shared access
+- Check network settings if remote access fails
+- Keep application running for server access
 
 ### Database Management
 
@@ -147,89 +217,6 @@ Access plugin settings through Settings > Plugins:
 3. View plugin status
 4. Import new plugins
 5. Update existing plugins
-
-### Error Handling
-
-Common error situations and solutions:
-
-1. Settings Issues
-   - Check settings file permissions
-   - Reset to defaults if needed
-   - Verify environment variables
-
-2. Database Issues
-   - Use Copy DB for backup
-   - Check file permissions
-   - Verify data integrity
-
-3. Sync Issues
-   - Check internet connection
-   - Verify provider settings
-   - Review sync logs
-
-### Performance Tips
-
-1. Database Optimization
-   - Regular backups
-   - Archive old entries
-   - Clean up unused media
-
-2. Settings Optimization
-   - Use appropriate sync intervals
-   - Configure auto-save wisely
-   - Manage plugin load
-
-## Working with Entries
-
-### Entry Types
-
-- Notes: General text entries
-- Documents: Long-form content
-- Templates: Reusable structures
-- HTML: Web content
-- Records: Structured data
-- Tasks: Action items
-- Events: Calendar entries
-
-### Editor Tips
-
-- Use keyboard shortcuts for common actions
-- Heading buttons skip empty lines
-- Table grid shows live preview
-- Size indicator helps with table creation
-- Smooth transitions track cell selection
-
-### Organization Tips
-
-- Use the sidebar filters for quick access
-- Sort columns to organize your view
-- Use tags for categorization
-- Hover for full content preview
-- Archive old entries to maintain clarity
-
-## Keyboard Shortcuts
-
-### Global Shortcuts
-
-- `Ctrl+N`: New entry
-- `Ctrl+S`: Save current entry
-- `Ctrl+F`: Focus search
-- `Ctrl+,`: Open settings
-- `Ctrl+\`: Toggle sidebar
-- `Ctrl+B`: Toggle sidebar
-- `Ctrl+R`: Refresh view
-- `Ctrl+Alt+S`: Force sync
-- `Esc`: Clear search/close modals
-
-### Editor Shortcuts
-
-- `Ctrl+B`: Bold
-- `Ctrl+I`: Italic
-- `Ctrl+U`: Underline
-- `Ctrl+K`: Insert link
-- `Ctrl+L`: Create list
-- `Ctrl+1-3`: Heading levels
-- `Tab/Shift+Tab`: Indent/outdent
 
 ## Troubleshooting
 
@@ -301,22 +288,54 @@ Common error situations and solutions:
    - Change logs
    - Rollback options
 
-### Configuration Recovery
+## Security Considerations
 
-1. Backup Usage
-   - Restore settings
-   - Apply selectively
-   - Verify changes
+### Data Protection
 
-2. Reset Process
-   - Clean reset
-   - Partial reset
-   - Configuration rebuild
+1. Backups
+   - Regular schedule
+   - Secure storage
+   - Encryption options
 
-3. System Checks
-   - Log review
-   - Permissions
-   - File integrity
+2. Access Control
+   - File permissions
+   - User settings
+   - Plugin access
+
+### Configuration Security
+
+1. Settings Protection
+   - File security
+   - Environment variables
+   - Access controls
+
+2. Plugin Safety
+   - Isolation
+   - Resource limits
+   - Update verification
+
+## Performance Tips
+
+1. Database Optimization
+   - Regular backups
+   - Archive old entries
+   - Clean up unused media
+
+2. Settings Optimization
+   - Use appropriate sync intervals
+   - Configure auto-save wisely
+   - Manage plugin load
+
+## Tips & Tricks
+
+- Use the sidebar filters to quickly find entries
+- Sort columns to organize your view
+- Use tags to categorize entries
+- Configure sync settings based on usage
+- Use environment variables for temporary changes
+- Keep regular database backups
+- Monitor plugin performance
+- Use batch operations for multiple updates
 
 ## Data Management
 
@@ -344,97 +363,3 @@ Common error situations and solutions:
    - Archive criteria
    - Storage options
    - Retrieval process
-
-### Configuration Management
-
-1. Settings Backup
-   - Regular exports
-   - Version control
-   - Recovery points
-
-2. Sync Settings
-   - Provider setup
-   - Schedule configuration
-   - Conflict handling
-
-3. Plugin Data
-   - Storage location
-   - Cleanup procedures
-   - Backup inclusion
-
-## Security Considerations
-
-### Data Protection
-
-1. Backups
-   - Regular schedule
-   - Secure storage
-   - Encryption options
-
-2. Access Control
-   - File permissions
-   - User settings
-   - Plugin access
-
-### Configuration Security
-
-1. Settings Protection
-   - File security
-   - Environment variables
-   - Access controls
-
-2. Plugin Safety
-   - Isolation
-   - Resource limits
-   - Update verification
-
-## Advanced Features
-
-### Environment Variables
-
-1. Override Settings
-   - Temporary changes
-   - Testing configurations
-   - Development use
-
-2. Debug Options
-   - Logging levels
-   - Performance monitoring
-   - Error tracking
-
-### Batch Operations 2
-
-1. Multi-Entry Updates
-   - Selection criteria
-   - Bulk actions
-   - Validation rules
-
-2. Configuration Changes
-   - Mass updates
-   - Rollback support
-   - Audit logging
-
-### Plugin Development
-
-1. Integration
-   - API access
-   - Event handling
-   - Resource management
-
-2. Configuration
-   - Settings structure
-   - User options
-   - Default values
-
-### Custom Configurations
-
-1. Environment Profiles
-   - Development
-   - Testing
-   - Production
-
-2. User Preferences
-   - Personal settings
-   - Override rules
-   - Persistence options
-   -

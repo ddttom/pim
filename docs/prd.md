@@ -150,6 +150,33 @@ PIM (Personal Information Manager) is a desktop application designed to help use
 
 ### System Features
 
+1. Web Server Requirements
+   - Integrated HTTP server functionality:
+     - Automatic startup with application
+     - Default port 3000 configuration
+     - Static file serving from public directory
+     - Network accessibility support
+   - Security requirements:
+     - CORS protection implementation
+     - Content Security Policy (CSP) headers
+     - XSS protection mechanisms
+     - Frame protection headers
+     - Automatic server shutdown on app close
+   - Development features:
+     - Development mode exceptions for CORS
+     - Local testing support
+     - Network access configuration
+   - Performance requirements:
+     - Minimal resource usage
+     - Fast startup time
+     - Efficient static file serving
+     - Proper error handling
+   - Integration requirements:
+     - Seamless operation with main application
+     - Configuration through existing settings
+     - Logging integration
+     - Status monitoring
+
 1. Data Layer Requirements
    - Local storage using JSON database
    - CRUD operations for all entry types

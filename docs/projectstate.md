@@ -36,6 +36,29 @@ UI Components
 - Module organization
 - Error handling
 
+## Web Server Feature
+
+PIM now includes an integrated web server that allows you to:
+
+- Serve static files from the public directory
+- Access your content from external devices on the same network
+- Securely expose your content with proper CORS and security headers
+
+### Accessing the Web Server
+
+1. Start the PIM application
+2. The web server will automatically start on port 3000
+3. Access your content at <http://localhost:3000>
+4. For network access, use your computer's IP address (e.g., <http://192.168.1.100:3000>)
+
+### Security Features
+
+- CORS protection with development mode exceptions
+- Content Security Policy headers
+- XSS protection headers
+- Frame protection headers
+- Automatic shutdown when the app closes
+
 ## Active Development
 
 1. Current Sprint
