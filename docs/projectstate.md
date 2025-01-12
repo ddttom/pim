@@ -41,6 +41,7 @@ UI Components
 PIM now includes an integrated web server that allows you to:
 
 - Serve static files from the public directory
+- Note: The HTML files in src/ belong to the PIM application, while those in public/ are served by the web server. These are separate systems and should not be confused.
 - Access your content from external devices on the same network
 - Securely expose your content with proper CORS and security headers
 

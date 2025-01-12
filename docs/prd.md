@@ -156,6 +156,7 @@ PIM (Personal Information Manager) is a desktop application designed to help use
      - Default port 3000 configuration
      - Static file serving from public directory
      - Network accessibility support
+   - Note: The HTML files in src/ belong to the PIM application, while those in public/ are served by the web server. These are separate systems and should not be confused.
    - Security requirements:
      - CORS protection implementation
      - Content Security Policy (CSP) headers

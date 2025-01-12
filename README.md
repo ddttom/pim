@@ -75,6 +75,8 @@ tests/
 └── setup.js         # Test environment setup
 ```
 
+Note: The HTML files in src/ belong to the PIM application, while those in public/ are served by the web server. These are separate systems and should not be confused.
+
 ## Development
 
 ### Testing

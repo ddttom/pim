@@ -1,0 +1,19 @@
+# Rules
+
+Note: The project intentionally avoids TypeScript to maintain simplicity and reduce build complexity. Instead, we focus on clear code organization through consistent module usage (ES modules for renderer process and services, CommonJS for main/preload scripts), comprehensive documentation, and thorough testing to ensure code quality. The project continues to maintain its focus on simplicity and performance while addressing core security and structural needs identified in the code review checklist. When ES module services need to be used by CommonJS code (like main process), thin adapter modules are used to bridge the gap while maintaining clean architecture.
+
+Do not add tests unless the user requests them, Create test file in appropriate directory, tests/...., Import required modules and mocks
+
+Development Requirements
+
+- Modern JavaScript (ES modules) without TypeScript
+- Pure CSS without preprocessors
+- No build-heavy frameworks
+- Focus on simplicity and performance
+- ES modules for renderer process and services
+- CommonJS for main process and preload scripts
+- Clear code organization and documentation
+- Security through proper context isolation
+- Minimal dependencies and build steps
+
+The PIM project maintains a clear separation between its application HTML files and web server content. The HTML files in src/ are part of the Electron-based desktop application's renderer process, handling the main UI and functionality. In contrast, the HTML files in public/ are served by the integrated web server and provide a separate web-based interface. These two sets of HTML files serve distinct purposes and should not be confused or mixed, as they operate in different contexts with separate security considerations and functionality.
