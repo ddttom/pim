@@ -11,9 +11,7 @@
     "clean-db": "node --experimental-modules src/scripts/clean-db.js"
   },
   "dependencies": {
-    "electron": "^25.0.0",
-    "quill": "^1.3.7",
-    "turndown": "^7.1.2"
+    "electron": "^25.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",

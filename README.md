@@ -50,7 +50,6 @@ npm start
 ```bash
 src/
 ├── config/           # Configuration management
-├── plugins/          # Plugin system
 ├── renderer/         # Frontend UI components
 │   ├── editor/      # Rich text editor
 │   ├── entries/     # Entry management
@@ -92,7 +91,6 @@ npm run test:db         # Database operations
 npm run test:parser     # Parser functionality
 npm run test:renderer   # UI components
 npm run test:rich-text  # Editor features
-npm run test:plugins    # Plugin system
 ```
 
 ### Building
@@ -131,7 +129,6 @@ For complete keyboard shortcuts and features, see [User Manual](docs/usermanual.
 - [User Manual](docs/usermanual.md) - Guide for end users
 - [Project Status](docs/projectstate.md) - Current state and roadmap
 - [Configuration](docs/config.md) - Configuration system details
-- [Plugin System](docs/plugin.md) - Plugin development guide
 - [Testing](docs/test.md) - Test suite documentation
 - [Contributing](CONTRIBUTING.md) - Development guidelines
 
