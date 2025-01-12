@@ -5,6 +5,7 @@ import JsonDatabaseService from './services/json-database.js';
 import SyncService from './services/sync.js';
 import { getSettings, saveSettings } from './services/settings-service.js';
 import parser from './services/parser.js';
+import WebServer from './services/web-server.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,6 +14,7 @@ const isDev = process.env.NODE_ENV === 'development';
 let mainWindow;
 let db;
 let syncService;
+let webServer;
 
 // Initialize services
 async function initializeServices() {
@@ -49,12 +51,19 @@ function createWindow() {
 
 app.whenReady().then(async () => {
   await initializeServices();
+  
+  // Start web server
+  webServer = new WebServer();
+  await webServer.start();
+  
   createWindow();
 });
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    app.quit();
+    webServer.stop().then(() => {
+      app.quit();
+    });
   }
 });
 

@@ -18,6 +18,7 @@ The `decorate` function is the entry point of this component. It performs the fo
 ### `generateContent(blogItems)`
 
 This function creates HTML markup for each blog item, including:
+
 - Link to the blog post
 - Blog post image
 - Title
