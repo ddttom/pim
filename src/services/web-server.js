@@ -36,22 +36,22 @@ class WebServer {
           return res.status(500).send('Server not ready');
         }
         
-        // Use index.tpl for root path
-        const tplPath = path.join(__dirname, '../../public/index.tpl');
+        // Use index.md for root path
+        const tplPath = path.join(__dirname, '../../public/index.md');
         
-        // Try to read .tpl file
+        // Try to read .md file
         let content;
         try {
           content = await fs.readFile(tplPath, 'utf-8');
         } catch (error) {
           if (error.code === 'ENOENT') {
-            // Serve 404.html if .tpl doesn't exist
+            // Serve 404.html if .md doesn't exist
             return res.status(404).send(this.errorPageContent);
           }
           throw error;
         }
         
-        // Combine template with .tpl content
+        // Combine template with .md content
         const html = this.templateContent.replace(
           '{{ INSERT_CONTENT_HERE }}',
           content
@@ -72,26 +72,26 @@ class WebServer {
           return res.status(500).send('Server not ready');
         }
         
-        // Convert requested .html to .tpl path
+        // Convert requested .html to .md path
         const tplPath = path.join(
           __dirname,
           '../../public',
-          req.path.replace('.html', '.tpl')
+          req.path.replace('.html', '.md')
         );
         
-        // Try to read .tpl file
+        // Try to read .mdfile
         let content;
         try {
           content = await fs.readFile(tplPath, 'utf-8');
         } catch (error) {
           if (error.code === 'ENOENT') {
-            // Serve 404.html if .tpl doesn't exist
+            // Serve 404.html if .md doesn't exist
             return res.status(404).send(this.errorPageContent);
           }
           throw error;
         }
         
-        // Combine template with .tpl content
+        // Combine template with .md content
         const html = this.templateContent.replace(
           '{{ INSERT_CONTENT_HERE }}',
           content
