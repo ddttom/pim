@@ -1,35 +1,55 @@
-const MockLogger = require('../__mocks__/logger');
-const linksParser = require('../../src/services/parser/parsers/links');
+import { jest } from '@jest/globals';
+import linksParser from '../../src/services/parser/parsers/links.js';
 
-jest.mock('../../src/utils/logger', () => {
-  const logger = new MockLogger();
-  return logger;
-});
+// Mock logger
+jest.unstable_mockModule('../../src/utils/logger.js', () => ({
+  default: {
+    info: jest.fn(),
+    error: jest.fn()
+  }
+}));
 
-describe('Links Parser', () => {
-  const testCases = [
-    {
-      input: 'Check out https://example.com',
-      expected: ['https://example.com']
-    },
-    {
-      input: 'Multiple links: https://example.com and http://test.com',
-      expected: ['https://example.com', 'http://test.com']
-    },
-    {
-      input: 'No links here',
-      expected: []
-    },
-    {
-      input: '',
-      expected: []
-    }
-  ];
-
-  testCases.forEach(({ input, expected }, index) => {
-    test(`Test case ${index + 1}: should correctly parse links`, () => {
-      const result = linksParser.parse(input);
-      expect(result).toEqual(expected);
-    });
+describe('Links Parser Tests', () => {
+  test('parses web links', () => {
+    const text = 'Visit https://example.com and http://test.com';
+    const result = linksParser.parse(text);
+    
+    expect(result.links).toEqual([
+      { type: 'web', url: 'https://example.com' },
+      { type: 'web', url: 'http://test.com' }
+    ]);
   });
-}); 
+
+  test('parses file links', () => {
+    const text = 'Open file:///path/to/file.txt';
+    const result = linksParser.parse(text);
+    
+    expect(result.links).toEqual([
+      { type: 'file', url: 'file:///path/to/file.txt' }
+    ]);
+  });
+
+  test('handles mixed content', () => {
+    const text = 'Links: https://example.com and file:///path/to/file.txt';
+    const result = linksParser.parse(text);
+    
+    expect(result.links).toEqual([
+      { type: 'web', url: 'https://example.com' },
+      { type: 'file', url: 'file:///path/to/file.txt' }
+    ]);
+  });
+
+  test('returns empty array for no links', () => {
+    const text = 'No links here';
+    const result = linksParser.parse(text);
+    
+    expect(result.links).toEqual([]);
+  });
+
+  test('preserves original text', () => {
+    const text = 'Visit https://example.com';
+    const result = linksParser.parse(text);
+    
+    expect(result.text).toBe(text);
+  });
+});

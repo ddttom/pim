@@ -41,6 +41,13 @@ UI Components
 PIM now includes an integrated web server that allows you to:
 
 - Serve static files from the public directory
+- Automatic markdown to HTML conversion:
+  - Handles extensionless and .html requests
+  - Serves .md files as static content
+  - Template support with {{ INSERT_CONTENT_HERE }} placeholder
+  - Plain HTML output option via plain.html suffix
+  - Responsive image handling
+  - Generic table support with automatic header detection
 - Note: The HTML files in src/ belong to the PIM application, while those in public/ are served by the web server. These are separate systems and should not be confused.
 - Access your content from external devices on the same network
 - Securely expose your content with proper CORS and security headers

@@ -6,5 +6,3 @@ A git subtree add for PlusPlus, this git provides a set of dummy values for conf
 
 ```sh
 git subtree add --squash  --prefix config  https://github.com/Digital-Domain-Technologies-Ltd/pluspluconfig main
-
-```

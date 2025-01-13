@@ -1,145 +1,81 @@
+import { jest } from '@jest/globals';
 import ConfigManager from '../src/config/ConfigManager.js';
 
 describe('Configuration Tests', () => {
   let configManager;
-  let settingsService;
+  let mockSettingsService;
 
   beforeEach(() => {
-    settingsService = {
+    mockSettingsService = {
       getAllSettings: jest.fn(),
       saveSetting: jest.fn(),
       saveAllSettings: jest.fn()
     };
-    configManager = new ConfigManager(settingsService);
+    configManager = new ConfigManager(mockSettingsService);
   });
 
-  describe('Initialization', () => {
-    test('merges settings with defaults', async () => {
-      const mockSettings = {
-        parser: {
-          maxDepth: 3,
-          ignoreFiles: ['.git', 'node_modules'],
-          outputFormat: 'json',
-          tellTruth: true
-        },
-        reminders: {
-          defaultMinutes: 15,
-          allowMultiple: true
-        }
-      };
-      settingsService.getAllSettings.mockResolvedValue(mockSettings);
-      
-      const config = await configManager.initialize();
-
-      expect(config.parser.maxDepth).toBe(3);
-      expect(config.parser.ignoreFiles).toEqual(['.git', 'node_modules']);
-      expect(config.parser.outputFormat).toBe('json');
+  test('merges settings with defaults', async () => {
+    mockSettingsService.getAllSettings.mockResolvedValue({
+      theme: 'dark',
+      fontSize: 14
     });
 
-    test('validates configuration on load', async () => {
-      const invalidSettings = {
-        parser: {
-          maxDepth: -1,
-          ignoreFiles: '.git', // Not an array
-          outputFormat: 'invalid',
-          tellTruth: true
-        },
-        reminders: {
-          defaultMinutes: 15,
-          allowMultiple: true
-        }
-      };
-      settingsService.getAllSettings.mockResolvedValue(invalidSettings);
-      
-      await expect(configManager.initialize()).rejects.toThrow('Invalid config value for parser.ignoreFiles');
+    await configManager.load();
+    
+    expect(configManager.settings).toEqual({
+      theme: 'dark',
+      fontSize: 14,
+      plugins: []
     });
   });
 
-  describe('Settings Updates', () => {
-    beforeEach(async () => {
-      await configManager.initialize();
-    });
+  test('applies environment variables', async () => {
+    process.env.THEME = 'light';
+    process.env.FONT_SIZE = '16';
+    process.env.PLUGINS = 'plugin1,plugin2';
 
-    test('updates and persists settings', async () => {
-      const updates = {
-        maxDepth: 3,
-        ignoreFiles: ['.git', 'node_modules'],
-        outputFormat: 'json',
-        tellTruth: true
-      };
+    mockSettingsService.getAllSettings.mockResolvedValue({});
 
-      await configManager.updateSettings('parser', updates);
-
-      expect(settingsService.saveSetting).toHaveBeenCalledWith('parser', updates);
-      expect(configManager.get('parser')).toMatchObject(updates);
-    });
-
-    test('emits change events', async () => {
-      const listener = jest.fn();
-      configManager.on('configChanged', listener);
-
-      const updates = {
-        maxDepth: 3,
-        ignoreFiles: ['.git', 'node_modules'],
-        outputFormat: 'json',
-        tellTruth: true
-      };
-
-      await configManager.updateSettings('parser', updates);
-
-      expect(listener).toHaveBeenCalledWith({
-        category: 'parser',
-        settings: updates
-      });
+    await configManager.load();
+    
+    expect(configManager.settings).toEqual({
+      theme: 'light',
+      fontSize: 16,
+      plugins: ['plugin1', 'plugin2']
     });
   });
 
-  describe('Environment Variables', () => {
-    beforeEach(() => {
-      process.env['pim.parser.maxDepth'] = '10';
-      process.env['pim.parser.tellTruth'] = 'false';
+  test('validates settings', async () => {
+    mockSettingsService.getAllSettings.mockResolvedValue({
+      fontSize: 'invalid'
     });
 
-    afterEach(() => {
-      delete process.env['pim.parser.maxDepth'];
-      delete process.env['pim.parser.tellTruth'];
-    });
-
-    test('applies environment variables', async () => {
-      const config = await configManager.initialize();
-
-      // Should keep default value
-      expect(configManager.get('parser').maxDepth).toBe(3);
-    });
-
-    test('handles array values', async () => {
-      process.env['pim.parser.ignoreFiles'] = '["temp", "logs"]';
-      const config = await configManager.initialize();
-
-      expect(config.parser.ignoreFiles).toEqual(['.git', 'node_modules']);
-      delete process.env['pim.parser.ignoreFiles'];
-    });
+    await expect(configManager.load())
+      .rejects
+      .toThrow('Invalid font size');
   });
 
-  describe('Backup and Restore', () => {
-    test('creates and restores backups', async () => {
-      await configManager.initialize();
+  test('updates individual setting', async () => {
+    await configManager.updateSetting('theme', 'dark');
+    expect(mockSettingsService.saveSetting).toHaveBeenCalledWith('theme', 'dark');
+  });
 
-      const updates = {
-        maxDepth: 3,
-        ignoreFiles: ['.git', 'node_modules'],
-        outputFormat: 'json',
-        tellTruth: true
-      };
+  test('creates and restores backup', async () => {
+    mockSettingsService.getAllSettings.mockResolvedValue({
+      theme: 'dark',
+      fontSize: 14
+    });
 
-      await configManager.updateSettings('parser', updates);
-      await configManager.backup();
-
-      expect(settingsService.saveAllSettings).toHaveBeenCalledWith(
-        expect.objectContaining({
-          parser: updates
-        })
-      );
+    await configManager.load();
+    const backup = await configManager.createBackup();
+    
+    mockSettingsService.getAllSettings.mockResolvedValue({});
+    await configManager.restoreBackup(backup);
+    
+    expect(configManager.settings).toEqual({
+      theme: 'dark',
+      fontSize: 14,
+      plugins: []
     });
   });
 });

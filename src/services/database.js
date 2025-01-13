@@ -1,37 +1,44 @@
-class DatabaseService {
-    async saveEntry(entry) {
-        // If type is not specified, assume it's a note
-        const type = entry.type || 'note';
-        
-        // Only parse if it's a note type
-        const parsedEntry = type === 'note' 
-            ? await this.parser.parse(entry.content)
-            : { original: entry.content, parsed: { text: entry.content, plugins: {} } };
+export default class Database {
+  constructor() {
+    this.entries = [];
+    this.nextId = 1;
+  }
 
-        const entryToSave = {
-            ...entry,
-            type,
-            parsed: parsedEntry.parsed,
-            original: parsedEntry.original,
-            updatedAt: new Date().toISOString()
-        };
+  async init() {
+    // No initialization needed for in-memory database
+    return Promise.resolve();
+  }
 
-        // Save to database
-        await this.db.addEntry(entryToSave);
-        return entryToSave;
+  async save(entry) {
+    // Check if entry already exists
+    const existingIndex = this.entries.findIndex(e => e.id === entry.id);
+    
+    if (existingIndex >= 0) {
+      // Update existing entry
+      this.entries[existingIndex] = entry;
+      return entry;
     }
+    
+    // Create new entry
+    const newEntry = { ...entry, id: this.nextId++ };
+    this.entries.push(newEntry);
+    return newEntry;
+  }
 
-    async getEntries(filter = {}) {
-        const entries = await this.db.get('entries') || [];
-        
-        // Add type filter
-        if (filter.type) {
-            return entries.filter(entry => entry.type === filter.type);
-        }
+  async getAll() {
+    return [...this.entries];
+  }
 
-        return entries.map(entry => ({
-            ...entry,
-            type: entry.type || 'note' // Default type for legacy entries
-        }));
-    }
-} 
+  async getById(id) {
+    return this.entries.find(e => e.id === id);
+  }
+
+  async delete(id) {
+    this.entries = this.entries.filter(e => e.id !== id);
+  }
+
+  async clear() {
+    this.entries = [];
+    this.nextId = 1;
+  }
+}

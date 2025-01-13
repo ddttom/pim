@@ -3,148 +3,72 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
+import { MarkdownParser } from './MDParser.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const publicPath = path.join(__dirname, '../../public');
+const markdownParser = new MarkdownParser();
 
-class WebServer {
-  constructor(port = 3000) {
-    this.port = port;
-    this.app = express();
-    this.server = null;
-    this.templateContent = null;
-    this.errorPageContent = null;
-    
-    // Security middleware
-    this.app.use(cors({
-      origin: process.env.NODE_ENV === 'development' ? '*' : false
-    }));
-    
-    this.app.use((req, res, next) => {
-      res.header('X-Content-Type-Options', 'nosniff');
-      res.header('X-Frame-Options', 'DENY');
-      res.header('X-XSS-Protection', '1; mode=block');
-      next();
-    });
+const app = express();
+app.use(cors());
 
-    // Serve static files
-    this.app.use(express.static(path.join(__dirname, '../../public')));
-    
-    // Root path handler
-    this.app.get('/', async (req, res) => {
-      try {
-        if (!this.templateContent || !this.errorPageContent) {
-          return res.status(500).send('Server not ready');
-        }
-        
-        // Use index.md for root path
-        const tplPath = path.join(__dirname, '../../public/index.md');
-        
-        // Try to read .md file
-        let content;
-        try {
-          content = await fs.readFile(tplPath, 'utf-8');
-        } catch (error) {
-          if (error.code === 'ENOENT') {
-            // Serve 404.html if .md doesn't exist
-            return res.status(404).send(this.errorPageContent);
-          }
-          throw error;
-        }
-        
-        // Combine template with .md content
-        const html = this.templateContent.replace(
-          '{{ INSERT_CONTENT_HERE }}',
-          content
-        );
-        
-        res.set('Content-Type', 'text/html');
-        res.send(html);
-      } catch (error) {
-        console.error('Error serving HTML:', error);
-        res.status(500).send('Internal Server Error');
-      }
-    });
-    
-    // HTML route handler
-    this.app.get('*.html', async (req, res) => {
-      try {
-        if (!this.templateContent || !this.errorPageContent) {
-          return res.status(500).send('Server not ready');
-        }
-        
-        // Convert requested .html to .md path
-        const tplPath = path.join(
-          __dirname,
-          '../../public',
-          req.path.replace('.html', '.md')
-        );
-        
-        // Try to read .mdfile
-        let content;
-        try {
-          content = await fs.readFile(tplPath, 'utf-8');
-        } catch (error) {
-          if (error.code === 'ENOENT') {
-            // Serve 404.html if .md doesn't exist
-            return res.status(404).send(this.errorPageContent);
-          }
-          throw error;
-        }
-        
-        // Combine template with .md content
-        const html = this.templateContent.replace(
-          '{{ INSERT_CONTENT_HERE }}',
-          content
-        );
-        
-        res.set('Content-Type', 'text/html');
-        res.send(html);
-      } catch (error) {
-        console.error('Error serving HTML:', error);
-        res.status(500).send('Internal Server Error');
-      }
-    });
+// Read template file once at startup
+let template = '';
+(async () => {
+  try {
+    template = await fs.readFile(path.join(publicPath, 'template.txt'), 'utf-8');
+  } catch (error) {
+    console.error('Failed to load template:', error);
   }
+})();
 
-  async loadTemplates() {
-    try {
-      // Load main template
-      const templatePath = path.join(__dirname, '../../public/template.txt');
-      this.templateContent = await fs.readFile(templatePath, 'utf-8');
-      
-      // Load 404 page
-      const errorPagePath = path.join(__dirname, '../../public/404.html');
-      this.errorPageContent = await fs.readFile(errorPagePath, 'utf-8');
-      
-      console.log('Templates loaded successfully');
-    } catch (error) {
-      console.error('Failed to load templates:', error);
-      throw error;
+// Custom static file handler
+app.use(async (req, res, next) => {
+  try {
+    // If explicitly requesting .md file, serve as static
+    if (req.path.endsWith('.md')) {
+      return next();
     }
-  }
-
-  async start() {
-    await this.loadTemplates();
-    return new Promise((resolve) => {
-      this.server = this.app.listen(this.port, () => {
-        console.log(`Web server running on port ${this.port}`);
-        resolve();
-      });
-    });
-  }
-
-  stop() {
-    return new Promise((resolve) => {
-      if (this.server) {
-        this.server.close(() => {
-          console.log('Web server stopped');
-          resolve();
-        });
-      } else {
-        resolve();
+    
+    // Remove .html extension if present
+    const requestPath = req.path.replace(/\.html$/, '');
+    
+    // Check for markdown file
+    const mdPath = path.join(publicPath, `${requestPath}.md`);
+    try {
+      await fs.access(mdPath);
+      
+      // Read and convert markdown
+      const markdown = await fs.readFile(mdPath, 'utf-8');
+      const html = markdownParser.parse(markdown);
+      
+      // Handle plain.html requests
+      if (req.path.endsWith('plain.html')) {
+        return res.send(html);
       }
-    });
+      
+      // Use template for regular requests
+      if (template) {
+        const templatedHtml = template.replace('{{ INSERT_CONTENT_HERE }}', html);
+        return res.send(templatedHtml);
+      }
+      
+      // Fallback to just HTML if no template
+      return res.send(html);
+    } catch {
+      // Markdown file not found, continue to static files
+      return next();
+    }
+  } catch (error) {
+    console.error('Error handling request:', error);
+    res.status(500).send('Internal Server Error');
   }
-}
+});
 
-export default WebServer;
+// Serve static files as fallback
+app.use(express.static(publicPath));
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Web server running on port ${port}`);
+});

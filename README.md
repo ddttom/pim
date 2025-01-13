@@ -21,6 +21,10 @@ For detailed product requirements and specifications, see [Product Requirements]
 ## Key Features
 
 - Rich text editor with Markdown support
+  - Automatic markdown to HTML conversion
+  - Table support with automatic header detection
+  - Responsive image handling
+  - Template support with {{ INSERT_CONTENT_HERE }} placeholder
 - Multiple content types (Notes, Documents, Tasks, etc.)
 - Calendar view with day/week/month modes
 - Entry preview and quick editing
