@@ -19,7 +19,9 @@
   <body>
     <header></header>
     <main>
-      {{ INSERT_CONTENT_HERE }}
+     <div>
+      <p>{{ INSERT_CONTENT_HERE }}</p>
+      </div>
     </main>
     <footer></footer>
   </body>
