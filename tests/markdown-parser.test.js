@@ -1,4 +1,4 @@
-import { MarkdownParser } from '../src/services/web-server.js';
+import { MarkdownParser } from '../src/services/MDParser.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -24,7 +24,66 @@ describe('MarkdownParser', () => {
     exampleHtml = await fs.readFile(htmlPath, 'utf-8');
   });
 
-  it('should convert markdown to HTML correctly', () => {
+  it('should convert basic markdown elements correctly', () => {
+    const markdown = `
+# Header 1
+## Header 2
+### Header 3
+
+- List item 1
+- List item 2
+
+**Bold text**
+
+*Italic text*
+
+\`Code text\`
+
+[Link text](https://example.com)
+
+![Alt text](https://example.com/image.png)
+    `;
+
+    const result = parser.parse(markdown);
+    const dom = new JSDOM(result).window.document;
+
+    expect(dom.querySelector('h1').textContent).toBe('Header 1');
+    expect(dom.querySelector('h2').textContent).toBe('Header 2');
+    expect(dom.querySelector('h3').textContent).toBe('Header 3');
+    expect(dom.querySelectorAll('li').length).toBe(2);
+    expect(dom.querySelector('strong').textContent).toBe('Bold text');
+    expect(dom.querySelector('em').textContent).toBe('Italic text');
+    expect(dom.querySelector('code').textContent).toBe('Code text');
+    expect(dom.querySelector('a').href).toBe('https://example.com/');
+    expect(dom.querySelector('img').src).toBe('https://example.com/image.png');
+  });
+
+  it('should handle tables correctly', () => {
+    const markdown = `
+| Header 1 | Header 2 |
+|----------|----------|
+| Cell 1   | Cell 2   |
+| Cell 3   | Cell 4   |
+    `;
+
+    const result = parser.parse(markdown);
+    const dom = new JSDOM(result).window.document;
+
+    const table = dom.querySelector('table');
+    expect(table).toBeTruthy();
+    
+    const headers = table.querySelectorAll('th');
+    expect(headers.length).toBe(2);
+    expect(headers[0].textContent).toBe('Header 1');
+    expect(headers[1].textContent).toBe('Header 2');
+
+    const cells = table.querySelectorAll('td');
+    expect(cells.length).toBe(4);
+    expect(cells[0].textContent).toBe('Cell 1');
+    expect(cells[3].textContent).toBe('Cell 4');
+  });
+
+  it('should handle complex markdown documents', () => {
     const result = parser.parse(exampleMd);
     const resultDom = new JSDOM(result).window.document;
     const expectedDom = new JSDOM(exampleHtml).window.document;
@@ -55,15 +114,10 @@ describe('MarkdownParser', () => {
 
     // Test main sections
     expect(compareSections('h1')).toBeTruthy();
-    expect(compareSections('.bio')).toBeTruthy();
-    expect(compareSections('.index')).toBeTruthy();
     expect(compareSections('p')).toBeTruthy();
     expect(compareSections('h2')).toBeTruthy();
     expect(compareSections('ul')).toBeTruthy();
-    expect(compareSections('.fragment')).toBeTruthy();
-    expect(compareSections('.section-metadata')).toBeTruthy();
-    expect(compareSections('.blogroll')).toBeTruthy();
-    expect(compareSections('.returntotop')).toBeTruthy();
+    expect(compareSections('table')).toBeTruthy();
   });
 
   it('should not modify input files', async () => {

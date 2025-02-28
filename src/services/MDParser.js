@@ -42,6 +42,10 @@ export class MarkdownParser {
           html += '</ul>';
           inList = false;
         }
+        if (html && !html.endsWith('</p>')) {
+          html += '</p>';
+        }
+        html += '<p>';
         return;
       }
 
@@ -76,7 +80,11 @@ export class MarkdownParser {
       processedLine = this.formatText(processedLine);
 
       if (processedLine) {
-        html += `<p>${processedLine}</p>`;
+        if (!html.endsWith('<p>')) {
+          html += '<p>';
+        }
+        html += processedLine;
+        html += '</p>';
       }
     });
 
@@ -92,7 +100,26 @@ export class MarkdownParser {
 
   processTable(rows) {
     let html = '<table>';
-    rows.forEach((row, index) => {
+    let isHeader = true;
+    
+    // Process header row
+    const headerRow = rows[0];
+    if (headerRow) {
+      html += '<tr>';
+      const headers = headerRow
+        .split('|')
+        .slice(1, -1) // Remove empty first/last cells
+        .map(cell => cell.trim())
+        .filter(cell => cell.length > 0); // Remove empty cells
+      
+      headers.forEach(header => {
+        html += `<th>${this.formatText(header)}</th>`;
+      });
+      html += '</tr>';
+    }
+
+    // Process data rows
+    rows.slice(1).forEach(row => {
       const trimmedRow = row.trim();
       if (trimmedRow.startsWith('+--')) {
         return; // Skip separator lines
@@ -102,14 +129,15 @@ export class MarkdownParser {
       const cells = trimmedRow
         .split('|')
         .slice(1, -1) // Remove empty first/last cells
-        .map(cell => this.formatText(cell.trim()));
+        .map(cell => cell.trim())
+        .filter(cell => cell.length > 0); // Remove empty cells
       
       cells.forEach(cell => {
-        const tag = index === 0 ? 'th' : 'td';
-        html += `<${tag}>${cell}</${tag}>`;
+        html += `<td>${this.formatText(cell)}</td>`;
       });
       html += '</tr>';
     });
+    
     html += '</table>';
     return html;
   }
