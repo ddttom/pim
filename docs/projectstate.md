@@ -20,6 +20,13 @@ UI Components
 - Rich text editor
 - Settings management
 
+AI-Powered Parser
+
+- Ollama integration for intelligent text parsing
+- Context-aware metadata extraction
+- Robust error handling and fallbacks
+- Automatic model selection
+
 ## Recent Updates
 
 1. Entry Management
@@ -35,6 +42,14 @@ UI Components
 - Startup optimization
 - Module organization
 - Error handling
+
+3. Parser System Enhancements
+
+- Replaced regex-based parser with AI-powered Ollama implementation
+- Improved metadata extraction accuracy
+- Added robust JSON parsing with fallback mechanisms
+- Implemented comprehensive error handling
+- Created detailed documentation and testing tools
 
 ## Active Development
 
@@ -76,6 +91,7 @@ UI Components
 - Advanced search
 - Offline support
 - Tag system
+- Parser optimization and caching
 
 2. Infrastructure
 

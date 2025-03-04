@@ -29,6 +29,7 @@ For detailed product requirements and specifications, see [Product Requirements]
 - Customizable themes
 - Keyboard-driven interface
 - Cloud sync (coming soon)
+- AI-powered text parsing with Ollama
 
 For complete feature details, see [User Manual](docs/usermanual.md).
 
@@ -44,6 +45,25 @@ npm test
 # Start the application
 npm start
 ```
+
+### Ollama Setup (Optional)
+
+For AI-powered text parsing, you'll need to install Ollama:
+
+```bash
+# macOS/Linux
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Start Ollama service
+ollama serve
+
+# Pull the required model
+ollama pull hhao/qwen2.5-coder-tools:32b
+```
+
+For Windows, download the installer from [ollama.ai/download](https://ollama.ai/download).
+
+See [Ollama Parser Documentation](docs/ollama-parser.md) for more details.
 
 ## Project Structure
 
@@ -66,7 +86,11 @@ src/
 │   ├── sync/        # Sync functionality
 │   └── utils/       # Utility functions
 ├── services/        # Core services
-│   └── parser/      # Text parsing system
+│   ├── parser.js    # AI-powered text parsing system
+│   └── ...          # Other services
+├── scripts/         # Utility scripts
+│   ├── clean-db.js  # Database cleanup
+│   └── test-ollama-parser.js # Test script for Ollama parser
 └── utils/           # Shared utilities
 
 tests/
@@ -91,6 +115,9 @@ npm run test:db         # Database operations
 npm run test:parser     # Parser functionality
 npm run test:renderer   # UI components
 npm run test:rich-text  # Editor features
+
+# Test the Ollama parser
+npm run test-parser
 ```
 
 ### Building
@@ -131,6 +158,8 @@ For complete keyboard shortcuts and features, see [User Manual](docs/usermanual.
 - [Configuration](docs/config.md) - Configuration system details
 - [Testing](docs/test.md) - Test suite documentation
 - [Contributing](CONTRIBUTING.md) - Development guidelines
+- [Ollama Parser](docs/ollama-parser.md) - AI-powered text parsing
+- [AI Information](docs/AI-info.md) - AI capabilities and implementation details
 
 ## License
 

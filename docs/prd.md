@@ -168,6 +168,12 @@ PIM (Personal Information Manager) is a desktop application designed to help use
    - Copy database to clipboard function
 
 2. Parser System
+   - AI-powered parsing using Ollama:
+     - Integration with local LLM service
+     - Context-aware text analysis
+     - Intelligent metadata extraction
+     - Robust error handling and fallbacks
+     - Automatic model selection
    - Modular parser architecture
    - Individual parsers for each metadata type
    - Consistent error handling across parsers:

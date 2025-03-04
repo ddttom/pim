@@ -69,6 +69,59 @@ The test environment is configured in `tests/setup.js` to:
   - Participants (@robin, @ian)
   - Tags (#disaster)
 
+### Ollama Parser Tests
+
+#### Manual Testing Script (`src/scripts/test-ollama-parser.js`)
+
+- AI-powered text parsing
+- Integration with Ollama LLM service
+- Tests parsing of various text formats:
+  - Meetings with location and duration
+  - Tasks with deadlines and priorities
+  - Projects with participants and tags
+  - Status updates with completion percentages
+- Tests JSON parsing and error handling
+- Verifies model selection and availability
+- Example test cases:
+
+  ```bash
+  "Call John about Project Alpha next Monday at 2pm"
+  "Meeting with Sarah in Conference Room B tomorrow for 1 hour"
+  "Email the team about quarterly results by Friday #important"
+  "Review documentation for the new API - 50% complete"
+  "Lunch with clients at Bistro on Thursday at noon"
+  ```
+
+#### Automated Jest Tests
+
+##### Basic Structure and Error Handling (`tests/parsers/ollama.test.js`)
+
+- Tests the parser's interface and structure
+- Verifies error handling for various scenarios:
+  - Ollama service unavailability
+  - JSON parsing errors
+  - Empty or invalid input
+- Tests compatibility with existing code
+- Mocks Ollama service to avoid external dependencies
+- Ensures backward compatibility with resetPlugins method
+
+##### Metadata Extraction (`tests/parsers/ollama-parsing.test.js`)
+
+- Tests specific parsing capabilities:
+  - Action parsing (call, email, meet)
+  - Contact parsing (people names)
+  - Project parsing (project names and details)
+  - Date parsing (deadlines and events)
+  - Location parsing (meeting venues)
+  - Duration parsing (time spans)
+  - Priority parsing (importance levels)
+  - Tags parsing (hashtags)
+  - Status parsing (progress states)
+  - Participants parsing (people involved)
+- Tests complex parsing with multiple metadata types
+- Tests JSON extraction from various formats
+- Tests JSON cleaning and fixing for malformed input
+
 ### Renderer Tests (`tests/renderer.test.js`)
 
 - UI component rendering
@@ -127,6 +180,22 @@ jest.mock('../src/renderer/editor/editor.js', () => {
 - Enables log verification
 - Prevents console noise
 
+### Ollama Mock
+
+```javascript
+jest.mock('node-fetch', () => {
+  return jest.fn(() => 
+    Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({
+        models: [{ name: 'test-model' }],
+        response: '```json\n{"result": "success"}\n```'
+      })
+    })
+  );
+});
+```
+
 ## Running Tests
 
 ### All Tests
@@ -145,6 +214,27 @@ npm run test:renderer   # UI components
 npm run test:rich-text  # Editor features
 npm run test:plugins    # Plugin system
 ```
+
+### Testing Ollama Parser
+
+```bash
+# Test the Ollama parser with the manual test script
+npm run test-parser
+```
+
+This will:
+
+- Check if Ollama is running and list available models
+- Initialize the parser with the default or available model
+- Run test cases with various text inputs
+- Display the parsed results for each test case
+
+```bash
+# Run the automated Jest tests for the Ollama parser
+npm test -- tests/parsers/ollama.test.js tests/parsers/ollama-parsing.test.js
+```
+
+This will run the automated tests for the Ollama parser, which mock the Ollama service to avoid external dependencies.
 
 ### Watch Mode
 
@@ -248,4 +338,35 @@ test('handles errors properly', async () => {
   await expect(async () => {
     await functionUnderTest();
   }).rejects.toThrow('Test error');
+});
+```
+
+### Testing Ollama with JS
+
+```javascript
+test('parses text with Ollama', async () => {
+  // Initialize parser
+  await parser.initialize();
+  
+  // Parse text
+  const result = await parser.parse('Call John about Project Alpha next Monday at 2pm');
+  
+  // Verify parsed data
+  expect(result.parsed.action).toBe('call');
+  expect(result.parsed.contact).toBe('John');
+  expect(result.parsed.project.project).toBe('Project Alpha');
+  expect(result.parsed.final_deadline).toBeDefined();
+});
+```
+
+### Testing JSON Parsing
+
+```javascript
+test('extracts JSON from Ollama response', () => {
+  // Test with JSON in code block
+  const jsonInCodeBlock = '```json\n{"action": "call", "contact": "John"}\n```';
+  const result = parser.extractJsonFromCompletion(jsonInCodeBlock);
+  
+  // Verify extracted JSON
+  expect(result).toEqual({ action: 'call', contact: 'John' });
 });
