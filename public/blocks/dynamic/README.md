@@ -1,7 +1,7 @@
 
 # Dynamic block JS
 
-This JavaScript code is part Tom Cranstoun derived variations of Helix CMS, with diagrams here <https://main--allaboutv2--ddttom.hlx.live/extra/dynamic>
+This JavaScript code is part Tom Cranstoun derived variations of Helix CMS
 
 It defines an asynchronous function named `decorate` that dynamically manipulates web content based on certain conditions. The function is designed to work within a specific block of a webpage, enhancing it with dynamic content fetched from a JSON file.
 
